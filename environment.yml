@@ -1,0 +1,26 @@
+name: hic-analysis
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - pandas
+  - matplotlib
+  - scipy
+  - cooler
+  - cooltools
+  - bioframe
+  - napari
+  - pyqt
+  - jupyter
+  - notebook
+  - ipykernel
+  - jupyterlab
+  - ipywidgets
+  - dask
+  - h5py
+  - pip:
+    - hic-straw
