@@ -1,9 +1,6 @@
 [submodule "externals/methods-benchmarking"]
 	path = externals/methods-benchmarking
 	url = https://github.com/dekkerlab/Flagship_paper.git
-[submodule "GAM-analysis"]
-	path = GAM-analysis
-	url = https://github.com/pombo-lab/WinickNg_Kukalev_Harabula_Nature_2021.git
 [submodule "externals/GAM-analysis"]
 	path = externals/GAM-analysis
 	url = https://github.com/pombo-lab/WinickNg_Kukalev_Harabula_Nature_2021.git
