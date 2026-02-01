@@ -59,7 +59,7 @@ def plot_region(file_path, region_name, coordinates):
     plt.colorbar(im, label="Contact Frequency")
     
     # 4. Save
-    output_filename = f"{region_name}_heatmap.png"
+    output_filename = f"media/{region_name}_heatmap.png"
     plt.savefig(output_filename, dpi=150, bbox_inches='tight')
     print(f"Saved to {output_filename}")
     plt.close()
@@ -117,7 +117,7 @@ def plot_triangular_region(file_path, region_name, coordinates):
     plt.axis('off')
 
     # 4. Save
-    output_filename = f"{region_name}_triangular.png"
+    output_filename = f"media/{region_name}_triangular.png"
     plt.savefig(output_filename, dpi=150, bbox_inches='tight')
     print(f"Saved to {output_filename}")
     plt.close()
@@ -209,7 +209,7 @@ def plot_compartments(file_path, region_name, coordinates):
     fig.colorbar(im, cax=cax, label="Contact Frequency")
 
     # 4. Save
-    output_filename = f"{region_name}_triangular_track.png"
+    output_filename = f"media/{region_name}_triangular_track.png"
     plt.savefig(output_filename, dpi=150, bbox_inches='tight')
     print(f"Saved to {output_filename}")
     plt.close()
@@ -266,7 +266,7 @@ def plot_insulation(file_path, region_name, coordinates):
     ax_ins.legend(loc='lower left', fontsize='small')
     ax_ins.axhline(0, color='grey', lw=0.5)
 
-    output_filename = f"{region_name}_insulation.png"
+    output_filename = f"media/{region_name}_insulation.png"
     plt.savefig(output_filename, dpi=150, bbox_inches='tight')
     print(f"Saved to {output_filename}")
     plt.close()
@@ -307,7 +307,7 @@ def plot_dots(file_path, region_name, coordinates):
         plt.scatter(p2 / RESOLUTION, p1 / RESOLUTION, s=40, edgecolors='black', facecolors='none', lw=1)
 
     plt.title(f"Dots (Loops): {region_name}")
-    output_filename = f"{region_name}_dots.png"
+    output_filename = f"media/{region_name}_dots.png"
     plt.savefig(output_filename, dpi=150, bbox_inches='tight')
     print(f"Saved to {output_filename}")
     plt.close()
@@ -350,7 +350,7 @@ def plot_saddle(file_path, region_name, coordinates):
     plt.xlabel("E1 Quantile")
     plt.ylabel("E1 Quantile")
     
-    output_filename = f"{region_name}_saddle.png"
+    output_filename = f"media/{region_name}_saddle.png"
     plt.savefig(output_filename, dpi=150, bbox_inches='tight')
     print(f"Saved to {output_filename}")
     plt.close()

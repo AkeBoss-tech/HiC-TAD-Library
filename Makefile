@@ -16,6 +16,6 @@ run:
 	python visualize_tads.py
 
 clean:
-	rm -f *.png
+	rm -f media/*.png
 
 setup: install run
