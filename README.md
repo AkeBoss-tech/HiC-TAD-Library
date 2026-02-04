@@ -10,7 +10,14 @@ You can install the required dependencies using the provided `Makefile`:
 make install
 ```
 
-Required packages include: `cooler`, `cooltools`, `bioframe`, `matplotlib`, `pandas`, and `numpy`.
+Required packages include: `cooler`, `cooltools`, `bioframe`, `matplotlib`, `pandas`, `numpy`, and `alphagenome`.
+
+### AlphaGenome Integration
+This project now integrates [AlphaGenome](https://www.alphagenomedocs.com/) for high-resolution genomic predictions and visualizations.
+
+To set up AlphaGenome:
+1. Ensure your API key is in the `.env` file as `ALPHA_GENOME_API_KEY`.
+2. Run `make install-alphagenome`.
 
 ## Usage
 
@@ -53,5 +60,15 @@ Analyzing compartment-dependent interaction preferences.
 
 ![Saddle Plot](media/Compartments_Chr2_saddle.png)
 
+### 6. AlphaGenome Predictions (NEW)
+Advanced modalities including predicted contact maps, CTCF binding, and Virtual 4C tracks.
+
+#### Predicted TADs and CTCF
+![AlphaGenome Contacts](media/alphagenome_contacts_chr22_36_000_000-36_500_000.png)
+![AlphaGenome CTCF](media/alphagenome_ctcf_chr22_36_245_000-36_275_000.png)
+
+#### Virtual 4C
+![AlphaGenome Virtual 4C](media/alphagenome_v4c_chr22_36_000_000-36_500_000.png)
+
 ---
-*Data sourced from [4DNucleome](https://data.4dnucleome.org/)*
+*Data sourced from [4DNucleome](https://data.4dnucleome.org/) and [AlphaGenome](https://www.alphagenomedocs.com/)*

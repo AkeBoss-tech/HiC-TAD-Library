@@ -7,3 +7,7 @@
 [submodule "externals/loop-analysis"]
 	path = externals/loop-analysis
 	url = https://github.com/XiaoTaoWang/4DN-joint-analysis.git
+[submodule "externals/alphagenome"]
+	path = externals/alphagenome
+	url = https://github.com/google-deepmind/alphagenome.git
+	branch = main
