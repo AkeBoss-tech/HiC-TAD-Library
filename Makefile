@@ -19,6 +19,7 @@ install: install-alphagenome
 
 run:
 	python visualize_tads.py
+	python visualize_boundaries.py
 	python visualize_alphagenome.py
 
 clean:
