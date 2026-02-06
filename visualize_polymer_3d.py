@@ -29,6 +29,7 @@ from mpl_toolkits.mplot3d import Axes3D          # noqa: F401 (registers 3D proj
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib.colors as mcolors
 import os
+from scipy.spatial.transform import Rotation as R  # For helical twist in DNA-like render
 
 from src.tad_boundaries import (
     parse_coordinates,
@@ -217,6 +218,111 @@ def plot_polymer_with_heatmap(
 
 
 # ---------------------------------------------------------------------------
+# DNA-like Matplotlib renderer (static PNG)
+# ---------------------------------------------------------------------------
+
+def plot_dna_like_polymer_matplotlib(
+    coords: np.ndarray,
+    bead_colors: np.ndarray,
+    cmap: str = 'RdBu_r',
+    title: str = '',
+    output_path: str = 'media/polymer_3d_dna_like.png',
+    colorbar_label: str = 'E1 (A/B compartment)',
+    elev: float = 25.0,
+    azim: float = 135.0,
+    helix_radius: float = 0.2,  # Distance between the two strands
+    twist_rate: float = 0.1,    # Twist angle per bead (radians); higher = tighter helix
+    rung_color: str = 'blue',   # Color for base-pair rungs
+    strand1_color: str = 'red', # Fixed color for strand 1 (or use cmap)
+    strand2_color: str = 'cyan',# Fixed color for strand 2
+) -> None:
+    """
+    Render polymer as a DNA-like double helix in matplotlib.
+    
+    - Two helical strands with rungs.
+    - Beads colored by input data.
+    """
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    n_beads = len(coords)
+    strand1_coords = np.zeros_like(coords)
+    strand2_coords = np.zeros_like(coords)
+    
+    # Cumulative twist angle
+    twist_angles = np.cumsum(np.full(n_beads, twist_rate))
+    
+    for i in range(n_beads):
+        if i < n_beads - 1:
+            # Local tangent vector (direction along backbone)
+            tangent = coords[i+1] - coords[i]
+            tangent_norm = np.linalg.norm(tangent)
+            if tangent_norm > 0:
+                tangent /= tangent_norm
+            else:
+                tangent = np.array([1, 0, 0])  # Fallback direction
+            
+            # Arbitrary perpendicular vector (for initial offset)
+            if np.abs(tangent[2]) > 0.5:  # Avoid z-axis alignment issues
+                perp = np.cross(tangent, [1, 0, 0])
+            else:
+                perp = np.cross(tangent, [0, 0, 1])
+            perp_norm = np.linalg.norm(perp)
+            if perp_norm > 0:
+                perp /= perp_norm
+            else:
+                perp = np.array([0, 1, 0])  # Fallback
+            
+            # Rotate perp around tangent for helical twist
+            rot = R.from_rotvec(twist_angles[i] * tangent)
+            perp_rotated = rot.apply(perp)
+            
+            # Offsets for two strands
+            offset = perp_rotated * helix_radius
+            strand1_coords[i] = coords[i] + offset
+            strand2_coords[i] = coords[i] - offset
+        else:
+            # Last bead: copy from previous for continuity
+            strand1_coords[i] = strand1_coords[i-1]
+            strand2_coords[i] = strand2_coords[i-1]
+    
+    # Strand 1 backbone segments
+    segments1 = [[strand1_coords[i], strand1_coords[i + 1]] for i in range(n_beads - 1)]
+    lc1 = Line3DCollection(segments1, colors=strand1_color, linewidths=1.5, alpha=0.8)
+    ax.add_collection3d(lc1)
+    
+    # Strand 2 backbone segments
+    segments2 = [[strand2_coords[i], strand2_coords[i + 1]] for i in range(n_beads - 1)]
+    lc2 = Line3DCollection(segments2, colors=strand2_color, linewidths=1.5, alpha=0.8)
+    ax.add_collection3d(lc2)
+    
+    # Rungs (base pairs) between strands
+    rung_segments = [[strand1_coords[i], strand2_coords[i]] for i in range(n_beads)]
+    lc_rungs = Line3DCollection(rung_segments, colors=rung_color, linewidths=0.8, alpha=0.6)
+    ax.add_collection3d(lc_rungs)
+    
+    # Beads (optional; place on midpoints or one strand for simplicity)
+    mid_coords = (strand1_coords + strand2_coords) / 2  # Midpoints for beads
+    vmax = np.nanpercentile(np.abs(bead_colors[np.isfinite(bead_colors)]), 95) if np.any(np.isfinite(bead_colors)) else 1.0
+    sc = ax.scatter(
+        mid_coords[:, 0], mid_coords[:, 1], mid_coords[:, 2],
+        c=bead_colors, cmap=cmap, s=15, edgecolors='none',
+        vmin=-vmax, vmax=vmax, depthshade=True,
+    )
+    fig.colorbar(sc, ax=ax, label=colorbar_label, shrink=0.6, pad=0.1)
+    
+    ax.set_title(title)
+    ax.view_init(elev=elev, azim=azim)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    print(f"Saved DNA-like render to {output_path}")
+    plt.close()
+
+
+# ---------------------------------------------------------------------------
 # Plotly renderer (interactive HTML / Jupyter)
 # ---------------------------------------------------------------------------
 
@@ -284,6 +390,139 @@ def plot_polymer_plotly(
 
     fig.write_html(output_path)
     print(f"Saved interactive HTML to {output_path}")
+    return fig
+
+
+def plot_dna_like_polymer_plotly(
+    coords: np.ndarray,
+    bead_colors: np.ndarray,
+    cmap: str = 'RdBu',
+    title: str = '',
+    output_path: str = 'media/polymer_3d_dna_like.html',
+    colorbar_label: str = 'E1 (A/B compartment)',
+    helix_radius: float = 0.2,
+    twist_rate: float = 0.1,
+):
+    """
+    Interactive 3-D DNA-like polymer render using plotly.
+    
+    Returns the plotly Figure so it can be displayed inline in Jupyter via
+    ``fig.show()``, or saved to *output_path* as standalone HTML.
+    """
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        print("plotly not installed — skipping interactive render.")
+        print("  Install with: pip install plotly")
+        return None
+
+    n_beads = len(coords)
+    strand1_coords = np.zeros_like(coords)
+    strand2_coords = np.zeros_like(coords)
+    
+    # Cumulative twist angle
+    twist_angles = np.cumsum(np.full(n_beads, twist_rate))
+    
+    for i in range(n_beads):
+        if i < n_beads - 1:
+            # Local tangent vector
+            tangent = coords[i+1] - coords[i]
+            tangent_norm = np.linalg.norm(tangent)
+            if tangent_norm > 0:
+                tangent /= tangent_norm
+            else:
+                tangent = np.array([1, 0, 0])
+            
+            # Perpendicular vector
+            if np.abs(tangent[2]) > 0.5:
+                perp = np.cross(tangent, [1, 0, 0])
+            else:
+                perp = np.cross(tangent, [0, 0, 1])
+            perp_norm = np.linalg.norm(perp)
+            if perp_norm > 0:
+                perp /= perp_norm
+            else:
+                perp = np.array([0, 1, 0])
+            
+            # Rotate for helical twist
+            rot = R.from_rotvec(twist_angles[i] * tangent)
+            perp_rotated = rot.apply(perp)
+            
+            offset = perp_rotated * helix_radius
+            strand1_coords[i] = coords[i] + offset
+            strand2_coords[i] = coords[i] - offset
+        else:
+            strand1_coords[i] = strand1_coords[i-1]
+            strand2_coords[i] = strand2_coords[i-1]
+    
+    vmax = float(
+        np.nanpercentile(np.abs(bead_colors[np.isfinite(bead_colors)]), 95)
+    ) if np.any(np.isfinite(bead_colors)) else 1.0
+    
+    # Strand 1 trace
+    strand1 = go.Scatter3d(
+        x=strand1_coords[:, 0], y=strand1_coords[:, 1], z=strand1_coords[:, 2],
+        mode='lines',
+        line=dict(color='red', width=3),
+        hoverinfo='skip',
+        name='Strand 1',
+    )
+    
+    # Strand 2 trace
+    strand2 = go.Scatter3d(
+        x=strand2_coords[:, 0], y=strand2_coords[:, 1], z=strand2_coords[:, 2],
+        mode='lines',
+        line=dict(color='cyan', width=3),
+        hoverinfo='skip',
+        name='Strand 2',
+    )
+    
+    # Rungs (base pairs) - create lines between strand pairs
+    rung_x, rung_y, rung_z = [], [], []
+    for i in range(n_beads):
+        rung_x.extend([strand1_coords[i, 0], strand2_coords[i, 0], None])
+        rung_y.extend([strand1_coords[i, 1], strand2_coords[i, 1], None])
+        rung_z.extend([strand1_coords[i, 2], strand2_coords[i, 2], None])
+    
+    rungs = go.Scatter3d(
+        x=rung_x, y=rung_y, z=rung_z,
+        mode='lines',
+        line=dict(color='blue', width=2),
+        hoverinfo='skip',
+        name='Rungs',
+    )
+    
+    # Beads at midpoints
+    mid_coords = (strand1_coords + strand2_coords) / 2
+    beads = go.Scatter3d(
+        x=mid_coords[:, 0], y=mid_coords[:, 1], z=mid_coords[:, 2],
+        mode='markers',
+        marker=dict(
+            size=3,
+            color=bead_colors,
+            colorscale=cmap,
+            cmin=-vmax,
+            cmax=vmax,
+            colorbar=dict(title=colorbar_label),
+            opacity=0.8,
+        ),
+        text=[f"bin {i}" for i in range(len(coords))],
+        hoverinfo='text+x+y+z',
+        name='beads',
+    )
+    
+    fig = go.Figure(data=[strand1, strand2, rungs, beads])
+    fig.update_layout(
+        title=title,
+        scene=dict(
+            xaxis_title='X', yaxis_title='Y', zaxis_title='Z',
+            aspectmode='data',
+        ),
+        width=900, height=800,
+    )
+    
+    fig.write_html(output_path)
+    print(f"Saved interactive DNA-like HTML to {output_path}")
     return fig
 
 
@@ -409,6 +648,13 @@ def run_polymer_viz(
         output_path=f"media/{region_name}_polymer_3d.png",
     )
 
+    # DNA-like double helix visualization
+    plot_dna_like_polymer_matplotlib(
+        coords, e1_upsampled,
+        title=f"DNA-like 3-D Polymer: {region_name}\n{coordinates}",
+        output_path=f"media/{region_name}_polymer_3d_dna_like.png",
+    )
+
     # Side-by-side panel
     plot_polymer_with_heatmap(
         coords, matrix, e1_upsampled,
@@ -422,6 +668,13 @@ def run_polymer_viz(
             coords, e1_upsampled,
             title=f"3-D Polymer: {region_name} ({coordinates})",
             output_path=f"media/{region_name}_polymer_3d.html",
+        )
+        
+        # DNA-like interactive visualization
+        plot_dna_like_polymer_plotly(
+            coords, e1_upsampled,
+            title=f"DNA-like 3-D Polymer: {region_name} ({coordinates})",
+            output_path=f"media/{region_name}_polymer_3d_dna_like.html",
         )
 
     return coords

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiC-TAD Library - Media Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #2196F3;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #2196F3;
+        }
+
+        .interactive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .interactive-card {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .interactive-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .interactive-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .interactive-card p {
+            text-align: center;
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .dna-card {
+            background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .image-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .image-card-title {
+            padding: 15px;
+            font-size: 0.9em;
+            color: #333;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            margin-left: 10px;
+            font-weight: 600;
+        }
+
+        .badge-new {
+            background: #FF5722;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            animation: fadeIn 0.3s;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        .modal-content {
+            position: relative;
+            margin: 0 auto;
+            max-width: 1200px;
+            width: 90%;
+            animation: slideIn 0.3s;
+            padding-bottom: 40px;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .modal-caption {
+            background-color: white;
+            padding: 20px 30px;
+            margin-top: 15px;
+            border-radius: 8px;
+            color: #333;
+        }
+
+        .modal-caption h2 {
+            margin-bottom: 10px;
+            color: #2196F3;
+            font-size: 1.5em;
+        }
+
+        .modal-caption p {
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .close {
+            position: fixed;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+        }
+
+        .close:hover {
+            color: #ff5722;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .section-title {
+                font-size: 1.5em;
+            }
+
+            .modal-content {
+                max-width: 95%;
+            }
+
+            .close {
+                font-size: 35px;
+                top: 10px;
+                right: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>HiC-TAD Library Media Gallery</h1>
+        <p class="subtitle">Chromatin 3D Structure Visualizations & Hi-C Analysis Results</p>
+
+        <!-- Interactive 3D Visualizations -->
+        <div class="section">
+            <h2 class="section-title">Interactive 3D Visualizations <span class="badge badge-new">NEW</span></h2>
+            <div class="interactive-grid">
+                <a href="media/Sox11_Chr12_polymer_3d.html" class="interactive-card" target="_blank">
+                    <div class="icon">3D</div>
+                    <h3>Sox11_Chr12</h3>
+                    <p>Standard Polymer Model</p>
+                    <p style="font-size: 0.85em; margin-top: 10px;">chr12:26,000,000-28,000,000</p>
+                </a>
+
+                <a href="media/Sox11_Chr12_polymer_3d_dna_like.html" class="interactive-card dna-card" target="_blank">
+                    <div class="icon">DNA</div>
+                    <h3>Sox11_Chr12 <span class="badge badge-new">DNA</span></h3>
+                    <p>Double Helix Visualization</p>
+                    <p style="font-size: 0.85em; margin-top: 10px;">chr12:26,000,000-28,000,000</p>
+                </a>
+
+                <a href="media/Mir9-2_Chr13_polymer_3d.html" class="interactive-card" target="_blank">
+                    <div class="icon">3D</div>
+                    <h3>Mir9-2_Chr13</h3>
+                    <p>Standard Polymer Model</p>
+                    <p style="font-size: 0.85em; margin-top: 10px;">chr13:83,500,000-84,500,000</p>
+                </a>
+
+                <a href="media/Mir9-2_Chr13_polymer_3d_dna_like.html" class="interactive-card dna-card" target="_blank">
+                    <div class="icon">DNA</div>
+                    <h3>Mir9-2_Chr13 <span class="badge badge-new">DNA</span></h3>
+                    <p>Double Helix Visualization</p>
+                    <p style="font-size: 0.85em; margin-top: 10px;">chr13:83,500,000-84,500,000</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Static Visualizations -->
+        <div class="section">
+            <h2 class="section-title">Static PNG Visualizations</h2>
+
+            <h3 style="margin: 30px 0 20px 0; color: #555; font-size: 1.3em;">Sox11_Chr12 Region</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_polymer_3d.png', 'Standard Polymer 3D', '3D bead-spring polymer model showing the spatial organization of the Sox11 region. Each bead represents ~5kb of DNA, colored by A/B compartment signal (red=active, blue=inactive).')">
+                    <img src="media/Sox11_Chr12_polymer_3d.png" alt="Polymer 3D">
+                    <div class="image-card-title">Standard Polymer 3D</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_polymer_3d_dna_like.png', 'DNA-Like Double Helix (NEW)', 'DNA-inspired visualization with two helical strands (red & cyan) connected by rungs. This stylized representation evokes DNA structure while showing chromatin folding patterns based on Hi-C contact data.')">
+                    <img src="media/Sox11_Chr12_polymer_3d_dna_like.png" alt="DNA-like Polymer">
+                    <div class="image-card-title">DNA-Like Double Helix <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_polymer_3d_panel.png', 'Polymer + Heatmap Panel', 'Side-by-side comparison of the 3D polymer structure (left) and the Hi-C contact matrix (right) that generated it. This shows how 2D contact frequencies translate into 3D spatial organization.')">
+                    <img src="media/Sox11_Chr12_polymer_3d_panel.png" alt="Polymer Panel">
+                    <div class="image-card-title">Polymer + Heatmap Panel</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_heatmap.png', 'Hi-C Contact Matrix', 'The Sox11 locus shows clear TAD structures visible as block-like enrichments along the diagonal. These self-interacting domains are fundamental units of chromatin organization.')">
+                    <img src="media/Sox11_Chr12_heatmap.png" alt="Heatmap">
+                    <div class="image-card-title">Hi-C Contact Matrix</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_insulation.png', 'Insulation Score', 'Top: Hi-C heatmap with detected boundaries marked as dashed lines. Bottom: Insulation scores at three window sizes. Boundaries appear where all three curves dip simultaneously, indicating robust structural transitions.')">
+                    <img src="media/Sox11_Chr12_insulation.png" alt="Insulation">
+                    <div class="image-card-title">Insulation Score</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_triangular.png', 'Triangular Heatmap', 'Triangular view of Sox11 clearly reveals TAD boundaries as vertical dips and the nested hierarchical structure of chromatin domains within larger compartments.')">
+                    <img src="media/Sox11_Chr12_triangular.png" alt="Triangular">
+                    <div class="image-card-title">Triangular Heatmap</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_tad_overlay.png', 'TAD Boundaries Overlay', 'Top: Contact map with TAD boundaries drawn as L-shaped corners. Each TAD is a self-interacting chromatin domain. Bottom: Insulation score track with strong (red) and weak (orange) boundaries marked.')">
+                    <img src="media/Sox11_Chr12_tad_overlay.png" alt="TAD Overlay">
+                    <div class="image-card-title">TAD Boundaries Overlay</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_combined_boundary.png', 'Combined Analysis', 'Integrated view: (1) Contact map with TAD brackets, (2) Insulation score with boundary classification, (3) Directionality index showing interaction bias, (4) Boundary tick marks showing positions and strengths.')">
+                    <img src="media/Sox11_Chr12_combined_boundary.png" alt="Combined">
+                    <div class="image-card-title">Combined Analysis</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_boundary_strength.png', 'Boundary Strength', 'Ranked boundary prominence for Sox11. The tallest bars represent the strongest boundaries with the deepest insulation valleys. Strong boundaries (above red line) are most conserved across cell types.')">
+                    <img src="media/Sox11_Chr12_boundary_strength.png" alt="Boundary Strength">
+                    <div class="image-card-title">Boundary Strength</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_boundary_pileup.png', 'Boundary Pileup', 'Average contact pattern around boundaries. The characteristic square pattern with corner enrichment shows blocked interactions across boundaries and enriched within-TAD contacts.')">
+                    <img src="media/Sox11_Chr12_boundary_pileup.png" alt="Boundary Pileup">
+                    <div class="image-card-title">Boundary Pileup</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_directionality_index.png', 'Directionality Index', 'Directional bias changes reveal TAD organization. Red regions show loci preferentially interacting downstream, blue regions upstream. Transitions mark domain boundaries.')">
+                    <img src="media/Sox11_Chr12_directionality_index.png" alt="DI">
+                    <div class="image-card-title">Directionality Index</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Sox11_Chr12_multiscale_insulation.png', 'Multiscale Insulation', 'Heatmap showing insulation scores across genomic positions (x-axis) and window sizes (y-axis). Vertical blue streaks indicate boundaries persistent across scales. Red regions show locally high interaction.')">
+                    <img src="media/Sox11_Chr12_multiscale_insulation.png" alt="Multiscale">
+                    <div class="image-card-title">Multiscale Insulation</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 40px 0 20px 0; color: #555; font-size: 1.3em;">Mir9-2_Chr13 Region</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_polymer_3d.png', 'Standard Polymer 3D', '3D bead-spring polymer model of the Mir9-2 region. Spatial arrangement is derived from Hi-C contact restraints, with beads colored by compartment signal.')">
+                    <img src="media/Mir9-2_Chr13_polymer_3d.png" alt="Polymer 3D">
+                    <div class="image-card-title">Standard Polymer 3D</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_polymer_3d_dna_like.png', 'DNA-Like Double Helix (NEW)', 'Double helix visualization of Mir9-2 chromatin structure. Two intertwined strands with connecting rungs create a DNA-inspired representation of polymer folding.')">
+                    <img src="media/Mir9-2_Chr13_polymer_3d_dna_like.png" alt="DNA-like Polymer">
+                    <div class="image-card-title">DNA-Like Double Helix <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_polymer_3d_panel.png', 'Polymer + Heatmap Panel', 'Dual view showing 3D polymer model alongside the Hi-C contact matrix for the Mir9-2 region.')">
+                    <img src="media/Mir9-2_Chr13_polymer_3d_panel.png" alt="Polymer Panel">
+                    <div class="image-card-title">Polymer + Heatmap Panel</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_heatmap.png', 'Hi-C Contact Matrix', 'The Mir9-2 region demonstrates well-defined TAD boundaries (visible as transitions between enriched blocks) that compartmentalize the genome into functional units.')">
+                    <img src="media/Mir9-2_Chr13_heatmap.png" alt="Heatmap">
+                    <div class="image-card-title">Hi-C Contact Matrix</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_insulation.png', 'Insulation Score', 'The insulation track reveals multiple boundary positions where chromatin interactions are depleted. Concordance across window sizes indicates strong, consistent boundaries.')">
+                    <img src="media/Mir9-2_Chr13_insulation.png" alt="Insulation">
+                    <div class="image-card-title">Insulation Score</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_triangular.png', 'Triangular Heatmap', 'This rotated view makes it easier to see the insulation at TAD boundaries and the continuous interaction landscape across the region.')">
+                    <img src="media/Mir9-2_Chr13_triangular.png" alt="Triangular">
+                    <div class="image-card-title">Triangular Heatmap</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_tad_overlay.png', 'TAD Boundaries Overlay', 'TAD calling results overlaid on the contact map. The L-shaped brackets delineate individual TADs, showing how the genome is partitioned into discrete interaction domains.')">
+                    <img src="media/Mir9-2_Chr13_tad_overlay.png" alt="TAD Overlay">
+                    <div class="image-card-title">TAD Boundaries Overlay</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_combined_boundary.png', 'Combined Analysis', 'Complete boundary analysis panel. All tracks are aligned to facilitate comparison between detection methods. Strong boundaries show concordant signals across all metrics.')">
+                    <img src="media/Mir9-2_Chr13_combined_boundary.png" alt="Combined">
+                    <div class="image-card-title">Combined Analysis</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_boundary_strength.png', 'Boundary Strength', 'Distribution of boundary strengths at Mir9-2. Variation in prominence suggests a hierarchy of domain organization, with major boundaries separating large regions and minor boundaries creating sub-domains.')">
+                    <img src="media/Mir9-2_Chr13_boundary_strength.png" alt="Boundary Strength">
+                    <div class="image-card-title">Boundary Strength</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_boundary_pileup.png', 'Boundary Pileup', 'Pileup analysis reveals the stereotypical boundary signature: interactions are depleted at the boundary center and form characteristic corner peaks flanking the boundary.')">
+                    <img src="media/Mir9-2_Chr13_boundary_pileup.png" alt="Boundary Pileup">
+                    <div class="image-card-title">Boundary Pileup</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_directionality_index.png', 'Directionality Index', 'Clear directional changes across the Mir9-2 region highlight TAD boundaries and the bipartite nature of chromatin domains.')">
+                    <img src="media/Mir9-2_Chr13_directionality_index.png" alt="DI">
+                    <div class="image-card-title">Directionality Index</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Mir9-2_Chr13_multiscale_insulation.png', 'Multiscale Insulation', 'Scale-dependent boundary detection. Strong boundaries appear as vertical features spanning multiple window sizes, while weak boundaries may only be visible at specific scales.')">
+                    <img src="media/Mir9-2_Chr13_multiscale_insulation.png" alt="Multiscale">
+                    <div class="image-card-title">Multiscale Insulation</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 40px 0 20px 0; color: #555; font-size: 1.3em;">Other Analyses</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/Compartments_Chr2_saddle.png', 'Chr2 A/B Compartments (Saddle)', 'Interaction strength vs. E1 quantile. The saddle shape (corners elevated, center depressed) indicates strong compartmentalization. Top-right: A-A interactions (enriched). Bottom-left: B-B interactions (enriched). Center: A-B interactions (depleted).')">
+                    <img src="media/Compartments_Chr2_saddle.png" alt="Saddle">
+                    <div class="image-card-title">Chr2 A/B Compartments (Saddle)</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/Compartments_Chr2_triangular_track.png', 'Chr2 Compartments (Triangular)', 'Top: E1 eigenvector track showing compartment assignments across Chr2. Bottom: Triangular contact map showing checkerboard pattern where A compartments (red) interact preferentially with other A compartments, and B (blue) with B.')">
+                    <img src="media/Compartments_Chr2_triangular_track.png" alt="Triangular Track">
+                    <div class="image-card-title">Chr2 Compartments (Triangular)</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/tal1_jurkat_variant_effect.png', 'TAL1 Variant Effect', 'AlphaGenome prediction of the Jurkat variant on gene expression, chromatin accessibility, and histone modifications in CD34+ cells. The variant dramatically increases TAL1 RNA expression by creating a new enhancer element.')">
+                    <img src="media/tal1_jurkat_variant_effect.png" alt="Variant Effect">
+                    <div class="image-card-title">TAL1 Variant Effect</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/tal1_variant_positions.png', 'TAL1 Variant Positions', 'Genomic positions of oncogenic T-ALL variants that dysregulate TAL1 expression. The variants cluster in three regions near the TAL1 gene.')">
+                    <img src="media/tal1_variant_positions.png" alt="Variant Positions">
+                    <div class="image-card-title">TAL1 Variant Positions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <span class="close">&times;</span>
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img class="modal-image" id="modalImage">
+            <div class="modal-caption">
+                <h2 id="modalTitle"></h2>
+                <p id="modalDescription"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(imageSrc, title, description) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalDescription = document.getElementById('modalDescription');
+
+            modal.style.display = 'block';
+            modalImg.src = imageSrc;
+            modalTitle.textContent = title;
+            modalDescription.textContent = description;
+
+            // Allow scrolling on modal, prevent on body
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+
+</html>
