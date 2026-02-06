@@ -20,6 +20,7 @@ dependencies:
   - ipykernel
   - jupyterlab
   - ipywidgets
+  - plotly
   - dask
   - h5py
   - pip:
