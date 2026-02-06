@@ -241,8 +241,10 @@ def simulate_polymer(
                 overlap = dn.squeeze() < 0.8
                 if np.any(overlap):
                     rep = d[overlap] / dn[overlap]
-                    rep_force = rep * (0.8 - dn[overlap].squeeze())[:, None] * 10.0
-                    forces[i] -= rep_force.sum(axis=0)
+                    # Explicitly reshape to ensure proper broadcasting: (m, 1) shape
+                    dist_diff = (0.8 - dn[overlap]).reshape(-1, 1)
+                    rep_force = rep * dist_diff * 10.0
+                    forces[i] -= rep_force.sum(axis=0).ravel()
                     forces[i + 2:][overlap] += rep_force
 
         # --- Integration (overdamped: v = F / gamma + noise) ---
