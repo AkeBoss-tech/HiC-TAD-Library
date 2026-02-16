@@ -23,5 +23,8 @@ dependencies:
   - plotly
   - dask
   - h5py
+  - pytest
+  - pytest-cov
+  - pytest-mock
   - pip:
     - hic-straw
