@@ -169,5 +169,106 @@ Advanced modalities including predicted contact maps, CTCF binding, and Virtual 
 #### Virtual 4C
 ![AlphaGenome Virtual 4C](media/alphagenome_v4c_chr22_36_000_000-36_500_000.png)
 
+### 14. DNA Deletion Effect Analysis (AlphaGenome)
+**In silico perturbation experiments** using AlphaGenome AI to predict how structural variants (deletions) affect 3D genome organization. These analyses simulate the consequences of removing genomic regions—such as TAD boundaries, CTCF binding sites, or regulatory elements—and visualize the resulting changes in chromatin contact patterns.
+
+#### Understanding the Visualizations
+
+Each deletion analysis figure contains three components:
+1. **Gene Track (Top)**: Shows all protein-coding genes in the region with gene names labeled. The red shaded area marks the deleted region.
+2. **Wild-Type Contact Map (Left)**: AlphaGenome's predicted chromatin contact frequencies for the reference genome, showing TAD structures as diagonal blocks of high interaction (dark red).
+3. **After Deletion Contact Map (Right)**: Predicted contact frequencies after removing the specified genomic region, revealing how the deletion disrupts chromatin architecture.
+
+**Reading Contact Maps**:
+- **Diagonal blocks (red)** = TADs (self-interacting chromatin domains)
+- **Off-diagonal blocks** = Long-range chromatin loops
+- **Blue dashed lines** = Boundaries of the deleted region
+- **Color intensity** = Contact probability (darker = stronger interactions)
+
+---
+
+#### OCT4 TAD Boundary Deletion (chr6:30,630,000-31,630,000)
+![OCT4 Deletion Effect](media/enhanced_deletion_chr6_30630000_31630000_31100000_31150000.png)
+
+**Deletion**: 50kb removal at position 31,100,000-31,150,000 (potential TAD boundary region)
+
+**What This Shows**:
+- The OCT4 locus contains multiple genes involved in pluripotency and development
+- The **wild-type** (left) shows complex TAD organization with strong diagonal contact blocks
+- **After deletion** (right), the contact pattern is disrupted around the deletion site
+- This demonstrates how **TAD boundary deletions** can alter compartment structure and potentially affect gene regulation
+- The deletion removes a structural element that normally insulates chromatin domains, leading to aberrant inter-domain contacts
+
+**Biological Significance**: Deletions at TAD boundaries can cause "enhancer hijacking" where regulatory elements gain access to genes they normally don't control, potentially causing developmental disorders or cancer. The OCT4 region is critical for embryonic stem cell identity, so architectural disruptions here could affect cell fate decisions.
+
+---
+
+#### NANOG Enhancer Deletion (chr12:7,280,000-8,280,000)
+![NANOG Deletion Effect](media/enhanced_deletion_chr12_7280000_8280000_7750000_7800000.png)
+
+**Deletion**: 50kb removal at position 7,750,000-7,800,000 (regulatory element region)
+
+**What This Shows**:
+- The NANOG region contains multiple genes including NANOG (pluripotency regulator) and KRAS (oncogene)
+- **Wild-type** shows well-defined TAD structures with strong contact domains
+- **After deletion**, the chromatin architecture is extensively remodeled
+- The deletion removes a genomic segment that may contain enhancers or CTCF sites that organize local chromatin structure
+- Notice how contact patterns both upstream and downstream of the deletion are altered, showing long-range effects
+
+**Biological Significance**: This type of deletion could:
+1. **Remove enhancers** that activate NANOG or nearby genes, potentially disrupting pluripotency networks
+2. **Disrupt CTCF loop anchors**, allowing inappropriate gene-enhancer contacts
+3. **Alter TAD boundaries**, changing the regulatory landscape across hundreds of kilobases
+
+Such structural variants are found in developmental disorders and cancers where precise gene regulation is critical.
+
+---
+
+#### SOX2 Regulatory Element Deletion (chr3:181,210,000-182,210,000)
+![SOX2 Deletion Effect](media/enhanced_deletion_chr3_181210000_182210000_181700000_181750000.png)
+
+**Deletion**: 50kb removal at position 181,700,000-181,750,000 (regulatory region)
+
+**What This Shows**:
+- The SOX2 locus is a master regulator of neural development and stem cell maintenance
+- **Wild-type** displays characteristic TAD organization with strong self-interactions (diagonal red blocks)
+- **After deletion**, contact maps show altered interaction patterns, particularly affecting the middle of the region
+- The symmetric nature of contact map changes reflects the biophysical constraints of chromatin looping
+- Blue dashed lines mark where the deletion occurred, showing immediate and distal effects on chromatin folding
+
+**Biological Significance**: SOX2 is essential for:
+- **Neural stem cell maintenance**
+- **Embryonic development**
+- **Cellular reprogramming** (iPS cell generation)
+
+Deletions in this region could:
+- Disrupt long-range enhancer-promoter contacts essential for SOX2 expression
+- Alter TAD insulation, causing misregulation of nearby genes
+- Lead to neurodevelopmental disorders when occurring in human patients
+
+**Key Insight**: Even deletions that don't directly affect coding sequences can have profound effects by reorganizing 3D chromatin architecture and disrupting regulatory element positioning.
+
+---
+
+### Technical Details: How Deletion Analysis Works
+
+1. **AlphaGenome Prediction**: Google DeepMind's AlphaGenome AI model predicts chromatin contact frequencies from DNA sequence alone, trained on thousands of Hi-C experiments.
+
+2. **In Silico Deletion**: We create two predictions:
+   - **Reference**: Wild-type genomic sequence → Contact map
+   - **Variant**: Sequence with deletion → Contact map showing architectural changes
+
+3. **Side-by-Side Comparison**: Visual comparison reveals how structural variants affect:
+   - TAD boundaries and insulation
+   - Long-range chromatin loops
+   - Compartmentalization (A/B compartments)
+   - Gene regulatory landscapes
+
+4. **Applications**:
+   - **Disease variant interpretation**: Predict pathogenicity of structural variants found in patients
+   - **CRISPR experiment design**: Preview deletion effects before costly experiments
+   - **Evolutionary genomics**: Understand how structural variants shape genome evolution
+   - **Therapeutic target identification**: Find chromatin architectural features essential for disease
+
 ---
 *Data sourced from [4DNucleome](https://data.4dnucleome.org/) and [AlphaGenome](https://www.alphagenomedocs.com/)*
