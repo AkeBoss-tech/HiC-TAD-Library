@@ -463,6 +463,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- Mouse Insulator Deletion Analysis -->
+        <div class="section">
+            <h2 class="section-title">Mouse Insulator Deletion Analysis <span class="badge badge-new">NEW</span></h2>
+            <p style="color: #555; margin-bottom: 20px; line-height: 1.6;">
+                In silico prediction of insulator deletion effects in mouse (mm10), using AlphaGenome with olfactory receptor cells
+                (<code>CL:0000207</code>) — the closest available proxy for inner ear tissue, as both are primary sensory neurons
+                derived from cranial placodes. Regions provided by collaborators studying inner ear development near the <strong>Mef2c</strong> locus.
+            </p>
+
+            <h3 style="margin: 20px 0 15px 0; color: #555; font-size: 1.3em;">Jingyun's Region — Mef2c locus, chr13:83,739,797-83,745,138</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138.png', 'Mef2c Insulator Deletion — Contact Maps', 'Wild-type (left) shows a clear TAD boundary near the Mef2c locus. After deletion (middle), contacts are redistributed across the boundary. The difference map (right) shows lost contacts in blue and gained ectopic contacts in red. Mef2c is a transcription factor critical for inner ear hair cell development.')">
+                    <img src="media/mouse_deletion_chr13_83739797_83745138.png" alt="Mef2c Deletion Contact Maps">
+                    <div class="image-card-title">Contact Maps: WT | Deletion | Difference <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138_extra.png', 'Mef2c Insulator Deletion — Extra Analysis', 'Log₂ ratio map (left) shows fold-change of contacts after deletion — red regions gain contacts, blue regions lose them. Virtual 4C (middle) plots the 1D contact profile from the insulator viewpoint, comparing wild-type (blue) vs deletion (red). P(s) curve (right) shows how deletion shifts contact frequency across all genomic distances.')">
+                    <img src="media/mouse_deletion_chr13_83739797_83745138_extra.png" alt="Mef2c Extra Analysis">
+                    <div class="image-card-title">Log₂ Ratio | Virtual 4C | P(s) Curve <span class="badge badge-new">NEW</span></div>
+                </div>
+            </div>
+
+            <h3 style="margin: 40px 0 15px 0; color: #555; font-size: 1.3em;">Edward's Region — chr12:27,333,532-27,336,455</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455.png', 'chr12 Insulator Deletion — Contact Maps', 'Contact map comparison before and after a 2,924 bp insulator deletion on chr12. The difference map reveals structural consequences for the surrounding chromatin domain — regions that gain contacts (red) may indicate TAD merging, while blue regions show lost insulation.')">
+                    <img src="media/mouse_deletion_chr12_27333532_27336455.png" alt="chr12 Deletion Contact Maps">
+                    <div class="image-card-title">Contact Maps: WT | Deletion | Difference <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455_extra.png', 'chr12 Insulator Deletion — Extra Analysis', 'Log₂ ratio map (left), virtual 4C from the deletion viewpoint (middle), and P(s) distance-decay comparison (right) for the chr12 insulator deletion. The virtual 4C shows how contacts from the insulator position are redistributed after deletion.')">
+                    <img src="media/mouse_deletion_chr12_27333532_27336455_extra.png" alt="chr12 Extra Analysis">
+                    <div class="image-card-title">Log₂ Ratio | Virtual 4C | P(s) Curve <span class="badge badge-new">NEW</span></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Image Modal -->

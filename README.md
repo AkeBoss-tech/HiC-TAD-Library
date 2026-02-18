@@ -250,6 +250,36 @@ Deletions in this region could:
 
 ---
 
+### 15. Mouse Insulator Deletion Analysis (AlphaGenome, mm10)
+
+**In silico prediction of insulator deletion effects in mouse**, using olfactory receptor cells (`CL:0000207`) as the closest available proxy for inner ear tissue — both are primary sensory neurons derived from cranial placodes. Regions were provided by collaborators studying inner ear development.
+
+Each analysis produces two figures per region:
+- **3-panel map**: Wild-type | After deletion | Difference (Deletion − WT)
+- **Extra analysis**: Log₂ ratio map | Virtual 4C from insulator | P(s) contact-frequency-vs-distance curve
+
+#### Jingyun's Region — Mef2c locus (chr13:83,739,797-83,745,138, 5,342 bp)
+
+![Mouse Deletion chr13](media/mouse_deletion_chr13_83739797_83745138.png)
+*Wild-type (left) shows a clear TAD boundary near the Mef2c locus. After deletion (middle), contacts are redistributed across the boundary. The difference map (right) shows lost contacts in blue and gained ectopic contacts in red.*
+
+![Mouse Deletion chr13 extra](media/mouse_deletion_chr13_83739797_83745138_extra.png)
+*Log₂ ratio map (left) quantifies fold-changes per contact pair. Virtual 4C (middle) shows the 1D contact profile from the insulator viewpoint — the red curve (deletion) shifts substantially vs. wild-type (blue). P(s) curve (right) shows how the deletion affects contact frequency at all genomic distances.*
+
+**Biological significance**: Mef2c is a transcription factor critical for inner ear hair cell development and neural differentiation. Deletion of its insulator boundary may allow regulatory elements from adjacent TADs to ectopically activate or suppress Mef2c expression.
+
+---
+
+#### Edward's Region — chr12:27,333,532-27,336,455 (2,924 bp)
+
+![Mouse Deletion chr12](media/mouse_deletion_chr12_27333532_27336455.png)
+*Contact map comparison before and after the insulator deletion. The difference map reveals the structural consequences for the surrounding chromatin domain.*
+
+![Mouse Deletion chr12 extra](media/mouse_deletion_chr12_27333532_27336455_extra.png)
+*Additional analysis panels showing the log₂ ratio of contact changes, the virtual 4C profile from the deletion viewpoint, and the P(s) distance-decay curve comparing WT and deletion.*
+
+---
+
 ### Technical Details: How Deletion Analysis Works
 
 1. **AlphaGenome Prediction**: Google DeepMind's AlphaGenome AI model predicts chromatin contact frequencies from DNA sequence alone, trained on thousands of Hi-C experiments.

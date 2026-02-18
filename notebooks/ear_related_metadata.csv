@@ -1,0 +1,130 @@
+,name,strand,Assay title,ontology_curie,biosample_name,biosample_type,biosample_life_stage,data_source,endedness,genetically_modified,nonzero_mean,output_type,gtex_tissue,histone_mark,transcription_factor,organism
+141,UBERON:0002080 ATAC-seq,.,ATAC-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,paired,False,0.1907806694507599,OutputType.ATAC,,,,human
+142,UBERON:0002084 ATAC-seq,.,ATAC-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,paired,False,0.23439067602157593,OutputType.ATAC,,,,human
+238,hCAGE CL:0002536,+,hCAGE,CL:0002536,amniotic epithelial cell,primary_cell,,fantom,,,76.5748062133789,OutputType.CAGE,,,,human
+345,hCAGE UBERON:0000948,+,hCAGE,UBERON:0000948,heart,tissue,,fantom,,,21.7347412109375,OutputType.CAGE,,,,human
+398,hCAGE UBERON:0002084,+,hCAGE,UBERON:0002084,heart left ventricle,tissue,,fantom,,,191.14132690429688,OutputType.CAGE,,,,human
+511,hCAGE CL:0002536,-,hCAGE,CL:0002536,amniotic epithelial cell,primary_cell,,fantom,,,76.5748062133789,OutputType.CAGE,,,,human
+618,hCAGE UBERON:0000948,-,hCAGE,UBERON:0000948,heart,tissue,,fantom,,,21.7347412109375,OutputType.CAGE,,,,human
+671,hCAGE UBERON:0002084,-,hCAGE,UBERON:0002084,heart left ventricle,tissue,,fantom,,,191.14132690429688,OutputType.CAGE,,,,human
+769,CL:0002536 DNase-seq,.,DNase-seq,CL:0002536,amniotic epithelial cell,primary_cell,unknown,encode,single,False,0.9171459078788757,OutputType.DNASE,,,,human
+933,UBERON:0000948 DNase-seq,.,DNase-seq,UBERON:0000948,heart,tissue,embryonic,encode,paired,False,0.7380961179733276,OutputType.DNASE,,,,human
+969,UBERON:0002080 DNase-seq,.,DNase-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,paired,False,0.6760692000389099,OutputType.DNASE,,,,human
+970,UBERON:0002084 DNase-seq,.,DNase-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,paired,False,0.3393922448158264,OutputType.DNASE,,,,human
+1053,CL:0000842 total RNA-seq,+,total RNA-seq,CL:0000842,mononuclear cell,primary_cell,adult,encode,paired,False,0.11518890410661697,OutputType.RNA_SEQ,,,,human
+1108,CL:2000001 polyA plus RNA-seq,+,polyA plus RNA-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,paired,False,0.1745203137397766,OutputType.RNA_SEQ,,,,human
+1200,UBERON:0000948 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,paired,False,0.3406100273132324,OutputType.RNA_SEQ,,,,human
+1201,UBERON:0000948 total RNA-seq,+,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,paired,False,0.08766400068998337,OutputType.RNA_SEQ,,,,human
+1243,UBERON:0002080 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,paired,False,0.17129531502723694,OutputType.RNA_SEQ,,,,human
+1244,UBERON:0002080 total RNA-seq,+,total RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.1052015945315361,OutputType.RNA_SEQ,,,,human
+1245,UBERON:0002084 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,paired,False,0.13251028954982758,OutputType.RNA_SEQ,,,,human
+1246,UBERON:0002084 total RNA-seq,+,total RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,paired,False,0.2699129581451416,OutputType.RNA_SEQ,,,,human
+1324,CL:0000842 total RNA-seq,-,total RNA-seq,CL:0000842,mononuclear cell,primary_cell,adult,encode,paired,False,0.11518890410661697,OutputType.RNA_SEQ,,,,human
+1379,CL:2000001 polyA plus RNA-seq,-,polyA plus RNA-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,paired,False,0.1745203137397766,OutputType.RNA_SEQ,,,,human
+1471,UBERON:0000948 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,paired,False,0.3406100273132324,OutputType.RNA_SEQ,,,,human
+1472,UBERON:0000948 total RNA-seq,-,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,paired,False,0.08766400068998337,OutputType.RNA_SEQ,,,,human
+1514,UBERON:0002080 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,paired,False,0.17129531502723694,OutputType.RNA_SEQ,,,,human
+1515,UBERON:0002080 total RNA-seq,-,total RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.1052015945315361,OutputType.RNA_SEQ,,,,human
+1516,UBERON:0002084 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,paired,False,0.13251028954982758,OutputType.RNA_SEQ,,,,human
+1517,UBERON:0002084 total RNA-seq,-,total RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,paired,False,0.2699129581451416,OutputType.RNA_SEQ,,,,human
+1613,UBERON:0000948 polyA plus RNA-seq,.,polyA plus RNA-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,0.46738457679748535,OutputType.RNA_SEQ,,,,human
+1668,UBERON:0006566 gtex Heart_Left_Ventricle polyA plus RNA-seq,.,polyA plus RNA-seq,UBERON:0006566,left ventricle myocardium,tissue,adult,gtex,paired,False,0.05494289472699165,OutputType.RNA_SEQ,Heart_Left_Ventricle,,,human
+1669,UBERON:0006631 gtex Heart_Atrial_Appendage polyA plus RNA-seq,.,polyA plus RNA-seq,UBERON:0006631,right atrium auricular region,tissue,adult,gtex,paired,False,0.04985639825463295,OutputType.RNA_SEQ,Heart_Atrial_Appendage,,,human
+1862,CL:0000842 Histone ChIP-seq H3K27me3,.,Histone ChIP-seq,CL:0000842,mononuclear cell,primary_cell,unknown,encode,single,False,0.8204377293586731,OutputType.CHIP_HISTONE,,H3K27me3,,human
+1863,CL:0000842 Histone ChIP-seq H3K4me1,.,Histone ChIP-seq,CL:0000842,mononuclear cell,primary_cell,unknown,encode,single,False,0.9629728198051453,OutputType.CHIP_HISTONE,,H3K4me1,,human
+1864,CL:0000842 Histone ChIP-seq H3K4me3,.,Histone ChIP-seq,CL:0000842,mononuclear cell,primary_cell,unknown,encode,single,False,0.8454005718231201,OutputType.CHIP_HISTONE,,H3K4me3,,human
+1991,CL:2000001 Histone ChIP-seq H3K27ac,.,Histone ChIP-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,single,False,0.8418717384338379,OutputType.CHIP_HISTONE,,H3K27ac,,human
+1992,CL:2000001 Histone ChIP-seq H3K27me3,.,Histone ChIP-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,single,False,1.1466968059539795,OutputType.CHIP_HISTONE,,H3K27me3,,human
+1993,CL:2000001 Histone ChIP-seq H3K36me3,.,Histone ChIP-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,single,False,1.0044301748275757,OutputType.CHIP_HISTONE,,H3K36me3,,human
+1994,CL:2000001 Histone ChIP-seq H3K4me1,.,Histone ChIP-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,single,False,0.8782188892364502,OutputType.CHIP_HISTONE,,H3K4me1,,human
+1995,CL:2000001 Histone ChIP-seq H3K4me3,.,Histone ChIP-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,single,False,0.8846347332000732,OutputType.CHIP_HISTONE,,H3K4me3,,human
+1996,CL:2000001 Histone ChIP-seq H3K9ac,.,Histone ChIP-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,single,False,0.9377597570419312,OutputType.CHIP_HISTONE,,H3K9ac,,human
+1997,CL:2000001 Histone ChIP-seq H3K9me3,.,Histone ChIP-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,single,False,1.2266879081726074,OutputType.CHIP_HISTONE,,H3K9me3,,human
+2479,UBERON:0000948 Histone ChIP-seq H3K27me3,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,1.3972610235214233,OutputType.CHIP_HISTONE,,H3K27me3,,human
+2480,UBERON:0000948 Histone ChIP-seq H3K4me1,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,2.119180202484131,OutputType.CHIP_HISTONE,,H3K4me1,,human
+2481,UBERON:0000948 Histone ChIP-seq H3K4me3,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,1.5036487579345703,OutputType.CHIP_HISTONE,,H3K4me3,,human
+2482,UBERON:0000948 Histone ChIP-seq H3K9ac,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,2.4713633060455322,OutputType.CHIP_HISTONE,,H3K9ac,,human
+2611,UBERON:0002080 Histone ChIP-seq H3K27ac,.,Histone ChIP-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.742721438407898,OutputType.CHIP_HISTONE,,H3K27ac,,human
+2612,UBERON:0002080 Histone ChIP-seq H3K27me3,.,Histone ChIP-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.8221991062164307,OutputType.CHIP_HISTONE,,H3K27me3,,human
+2613,UBERON:0002080 Histone ChIP-seq H3K36me3,.,Histone ChIP-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.7794134616851807,OutputType.CHIP_HISTONE,,H3K36me3,,human
+2614,UBERON:0002080 Histone ChIP-seq H3K4me1,.,Histone ChIP-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.7713398337364197,OutputType.CHIP_HISTONE,,H3K4me1,,human
+2615,UBERON:0002080 Histone ChIP-seq H3K4me3,.,Histone ChIP-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.7453254461288452,OutputType.CHIP_HISTONE,,H3K4me3,,human
+2616,UBERON:0002080 Histone ChIP-seq H3K9me3,.,Histone ChIP-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.8001134991645813,OutputType.CHIP_HISTONE,,H3K9me3,,human
+2617,UBERON:0002084 Histone ChIP-seq H3K27ac,.,Histone ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,single,False,0.8882824778556824,OutputType.CHIP_HISTONE,,H3K27ac,,human
+2618,UBERON:0002084 Histone ChIP-seq H3K27me3,.,Histone ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,single,False,0.7984142303466797,OutputType.CHIP_HISTONE,,H3K27me3,,human
+2619,UBERON:0002084 Histone ChIP-seq H3K36me3,.,Histone ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,single,False,0.8181394338607788,OutputType.CHIP_HISTONE,,H3K36me3,,human
+2620,UBERON:0002084 Histone ChIP-seq H3K4me1,.,Histone ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,single,False,0.8571037650108337,OutputType.CHIP_HISTONE,,H3K4me1,,human
+2621,UBERON:0002084 Histone ChIP-seq H3K4me3,.,Histone ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,single,False,0.7315558195114136,OutputType.CHIP_HISTONE,,H3K4me3,,human
+2622,UBERON:0002084 Histone ChIP-seq H3K9me3,.,Histone ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,single,False,0.890792191028595,OutputType.CHIP_HISTONE,,H3K9me3,,human
+2818,"CL:0000679 TF ChIP-seq EGR1 male adult (30 years) genetically modified (insertion) using CRISPR targeting H. sapiens EGR1, genetically modified (insertion) using TALEN inserting M. musculus Neurog2",.,TF ChIP-seq,CL:0000679,glutamatergic neuron,in_vitro_differentiated_cells,unknown,encode,paired,True,0.8382269144058228,OutputType.CHIP_TF,,,EGR1,human
+2819,"CL:0000679 TF ChIP-seq FOSL1 male adult (30 years) genetically modified (insertion) using CRISPR targeting H. sapiens FOSL1, genetically modified (insertion) using TALEN inserting M. musculus Neurog2",.,TF ChIP-seq,CL:0000679,glutamatergic neuron,in_vitro_differentiated_cells,unknown,encode,paired,True,0.8304189443588257,OutputType.CHIP_TF,,,FOSL1,human
+2820,"CL:0000679 TF ChIP-seq ID3 male adult (30 years) genetically modified (insertion) using CRISPR targeting H. sapiens ID3, genetically modified (insertion) using TALEN inserting M. musculus Neurog2",.,TF ChIP-seq,CL:0000679,glutamatergic neuron,in_vitro_differentiated_cells,unknown,encode,paired,True,0.804589033126831,OutputType.CHIP_TF,,,ID3,human
+2821,"CL:0000679 TF ChIP-seq TOX4 male adult (30 years) genetically modified (insertion) using CRISPR targeting H. sapiens TOX4, genetically modified (insertion) using TALEN inserting M. musculus Neurog2",.,TF ChIP-seq,CL:0000679,glutamatergic neuron,in_vitro_differentiated_cells,unknown,encode,paired,True,0.8099984526634216,OutputType.CHIP_TF,,,TOX4,human
+4356,UBERON:0002080 TF ChIP-seq CTCF,.,TF ChIP-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,single,False,0.7694967985153198,OutputType.CHIP_TF,,,CTCF,human
+4357,UBERON:0002084 TF ChIP-seq CTCF,.,TF ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,single,False,0.7588516473770142,OutputType.CHIP_TF,,,CTCF,human
+4358,UBERON:0002084 TF ChIP-seq POLR2A,.,TF ChIP-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,paired,False,1.0073192119598389,OutputType.CHIP_TF,,,POLR2A,human
+4467,usage_CL:0000842 total RNA-seq,+,total RNA-seq,CL:0000842,mononuclear cell,primary_cell,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4528,usage_CL:2000001 polyA plus RNA-seq,+,polyA plus RNA-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4639,usage_UBERON:0000948 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4640,usage_UBERON:0000948 total RNA-seq,+,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4709,usage_UBERON:0002080 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4710,usage_UBERON:0002080 total RNA-seq,+,total RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4711,usage_UBERON:0002084 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4712,usage_UBERON:0002084 total RNA-seq,+,total RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4758,usage_UBERON:0006566 gtex Heart_Left_Ventricle polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0006566,left ventricle myocardium,tissue,adult,gtex,,,,OutputType.SPLICE_SITE_USAGE,Heart_Left_Ventricle,,,human
+4759,usage_UBERON:0006631 gtex Heart_Atrial_Appendage polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0006631,right atrium auricular region,tissue,adult,gtex,,,,OutputType.SPLICE_SITE_USAGE,Heart_Atrial_Appendage,,,human
+4834,usage_CL:0000842 total RNA-seq,-,total RNA-seq,CL:0000842,mononuclear cell,primary_cell,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+4895,usage_CL:2000001 polyA plus RNA-seq,-,polyA plus RNA-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+5006,usage_UBERON:0000948 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+5007,usage_UBERON:0000948 total RNA-seq,-,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+5076,usage_UBERON:0002080 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+5077,usage_UBERON:0002080 total RNA-seq,-,total RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+5078,usage_UBERON:0002084 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+5079,usage_UBERON:0002084 total RNA-seq,-,total RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,human
+5125,usage_UBERON:0006566 gtex Heart_Left_Ventricle polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0006566,left ventricle myocardium,tissue,adult,gtex,,,,OutputType.SPLICE_SITE_USAGE,Heart_Left_Ventricle,,,human
+5126,usage_UBERON:0006631 gtex Heart_Atrial_Appendage polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0006631,right atrium auricular region,tissue,adult,gtex,,,,OutputType.SPLICE_SITE_USAGE,Heart_Atrial_Appendage,,,human
+5201,junction_CL:0000842 total RNA-seq,,total RNA-seq,CL:0000842,mononuclear cell,primary_cell,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5262,junction_CL:2000001 polyA plus RNA-seq,,polyA plus RNA-seq,CL:2000001,peripheral blood mononuclear cell,primary_cell,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5373,junction_UBERON:0000948 polyA plus RNA-seq,,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5374,junction_UBERON:0000948 total RNA-seq,,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5443,junction_UBERON:0002080 polyA plus RNA-seq,,polyA plus RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5444,junction_UBERON:0002080 total RNA-seq,,total RNA-seq,UBERON:0002080,heart right ventricle,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5445,junction_UBERON:0002084 polyA plus RNA-seq,,polyA plus RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5446,junction_UBERON:0002084 total RNA-seq,,total RNA-seq,UBERON:0002084,heart left ventricle,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,human
+5492,junction_UBERON:0006566 gtex Heart_Left_Ventricle polyA plus RNA-seq,,polyA plus RNA-seq,UBERON:0006566,left ventricle myocardium,tissue,adult,gtex,,,,OutputType.SPLICE_JUNCTIONS,Heart_Left_Ventricle,,,human
+5493,junction_UBERON:0006631 gtex Heart_Atrial_Appendage polyA plus RNA-seq,,polyA plus RNA-seq,UBERON:0006631,right atrium auricular region,tissue,adult,gtex,,,,OutputType.SPLICE_JUNCTIONS,Heart_Atrial_Appendage,,,human
+5571,UBERON:0000948 ATAC-seq,.,ATAC-seq,UBERON:0000948,heart,tissue,postnatal,encode,paired,False,1.6121877431869507,OutputType.ATAC,,,,mouse
+5582,LQhCAGE CL:0000589,+,LQhCAGE,CL:0000589,cochlear inner hair cell,primary_cell,,fantom,,,57.94036102294922,OutputType.CAGE,,,,mouse
+5585,LQhCAGE CL:0002490,+,LQhCAGE,CL:0002490,organ of Corti supporting cell,primary_cell,,fantom,,,53.68474578857422,OutputType.CAGE,,,,mouse
+5587,LQhCAGE UBERON:0001846,+,LQhCAGE,UBERON:0001846,internal ear,primary_cell,,fantom,,,57.7681999206543,OutputType.CAGE,,,,mouse
+5624,hCAGE UBERON:0000395,+,hCAGE,UBERON:0000395,cochlear ganglion,primary_cell,,fantom,,,3821.564208984375,OutputType.CAGE,,,,mouse
+5630,hCAGE UBERON:0000948,+,hCAGE,UBERON:0000948,heart,tissue,,fantom,,,5.25787353515625,OutputType.CAGE,,,,mouse
+5649,hCAGE UBERON:0001846,+,hCAGE,UBERON:0001846,internal ear,primary_cell,,fantom,,,79.36322784423828,OutputType.CAGE,,,,mouse
+5676,LQhCAGE CL:0000589,-,LQhCAGE,CL:0000589,cochlear inner hair cell,primary_cell,,fantom,,,57.94036102294922,OutputType.CAGE,,,,mouse
+5679,LQhCAGE CL:0002490,-,LQhCAGE,CL:0002490,organ of Corti supporting cell,primary_cell,,fantom,,,53.68474578857422,OutputType.CAGE,,,,mouse
+5681,LQhCAGE UBERON:0001846,-,LQhCAGE,UBERON:0001846,internal ear,primary_cell,,fantom,,,57.7681999206543,OutputType.CAGE,,,,mouse
+5718,hCAGE UBERON:0000395,-,hCAGE,UBERON:0000395,cochlear ganglion,primary_cell,,fantom,,,3821.564208984375,OutputType.CAGE,,,,mouse
+5724,hCAGE UBERON:0000948,-,hCAGE,UBERON:0000948,heart,tissue,,fantom,,,5.25787353515625,OutputType.CAGE,,,,mouse
+5743,hCAGE UBERON:0001846,-,hCAGE,UBERON:0001846,internal ear,primary_cell,,fantom,,,79.36322784423828,OutputType.CAGE,,,,mouse
+5810,UBERON:0000948 DNase-seq,.,DNase-seq,UBERON:0000948,heart,tissue,adult,encode,paired,False,0.19543588161468506,OutputType.DNASE,,,,mouse
+5871,UBERON:0000948 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,paired,False,0.2977026700973511,OutputType.RNA_SEQ,,,,mouse
+5872,UBERON:0000948 total RNA-seq,+,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,single,False,0.130231574177742,OutputType.RNA_SEQ,,,,mouse
+5942,UBERON:0000948 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,paired,False,0.2977026700973511,OutputType.RNA_SEQ,,,,mouse
+5943,UBERON:0000948 total RNA-seq,-,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,single,False,0.130231574177742,OutputType.RNA_SEQ,,,,mouse
+5993,UBERON:0000948 polyA plus RNA-seq,.,polyA plus RNA-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,0.1349991410970688,OutputType.RNA_SEQ,,,,mouse
+6088,UBERON:0000948 Histone ChIP-seq H3K27ac,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,adult,encode,single,False,0.5618533492088318,OutputType.CHIP_HISTONE,,H3K27ac,,mouse
+6089,UBERON:0000948 Histone ChIP-seq H3K27me3,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,0.6973929405212402,OutputType.CHIP_HISTONE,,H3K27me3,,mouse
+6090,UBERON:0000948 Histone ChIP-seq H3K36me3,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,0.692185640335083,OutputType.CHIP_HISTONE,,H3K36me3,,mouse
+6091,UBERON:0000948 Histone ChIP-seq H3K4me1,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,0.6868831515312195,OutputType.CHIP_HISTONE,,H3K4me1,,mouse
+6092,UBERON:0000948 Histone ChIP-seq H3K4me2,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,embryonic,encode,single,False,0.6756917238235474,OutputType.CHIP_HISTONE,,H3K4me2,,mouse
+6093,UBERON:0000948 Histone ChIP-seq H3K4me3,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,adult,encode,single,False,0.6944560408592224,OutputType.CHIP_HISTONE,,H3K4me3,,mouse
+6094,UBERON:0000948 Histone ChIP-seq H3K9ac,.,Histone ChIP-seq,UBERON:0000948,heart,tissue,adult,encode,single,False,0.7639232277870178,OutputType.CHIP_HISTONE,,H3K9ac,,mouse
+6295,UBERON:0000948 TF ChIP-seq CTCF,.,TF ChIP-seq,UBERON:0000948,heart,tissue,adult,encode,single,False,0.7152516841888428,OutputType.CHIP_TF,,,CTCF,mouse
+6296,UBERON:0000948 TF ChIP-seq EP300,.,TF ChIP-seq,UBERON:0000948,heart,tissue,postnatal,encode,single,False,0.7266981601715088,OutputType.CHIP_TF,,,EP300,mouse
+6297,UBERON:0000948 TF ChIP-seq POLR2A,.,TF ChIP-seq,UBERON:0000948,heart,tissue,adult,encode,single,False,1.0738400220870972,OutputType.CHIP_TF,,,POLR2A,mouse
+6370,usage_UBERON:0000948 polyA plus RNA-seq,+,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,mouse
+6371,usage_UBERON:0000948 total RNA-seq,+,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,mouse
+6460,usage_UBERON:0000948 polyA plus RNA-seq,-,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,mouse
+6461,usage_UBERON:0000948 total RNA-seq,-,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_SITE_USAGE,,,,mouse
+6550,junction_UBERON:0000948 polyA plus RNA-seq,,polyA plus RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,mouse
+6551,junction_UBERON:0000948 total RNA-seq,,total RNA-seq,UBERON:0000948,heart,tissue,adult,encode,,,,OutputType.SPLICE_JUNCTIONS,,,,mouse
