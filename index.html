@@ -466,38 +466,84 @@
 
         <!-- Mouse Insulator Deletion Analysis -->
         <div class="section">
-            <h2 class="section-title">Mouse Insulator Deletion Analysis <span class="badge badge-new">NEW</span></h2>
-            <p style="color: #555; margin-bottom: 20px; line-height: 1.6;">
-                In silico prediction of insulator deletion effects in mouse (mm10), using AlphaGenome with olfactory receptor cells
-                (<code>CL:0000207</code>) — the closest available proxy for inner ear tissue, as both are primary sensory neurons
-                derived from cranial placodes. Regions provided by collaborators studying inner ear development near the <strong>Mef2c</strong> locus.
+            <h2 class="section-title">Mouse Insulator Deletion Analysis <span class="badge badge-new">UPDATED</span></h2>
+            <p style="color: #555; margin-bottom: 8px; line-height: 1.6;">
+                In silico prediction of insulator deletion effects in mouse (mm10) across <strong>two cell types</strong>,
+                run at the suggestion of the PI. Regions provided by collaborators studying inner ear development.
+            </p>
+            <p style="color: #555; margin-bottom: 8px; line-height: 1.6;">
+                <strong>Cell types:</strong>
+                <code>CL:0000207</code> olfactory receptor cell (primary sensory neuron, closest proxy to inner ear hair cells) &amp;
+                <code>EFO:0004038</code> mouse embryonic stem cell (PI-suggested baseline).
+            </p>
+            <p style="color: #888; font-size: 0.9em; margin-bottom: 25px; line-height: 1.5;">
+                Note: UBERON:0001846 (internal ear) exists in AlphaGenome for CAGE only — not contact maps.
+                No otic placode GO/UBERON terms are in the mouse contact map training data (only 8 mouse tracks total).
             </p>
 
-            <h3 style="margin: 20px 0 15px 0; color: #555; font-size: 1.3em;">Jingyun's Region — Mef2c locus, chr13:83,739,797-83,745,138</h3>
+            <!-- Jingyun chr13 -->
+            <h3 style="margin: 10px 0 8px 0; color: #2196F3; font-size: 1.2em;">Jingyun — chr13:83,739,797-83,745,138 (Mef2c locus, 5,342 bp)</h3>
+            <p style="color: #e65100; font-size: 0.88em; margin-bottom: 15px;">
+                ⚠ PI note: deletion site falls within the Mef2c gene body. Coordinates should be verified — intended target may be an insulator near Mef2c rather than within it.
+            </p>
             <div class="image-grid">
                 <div class="image-card"
-                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138.png', 'Mef2c Insulator Deletion — Contact Maps', 'Wild-type (left) shows a clear TAD boundary near the Mef2c locus. After deletion (middle), contacts are redistributed across the boundary. The difference map (right) shows lost contacts in blue and gained ectopic contacts in red. Mef2c is a transcription factor critical for inner ear hair cell development.')">
-                    <img src="media/mouse_deletion_chr13_83739797_83745138.png" alt="Mef2c Deletion Contact Maps">
-                    <div class="image-card-title">Contact Maps: WT | Deletion | Difference <span class="badge badge-new">NEW</span></div>
+                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138_CL_0000207.png', 'Jingyun chr13 — Olfactory Receptor Cell (CL:0000207)', 'Wild-type (left): a dense TAD occupies the lower-right half of the window with Mef2c at its core. After deletion (middle): the TAD structure is largely preserved but the diagonal contact pattern shifts. Difference map (right): widespread blue (lost contacts) radiating from the deletion site, with red ectopic contacts appearing across the former boundary — consistent with loss of insulator function.')">
+                    <img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207.png" alt="Jingyun chr13 olfactory">
+                    <div class="image-card-title">Olfactory Cell (CL:0000207) — WT | Deletion | Diff <span class="badge badge-new">NEW</span></div>
                 </div>
                 <div class="image-card"
-                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138_extra.png', 'Mef2c Insulator Deletion — Extra Analysis', 'Log₂ ratio map (left) shows fold-change of contacts after deletion — red regions gain contacts, blue regions lose them. Virtual 4C (middle) plots the 1D contact profile from the insulator viewpoint, comparing wild-type (blue) vs deletion (red). P(s) curve (right) shows how deletion shifts contact frequency across all genomic distances.')">
-                    <img src="media/mouse_deletion_chr13_83739797_83745138_extra.png" alt="Mef2c Extra Analysis">
-                    <div class="image-card-title">Log₂ Ratio | Virtual 4C | P(s) Curve <span class="badge badge-new">NEW</span></div>
+                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138_CL_0000207_extra.png', 'Jingyun chr13 — Olfactory Cell Extra Analysis', 'Log₂ ratio (left): strong depletion (blue) in the lower-right TAD body and gain (red) near the deletion boundary. Virtual 4C (middle): contacts from the deletion viewpoint are redistributed — the deletion curve (red) shows reduced near-cis interactions. P(s) curve (right): the two curves diverge at mid-range distances (~100–400 kb), indicating the deletion primarily disrupts TAD-scale organization.')">
+                    <img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207_extra.png" alt="Jingyun chr13 olfactory extra">
+                    <div class="image-card-title">Olfactory Cell — Log₂ Ratio | Virtual 4C | P(s) <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138_EFO_0004038.png', 'Jingyun chr13 — Mouse ES Cell (EFO:0004038)', 'The ES cell wild-type shows a more diffuse contact pattern than olfactory cells, consistent with the open pluripotent chromatin state of stem cells. After deletion, the difference map shows a qualitatively similar disruption — suggesting this insulator function is not highly cell-type-specific.')">
+                    <img src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038.png" alt="Jingyun chr13 ES cell">
+                    <div class="image-card-title">Mouse ES Cell (EFO:0004038) — WT | Deletion | Diff <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_extra.png', 'Jingyun chr13 — ES Cell Extra Analysis', 'Log₂ ratio and virtual 4C confirm similar contact redistribution in ES cells. The P(s) curve divergence occurs at similar distances to the olfactory cell result, reinforcing that the deletion disrupts TAD-scale contacts regardless of cell type.')">
+                    <img src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_extra.png" alt="Jingyun chr13 ES cell extra">
+                    <div class="image-card-title">Mouse ES Cell — Log₂ Ratio | Virtual 4C | P(s) <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr13_83739797_83745138_celltype_comparison.png', 'Jingyun chr13 — Cell Type Comparison', 'Direct comparison at the same color scale. Olfactory receptor cells (top row) show stronger, more defined TAD boundaries in the wild-type. ES cells (bottom row) have a more homogeneous contact pattern. Both show directionally similar deletion effects, but the ES cell shows less pronounced boundary disruption — consistent with globally more open chromatin in pluripotent cells.')">
+                    <img src="media/mouse_deletion_chr13_83739797_83745138_celltype_comparison.png" alt="Jingyun chr13 comparison">
+                    <div class="image-card-title">Cell Type Comparison (Olfactory vs ES Cell) <span class="badge badge-new">NEW</span></div>
                 </div>
             </div>
 
-            <h3 style="margin: 40px 0 15px 0; color: #555; font-size: 1.3em;">Edward's Region — chr12:27,333,532-27,336,455</h3>
+            <!-- Edward chr12 -->
+            <h3 style="margin: 40px 0 8px 0; color: #2196F3; font-size: 1.2em;">Edward — chr12:27,333,532-27,336,455 (intergenic, 2,924 bp)</h3>
+            <p style="color: #555; font-size: 0.88em; margin-bottom: 15px;">
+                No protein-coding genes annotated in the 1 MB window (GENCODE M23) — deletion targets an intergenic regulatory element or insulator.
+            </p>
             <div class="image-grid">
                 <div class="image-card"
-                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455.png', 'chr12 Insulator Deletion — Contact Maps', 'Contact map comparison before and after a 2,924 bp insulator deletion on chr12. The difference map reveals structural consequences for the surrounding chromatin domain — regions that gain contacts (red) may indicate TAD merging, while blue regions show lost insulation.')">
-                    <img src="media/mouse_deletion_chr12_27333532_27336455.png" alt="chr12 Deletion Contact Maps">
-                    <div class="image-card-title">Contact Maps: WT | Deletion | Difference <span class="badge badge-new">NEW</span></div>
+                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455_CL_0000207.png', 'Edward chr12 — Olfactory Receptor Cell (CL:0000207)', 'Wild-type (left): two moderately separated contact domains flank the deletion site. After deletion (middle): the inter-domain boundary weakens. Difference map (right): blue signal (contact loss) concentrated within the left-hand domain and red signal (contact gain) across the former domain boundary — indicative of partial TAD merging.')">
+                    <img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207.png" alt="Edward chr12 olfactory">
+                    <div class="image-card-title">Olfactory Cell (CL:0000207) — WT | Deletion | Diff <span class="badge badge-new">NEW</span></div>
                 </div>
                 <div class="image-card"
-                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455_extra.png', 'chr12 Insulator Deletion — Extra Analysis', 'Log₂ ratio map (left), virtual 4C from the deletion viewpoint (middle), and P(s) distance-decay comparison (right) for the chr12 insulator deletion. The virtual 4C shows how contacts from the insulator position are redistributed after deletion.')">
-                    <img src="media/mouse_deletion_chr12_27333532_27336455_extra.png" alt="chr12 Extra Analysis">
-                    <div class="image-card-title">Log₂ Ratio | Virtual 4C | P(s) Curve <span class="badge badge-new">NEW</span></div>
+                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455_CL_0000207_extra.png', 'Edward chr12 — Olfactory Cell Extra Analysis', 'Log₂ ratio (left): a stripe of gained contacts spans across the original boundary (red cross pattern). Virtual 4C (middle): contacts from the deletion viewpoint shift from local to broader long-range interactions. P(s) curve (right): the deletion curve rises above wild-type at mid-range distances, confirming increased long-range contacts after boundary loss.')">
+                    <img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207_extra.png" alt="Edward chr12 olfactory extra">
+                    <div class="image-card-title">Olfactory Cell — Log₂ Ratio | Virtual 4C | P(s) <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455_EFO_0004038.png', 'Edward chr12 — Mouse ES Cell (EFO:0004038)', 'ES cells show less defined domain structure in the wild-type, but the deletion still produces a detectable shift in contact patterns. The difference map shows a subtler effect compared to olfactory cells, consistent with weaker boundary strength in pluripotent chromatin.')">
+                    <img src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038.png" alt="Edward chr12 ES cell">
+                    <div class="image-card-title">Mouse ES Cell (EFO:0004038) — WT | Deletion | Diff <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_extra.png', 'Edward chr12 — ES Cell Extra Analysis', 'Virtual 4C and P(s) curves for ES cells show smaller deletion-induced changes than olfactory cells, suggesting the chr12 insulator is more functionally important in differentiated sensory neurons than in stem cells.')">
+                    <img src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_extra.png" alt="Edward chr12 ES cell extra">
+                    <div class="image-card-title">Mouse ES Cell — Log₂ Ratio | Virtual 4C | P(s) <span class="badge badge-new">NEW</span></div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/mouse_deletion_chr12_27333532_27336455_celltype_comparison.png', 'Edward chr12 — Cell Type Comparison', 'The chr12 insulator shows a larger effect in olfactory receptor cells (top) than ES cells (bottom) — in contrast to chr13 where both cell types responded similarly. This suggests the chr12 insulator is more cell-type-specific, potentially relevant to inner ear-specific gene regulation.')">
+                    <img src="media/mouse_deletion_chr12_27333532_27336455_celltype_comparison.png" alt="Edward chr12 comparison">
+                    <div class="image-card-title">Cell Type Comparison (Olfactory vs ES Cell) <span class="badge badge-new">NEW</span></div>
                 </div>
             </div>
         </div>

@@ -252,31 +252,76 @@ Deletions in this region could:
 
 ### 15. Mouse Insulator Deletion Analysis (AlphaGenome, mm10)
 
-**In silico prediction of insulator deletion effects in mouse**, using olfactory receptor cells (`CL:0000207`) as the closest available proxy for inner ear tissue — both are primary sensory neurons derived from cranial placodes. Regions were provided by collaborators studying inner ear development.
+**In silico prediction of insulator deletion effects in mouse** across two cell types suggested by the PI. Regions provided by collaborators studying inner ear development (mm10 reference).
 
-Each analysis produces two figures per region:
-- **3-panel map**: Wild-type | After deletion | Difference (Deletion − WT)
-- **Extra analysis**: Log₂ ratio map | Virtual 4C from insulator | P(s) contact-frequency-vs-distance curve
+#### Cell Types Used
 
-#### Jingyun's Region — Mef2c locus (chr13:83,739,797-83,745,138, 5,342 bp)
+| Ontology | Name | Rationale |
+|----------|------|-----------|
+| `CL:0000207` | Olfactory receptor cell | Primary sensory neuron; cranial placode origin — closest available proxy to inner ear hair cells |
+| `EFO:0004038` | Mouse embryonic stem cell | PI-suggested; shows baseline pluripotent chromatin organization |
 
-![Mouse Deletion chr13](media/mouse_deletion_chr13_83739797_83745138.png)
-*Wild-type (left) shows a clear TAD boundary near the Mef2c locus. After deletion (middle), contacts are redistributed across the boundary. The difference map (right) shows lost contacts in blue and gained ectopic contacts in red.*
+> **Note on inner ear ontology terms:** `UBERON:0001846` (internal ear) exists in AlphaGenome but only for CAGE output, not contact maps. GO otic placode terms (`GO:1905040`, `GO:0030916`, `GO:0071599`, `GO:0043049`) and otic placode UBERON terms (`UBERON:0003249`, `UBERON:0003069`) are not present in the mouse contact map training data. Only 8 mouse contact map tracks exist in total.
 
-![Mouse Deletion chr13 extra](media/mouse_deletion_chr13_83739797_83745138_extra.png)
-*Log₂ ratio map (left) quantifies fold-changes per contact pair. Virtual 4C (middle) shows the 1D contact profile from the insulator viewpoint — the red curve (deletion) shifts substantially vs. wild-type (blue). P(s) curve (right) shows how the deletion affects contact frequency at all genomic distances.*
+Each region produces **5 figures**: WT|Deletion|Diff for each cell type, plus a cell-type comparison figure.
 
-**Biological significance**: Mef2c is a transcription factor critical for inner ear hair cell development and neural differentiation. Deletion of its insulator boundary may allow regulatory elements from adjacent TADs to ectopically activate or suppress Mef2c expression.
+---
+
+#### Jingyun's Region — chr13:83,739,797-83,745,138 (5,342 bp)
+
+> **PI note:** The deletion site falls within the **Mef2c gene body** (the only annotated transcript in the 1 MB window). Coordinates should be verified with Jingyun — the intended target may be an insulator *near* Mef2c rather than within it.
+
+**Olfactory receptor cell (CL:0000207)**
+
+![Jingyun CL:0000207](media/mouse_deletion_chr13_83739797_83745138_CL_0000207.png)
+*Wild-type (left): a dense TAD occupies the lower-right half of the window with Mef2c at its core. After deletion (middle): the TAD structure is largely preserved but the diagonal contact pattern shifts. Difference map (right): widespread blue (lost contacts) radiating from the deletion site, with red ectopic contacts appearing across the former boundary — consistent with loss of insulator function.*
+
+![Jingyun CL:0000207 extra](media/mouse_deletion_chr13_83739797_83745138_CL_0000207_extra.png)
+*Log₂ ratio (left): strong depletion (blue) in the lower-right TAD body and gain (red) near the deletion boundary. Virtual 4C (middle): contacts from the deletion viewpoint are redistributed — the deletion curve (red) shows reduced near-cis interactions and altered long-range contacts. P(s) curve (right): both curves follow typical polymer decay but diverge at mid-range distances (~100–400 kb), indicating the deletion primarily disrupts TAD-scale organization.*
+
+**Mouse embryonic stem cell (EFO:0004038)**
+
+![Jingyun EFO:0004038](media/mouse_deletion_chr13_83739797_83745138_EFO_0004038.png)
+*The ES cell wild-type shows a more diffuse contact pattern than olfactory cells, consistent with the open, pluripotent chromatin state of stem cells. After deletion, the difference map shows a qualitatively similar disruption pattern — suggesting the insulator function at this site is not highly cell-type-specific.*
+
+![Jingyun EFO:0004038 extra](media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_extra.png)
+*Log₂ ratio and virtual 4C confirm similar contact redistribution in ES cells. The P(s) curve divergence occurs at similar distances to the olfactory cell result, reinforcing that the deletion disrupts TAD-scale contacts regardless of cell type.*
+
+**Cell type comparison**
+
+![Jingyun cell type comparison](media/mouse_deletion_chr13_83739797_83745138_celltype_comparison.png)
+*Direct comparison of both cell types at the same color scale. The olfactory receptor cell (top row) shows stronger, more defined TAD boundaries in the wild-type. The ES cell (bottom row) has a more homogeneous contact pattern. Both show directionally similar deletion effects in the difference map, but the ES cell exhibits less pronounced boundary disruption — consistent with its globally more open chromatin.*
+
+**Biological significance**: Mef2c is a master regulator of inner ear hair cell differentiation and survival. Deletion of regulatory sequence within or near Mef2c could disrupt the TAD boundary that normally restricts enhancer access, potentially causing ectopic activation or silencing of Mef2c.
 
 ---
 
 #### Edward's Region — chr12:27,333,532-27,336,455 (2,924 bp)
 
-![Mouse Deletion chr12](media/mouse_deletion_chr12_27333532_27336455.png)
-*Contact map comparison before and after the insulator deletion. The difference map reveals the structural consequences for the surrounding chromatin domain.*
+> No protein-coding genes are annotated within the 1 MB analysis window (GENCODE M23), suggesting this deletion targets an intergenic regulatory element or insulator.
 
-![Mouse Deletion chr12 extra](media/mouse_deletion_chr12_27333532_27336455_extra.png)
-*Additional analysis panels showing the log₂ ratio of contact changes, the virtual 4C profile from the deletion viewpoint, and the P(s) distance-decay curve comparing WT and deletion.*
+**Olfactory receptor cell (CL:0000207)**
+
+![Edward CL:0000207](media/mouse_deletion_chr12_27333532_27336455_CL_0000207.png)
+*Wild-type (left): two moderately separated contact domains flank the deletion site. After deletion (middle): the inter-domain boundary weakens. Difference map (right): blue signal (contact loss) concentrated within the left-hand domain and red signal (contact gain) across the former domain boundary — indicative of partial TAD merging.*
+
+![Edward CL:0000207 extra](media/mouse_deletion_chr12_27333532_27336455_CL_0000207_extra.png)
+*Log₂ ratio (left): the deletion creates a stripe of gained contacts spanning across the original boundary, visible as a red cross-shaped pattern. Virtual 4C (middle): contacts from the deletion viewpoint shift from local interactions to broader, longer-range contacts. P(s) curve (right): the deletion curve rises above wild-type at mid-range distances, confirming increased long-range contacts after boundary loss.*
+
+**Mouse embryonic stem cell (EFO:0004038)**
+
+![Edward EFO:0004038](media/mouse_deletion_chr12_27333532_27336455_EFO_0004038.png)
+*ES cells show less defined domain structure in the wild-type, but the deletion still produces a detectable shift in contact patterns. The difference map shows a subtler effect compared to olfactory cells, consistent with weaker boundary strength in pluripotent chromatin.*
+
+![Edward EFO:0004038 extra](media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_extra.png)
+*The virtual 4C and P(s) curves for ES cells show smaller deletion-induced changes than olfactory cells, suggesting the insulator at this site is more functionally important in differentiated sensory neurons than in stem cells.*
+
+**Cell type comparison**
+
+![Edward cell type comparison](media/mouse_deletion_chr12_27333532_27336455_celltype_comparison.png)
+*The chr12 insulator shows a larger effect in olfactory receptor cells (top) than ES cells (bottom), in contrast to the chr13 Mef2c region where both cell types responded similarly. This suggests the chr12 insulator is more cell-type-specific in its boundary activity — potentially relevant to inner ear-specific gene regulation.*
+
+**Biological significance**: The absence of annotated genes at this locus suggests this deletion targets a non-coding regulatory element — possibly a CTCF anchor or enhancer that organizes chromatin structure. The stronger effect in differentiated sensory neurons vs. stem cells implies this element gains insulator activity during neuronal differentiation.
 
 ---
 
