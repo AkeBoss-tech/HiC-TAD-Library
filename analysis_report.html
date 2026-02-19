@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insulator Deletion Analysis — AlphaGenome</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      max-width: 1400px; margin: 0 auto; padding: 24px;
+      background: #f0f2f5; color: #2c3e50;
+    }
+    h1 { font-size: 1.7em; border-bottom: 3px solid #2980b9; padding-bottom: 8px; }
+    h2 { font-size: 1.3em; color: #1a5276; margin-top: 0; }
+    h3 { font-size: 1.05em; color: #2471a3; margin: 16px 0 6px; }
+    .region {
+      background: white; padding: 24px; margin: 20px 0;
+      border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    }
+    .info {
+      background: #eaf4fb; padding: 10px 14px; border-radius: 6px;
+      font-size: 0.88em; margin-bottom: 16px; line-height: 1.7;
+    }
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-bottom: 10px;
+    }
+    .label { font-weight: 600; font-size: 0.85em; color: #555; margin: 8px 0 4px; }
+    .meta { font-size: 0.82em; color: #888; margin-bottom: 24px; }
+    .legend {
+      background: #fdfefe; border: 1px solid #d5d8dc;
+      border-radius: 8px; padding: 14px; font-size: 0.85em;
+      margin: 16px 0;
+    }
+    .legend h4 { margin: 0 0 8px; }
+    .legend li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+
+<h1>Insulator Deletion Analysis — AlphaGenome Predictions</h1>
+<p class="meta">
+  Mouse mm10 &nbsp;|&nbsp; Generated: 2026-02-18 18:52 &nbsp;|&nbsp;
+  Model: AlphaGenome (MUS_MUSCULUS) &nbsp;|&nbsp;
+  Window: 1 Mb centred on deletion (API max)
+</p>
+
+<div class="legend">
+  <h4>How to read the triangle TAD plot</h4>
+  <ul>
+    <li><b>x-axis:</b> genomic position (bp)</li>
+    <li><b>y-axis:</b> genomic distance / 2 — the farther from the x-axis, the more
+        distant the two interacting loci are</li>
+    <li><b>Dark upward triangles</b> = TADs (self-interacting domains)</li>
+    <li><b>Valleys between triangles</b> = TAD boundaries / insulators</li>
+    <li><b>Cyan dashed lines</b> = insulator deletion boundaries</li>
+    <li>In difference panels: <b style="color:#c0392b">red = gained contacts</b>,
+        <b style="color:#2980b9">blue = lost contacts</b> after deletion</li>
+  </ul>
+  <h4>Cell types used (no inner-ear cell type in AlphaGenome training data)</h4>
+  <ul>
+    <li><b>CL:0000207</b> — Olfactory receptor cell (cranial placode, closest proxy)</li>
+    <li><b>EFO:0004038</b> — Mouse embryonic stem cell (suggested by PI)</li>
+  </ul>
+</div>
+
+
+        <div class="region">
+          <h2>Jingyun — chr13 insulator</h2>
+          <div class="info">
+            <b>Deletion:</b> chr13:83,739,797–83,745,138
+            &nbsp;|&nbsp; <b>Size:</b> 5,341 bp
+            &nbsp;|&nbsp; <b>Analysis window:</b> 83,218,179–84,266,755
+            (1 Mb, model limit)<br>
+            <b>Full 2-TAD span:</b> chr13:81,760,002–85,200,000
+            (3.4 Mb — too large for AlphaGenome API)
+          </div>
+
+          <h3>Triangle TAD View — all cell types</h3>
+          <p style="font-size:0.88em;color:#444">
+            The contact matrix is rotated 45°. TADs appear as <b>dark upward-pointing
+            triangles</b> above the x-axis. The y-axis is genomic distance / 2. Cyan
+            dashed lines mark the insulator deletion site. In the difference panel:
+            <span style="color:#c0392b">red = gained contacts</span>,
+            <span style="color:#2980b9">blue = lost contacts</span>.
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_triangle_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Triangle TAD view — WT | Deletion | Difference for each cell type"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Triangle TAD view — WT | Deletion | Difference for each cell type</figcaption></figure>
+
+          <h3>Square Heatmap — all cell types</h3>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_celltype_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square contact map — WT | Deletion | Difference for each cell type"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square contact map — WT | Deletion | Difference for each cell type</figcaption></figure>
+        
+          <h3>CL:0000207 — Olfactory receptor cell</h3>
+          <div class="grid">
+            <div>
+              <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207_triangle.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Triangle TAD view"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Triangle TAD view</figcaption></figure>
+            </div>
+            <div>
+              <div class="label">Square heatmap + gene track</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square heatmap"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square heatmap</figcaption></figure>
+            </div>
+          </div>
+          <div class="label">Log₂ ratio · Virtual 4C · P(s) curve</div>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207_extra.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Extra analysis"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Extra analysis</figcaption></figure>
+            
+          <h3>EFO:0004038 — Mouse embryonic stem cell</h3>
+          <div class="grid">
+            <div>
+              <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_triangle.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Triangle TAD view"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Triangle TAD view</figcaption></figure>
+            </div>
+            <div>
+              <div class="label">Square heatmap + gene track</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square heatmap"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square heatmap</figcaption></figure>
+            </div>
+          </div>
+          <div class="label">Log₂ ratio · Virtual 4C · P(s) curve</div>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_extra.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Extra analysis"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Extra analysis</figcaption></figure>
+            </div>
+        <div class="region">
+          <h2>Edward — chr12 insulator</h2>
+          <div class="info">
+            <b>Deletion:</b> chr12:27,333,532–27,336,455
+            &nbsp;|&nbsp; <b>Size:</b> 2,923 bp
+            &nbsp;|&nbsp; <b>Analysis window:</b> 26,810,705–27,859,281
+            (1 Mb, model limit)<br>
+            <b>Full 2-TAD span:</b> chr12:26,440,002–28,560,000
+            (2.1 Mb — too large for AlphaGenome API)
+          </div>
+
+          <h3>Triangle TAD View — all cell types</h3>
+          <p style="font-size:0.88em;color:#444">
+            The contact matrix is rotated 45°. TADs appear as <b>dark upward-pointing
+            triangles</b> above the x-axis. The y-axis is genomic distance / 2. Cyan
+            dashed lines mark the insulator deletion site. In the difference panel:
+            <span style="color:#c0392b">red = gained contacts</span>,
+            <span style="color:#2980b9">blue = lost contacts</span>.
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_triangle_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Triangle TAD view — WT | Deletion | Difference for each cell type"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Triangle TAD view — WT | Deletion | Difference for each cell type</figcaption></figure>
+
+          <h3>Square Heatmap — all cell types</h3>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_celltype_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square contact map — WT | Deletion | Difference for each cell type"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square contact map — WT | Deletion | Difference for each cell type</figcaption></figure>
+        
+          <h3>CL:0000207 — Olfactory receptor cell</h3>
+          <div class="grid">
+            <div>
+              <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207_triangle.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Triangle TAD view"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Triangle TAD view</figcaption></figure>
+            </div>
+            <div>
+              <div class="label">Square heatmap + gene track</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square heatmap"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square heatmap</figcaption></figure>
+            </div>
+          </div>
+          <div class="label">Log₂ ratio · Virtual 4C · P(s) curve</div>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207_extra.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Extra analysis"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Extra analysis</figcaption></figure>
+            
+          <h3>EFO:0004038 — Mouse embryonic stem cell</h3>
+          <div class="grid">
+            <div>
+              <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_triangle.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Triangle TAD view"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Triangle TAD view</figcaption></figure>
+            </div>
+            <div>
+              <div class="label">Square heatmap + gene track</div>
+              <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square heatmap"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square heatmap</figcaption></figure>
+            </div>
+          </div>
+          <div class="label">Log₂ ratio · Virtual 4C · P(s) curve</div>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_extra.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Extra analysis"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Extra analysis</figcaption></figure>
+            </div>
+
+</body>
+</html>

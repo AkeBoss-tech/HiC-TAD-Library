@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deletion Scan — Edward chr12</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+         max-width:1300px;margin:0 auto;padding:24px;background:#f0f2f5;color:#2c3e50}
+    h1{font-size:1.6em;border-bottom:3px solid #2980b9;padding-bottom:8px}
+    h2{font-size:1.2em;color:#1a5276;margin:28px 0 8px}
+    .meta{font-size:.85em;color:#888;margin-bottom:20px}
+    .info{background:#eaf4fb;padding:12px 16px;border-radius:6px;
+           font-size:.88em;margin-bottom:18px;line-height:1.75}
+    table{border-collapse:collapse;width:100%;font-size:.85em;margin-bottom:24px}
+    th{background:#2980b9;color:white;padding:7px 10px;text-align:left}
+    td{padding:6px 10px;border-bottom:1px solid #ddd}
+    tr:hover td{background:#f5faff}
+    .legend{background:#fdfefe;border:1px solid #d5d8dc;border-radius:8px;
+             padding:14px;font-size:.85em;margin:16px 0}
+  </style>
+</head>
+<body>
+<h1>Deletion Sensitivity Scan — Edward chr12</h1>
+<p class="meta">
+  chr12 | Mouse ESC (EFO:0004038) | mm10 |
+  12 deletion sites × 2,923 bp each | Generated: 2026-02-18 19:02
+</p>
+
+<div class="info">
+  <b>Hypothesis:</b> Deletions <em>at</em> a TAD boundary cause the largest structural
+  change (TADs merge); deletions <em>within</em> a TAD body cause little change.<br>
+  <b>Method:</b> Predict WT once; for each of 12 evenly-spaced positions,
+  simulate a 2,923-bp deletion and compare to WT using three metrics.<br>
+  <b>Edward's actual insulator:</b> chr12:27,333,532–27,336,455
+  (highlighted in red throughout).
+</div>
+
+<div class="legend">
+  <b>Metrics explained</b><br>
+  &bull; <b>Mean |Δ contact|</b> — total reorganisation of the contact map;
+    higher = deletion caused more structural change.<br>
+  &bull; <b>Cross-TAD contact gain</b> — average change in contacts across the
+    deletion site; positive = the two domains are merging.<br>
+  &bull; <b>Insulation weakening</b> — how much the local boundary strength
+    decreases; positive = boundary is lost.
+</div>
+
+<h2>Impact Ranking Table</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |Δ contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style=""><td>#1</td><td>26,815,676</td><td>26,815,676–26,818,599</td><td>0.01690</td><td>+0.00082</td><td>+0.00378</td></tr>
+<tr style=""><td>#2</td><td>26,909,831</td><td>26,909,831–26,912,754</td><td>0.01643</td><td>+0.00439</td><td>-0.00006</td></tr>
+<tr style=""><td>#3</td><td>27,003,987</td><td>27,003,987–27,006,910</td><td>0.01572</td><td>+0.00217</td><td>+0.00215</td></tr>
+<tr style=""><td>#4</td><td>27,098,142</td><td>27,098,142–27,101,065</td><td>0.01394</td><td>-0.00113</td><td>+0.00671</td></tr>
+<tr style=""><td>#5</td><td>27,192,298</td><td>27,192,298–27,195,221</td><td>0.01331</td><td>-0.00194</td><td>+0.00270</td></tr>
+<tr style=""><td>#6</td><td>27,286,453</td><td>27,286,453–27,289,376</td><td>0.01204</td><td>-0.00410</td><td>-0.00711</td></tr>
+<tr style="background:#fdecea;font-weight:bold"><td>#7</td><td>27,334,993</td><td>27,334,993–27,337,916</td><td>0.01182 ⭐ ACTUAL</td><td>+0.00203</td><td>-0.02591</td></tr>
+<tr style=""><td>#8</td><td>27,474,764</td><td>27,474,764–27,477,687</td><td>0.00868</td><td>-0.00548</td><td>-0.00712</td></tr>
+<tr style=""><td>#9</td><td>27,568,920</td><td>27,568,920–27,571,843</td><td>0.00676</td><td>-0.00672</td><td>-0.02036</td></tr>
+<tr style=""><td>#10</td><td>27,663,075</td><td>27,663,075–27,665,998</td><td>0.00440</td><td>-0.00173</td><td>-0.00530</td></tr>
+<tr style=""><td>#11</td><td>27,757,231</td><td>27,757,231–27,760,154</td><td>0.00350</td><td>+0.00603</td><td>+0.01670</td></tr>
+<tr style=""><td>#12</td><td>27,851,387</td><td>27,851,387–27,854,310</td><td>0.00079</td><td>-0.00614</td><td>-0.00073</td></tr>
+
+</table>
+
+<h2>Summary: WT Structure + Impact Ranking</h2>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Left: WT triangle TAD plot with all scan positions marked. Right: sites ranked by impact score.</figcaption></figure>
+
+<h2>Sensitivity Profile (all 3 metrics)</h2>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three impact metrics at each scanned position. Red = Edward's actual insulator. Higher bars = bigger structural effect.</figcaption></figure>
+
+<h2>Triangle TAD Gallery (selected sites)</h2>
+<p style="font-size:.88em;color:#444">
+  Each panel shows the <b>difference map</b> (deletion − WT) as a rotated 45°
+  triangle. TADs appear as triangles; the insulator is the valley between them.
+  Red border = actual insulator. Orange = highest-impact non-insulator.
+  Blue = interior controls. Cyan dashed lines mark the deletion boundaries.
+</p>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle TAD difference views for selected deletion sites.</figcaption></figure>
+
+<h2>All 12 Sites — Difference Map Montage</h2>
+<p style="font-size:.88em;color:#444">
+  All scanned sites on a single shared colour scale. Compare the spatial pattern
+  of contact changes across sites. Red border = Edward's actual insulator.
+</p>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 deletion sites on a shared colour scale.</figcaption></figure>
+
+</body>
+</html>
