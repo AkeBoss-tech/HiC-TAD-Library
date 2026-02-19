@@ -603,23 +603,70 @@
             </div>
             <div class="image-grid">
                 <div class="image-card"
-                    onclick="openModal('media/deletion_scan_ranked_summary.png', 'Scan Summary — WT Structure + Impact Ranking', 'Left: Wild-type triangle TAD plot with all 12 scanned deletion positions marked as coloured lines (red = Edward\'s actual insulator, others coloured by genomic position). Right: horizontal bar chart ranking each site by global contact-map impact. Notice that the sites with the highest raw impact are on the left side of the window — near the CTCF loop anchors visible as diagonal stripes in the WT map — not necessarily at the TAD boundary.')">
-                    <img src="media/deletion_scan_ranked_summary.png" alt="Scan summary">
+                    onclick="openModal('media/deletion_scan_edward_chr12_ranked_summary.png', 'Scan Summary — WT Structure + Impact Ranking', 'Left: Wild-type triangle TAD plot with all 12 scanned deletion positions marked as coloured lines (red = Edward\'s actual insulator, others coloured by genomic position). Right: horizontal bar chart ranking each site by global contact-map impact. Notice that the sites with the highest raw impact are on the left side of the window — near the CTCF loop anchors visible as diagonal stripes in the WT map — not necessarily at the TAD boundary.')">
+                    <img src="media/deletion_scan_edward_chr12_ranked_summary.png" alt="Scan summary">
                     <div class="image-card-title">WT Structure + Impact Ranking</div>
                 </div>
                 <div class="image-card"
-                    onclick="openModal('media/deletion_scan_sensitivity.png', 'Sensitivity Profile — All 3 Metrics', 'Three bar charts showing all 12 deletion sites (x-axis = genomic position, red bar = Edward\'s actual insulator). Top: global mean |Δ contact| — Edward\'s site is mid-ranked; the highest values are near the CTCF loop anchors in the left half of the window. Middle: cross-TAD contact gain — positive values indicate domain merging; Edward\'s site is among the few with a consistently positive signal. Bottom: insulation weakening — Edward\'s site has the largest value by a wide margin (~3× greater than the next site), confirming it is at a true functional boundary.')">
-                    <img src="media/deletion_scan_sensitivity.png" alt="Sensitivity profile">
+                    onclick="openModal('media/deletion_scan_edward_chr12_sensitivity.png', 'Sensitivity Profile — All 3 Metrics', 'Three bar charts showing all 12 deletion sites (x-axis = genomic position, red bar = Edward\'s actual insulator). Top: global mean |Δ contact| — Edward\'s site is mid-ranked; the highest values are near the CTCF loop anchors in the left half of the window. Middle: cross-TAD contact gain — positive values indicate domain merging; Edward\'s site is among the few with a consistently positive signal. Bottom: insulation weakening — Edward\'s site has the largest value by a wide margin (~3× greater than the next site), confirming it is at a true functional boundary.')">
+                    <img src="media/deletion_scan_edward_chr12_sensitivity.png" alt="Sensitivity profile">
                     <div class="image-card-title">Sensitivity Profile — All 3 Metrics</div>
                 </div>
                 <div class="image-card"
-                    onclick="openModal('media/deletion_scan_triangle_gallery.png', 'Triangle TAD Gallery — Selected Sites', 'Top-left (black border): WT reference. Remaining panels show the difference map (deletion − WT) as a triangle TAD plot for selected sites. Red border = Edward\'s actual insulator. Orange border = highest-impact non-insulator site (near a CTCF loop anchor at ~26.8 Mb). Blue borders = interior control sites. The actual insulator (red) shows a distinctive valley-filling pattern in the difference map consistent with partial domain merging. The CTCF anchor site (orange) produces a large global change but a different spatial signature — stripe disruption rather than boundary loss.')">
-                    <img src="media/deletion_scan_triangle_gallery.png" alt="Triangle gallery">
+                    onclick="openModal('media/deletion_scan_edward_chr12_triangle_gallery.png', 'Triangle TAD Gallery — Selected Sites', 'Top-left (black border): WT reference. Remaining panels show the difference map (deletion − WT) as a triangle TAD plot for selected sites. Red border = Edward\'s actual insulator. Orange border = highest-impact non-insulator site (near a CTCF loop anchor at ~26.8 Mb). Blue borders = interior control sites. The actual insulator (red) shows a distinctive valley-filling pattern in the difference map consistent with partial domain merging. The CTCF anchor site (orange) produces a large global change but a different spatial signature — stripe disruption rather than boundary loss.')">
+                    <img src="media/deletion_scan_edward_chr12_triangle_gallery.png" alt="Triangle gallery">
                     <div class="image-card-title">Triangle TAD Gallery — Selected Sites</div>
                 </div>
                 <div class="image-card"
-                    onclick="openModal('media/deletion_scan_montage.png', 'All 12 Sites — Difference Map Montage', 'Every scanned deletion shown on a single shared colour scale, in genomic order. Sites are annotated with their impact rank. The red-bordered panel (Edward\'s insulator, rank #7 by global impact) shows a different spatial signature from the top-ranked sites: it produces focused contact changes around the boundary rather than the broad stripe-disruption seen in the CTCF anchor regions. This demonstrates that global impact score alone does not identify functional boundaries — a targeted insulation metric is needed.')">
-                    <img src="media/deletion_scan_montage.png" alt="Montage">
+                    onclick="openModal('media/deletion_scan_edward_chr12_montage.png', 'All 12 Sites — Difference Map Montage', 'Every scanned deletion shown on a single shared colour scale, in genomic order. Sites are annotated with their impact rank. The red-bordered panel (Edward\'s insulator, rank #7 by global impact) shows a different spatial signature from the top-ranked sites: it produces focused contact changes around the boundary rather than the broad stripe-disruption seen in the CTCF anchor regions. This demonstrates that global impact score alone does not identify functional boundaries — a targeted insulation metric is needed.')">
+                    <img src="media/deletion_scan_edward_chr12_montage.png" alt="Montage">
+                    <div class="image-card-title">All 12 Sites — Difference Map Montage</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deletion Sensitivity Scan — Jingyun chr13 -->
+        <div class="section">
+            <h2 class="section-title">Deletion Sensitivity Scan — Jingyun chr13 <span class="badge badge-new">NEW</span></h2>
+            <p style="color: #555; margin-bottom: 10px; line-height: 1.7;">
+                <strong>Question:</strong> Is Jingyun's insulator site truly special, or would any random deletion in the same chr13 region produce a similar contact-map change?
+            </p>
+            <p style="color: #555; margin-bottom: 10px; line-height: 1.7;">
+                <strong>Experiment:</strong> 12 evenly-spaced deletions of the same size (~5.3 kb) were simulated across the 1 Mb window centred on the chr13 insulator using AlphaGenome (Mouse ESC, <code>EFO:0004038</code>). The wild-type was predicted once; each deletion was compared against it using three metrics.
+            </p>
+            <div style="background:#eaf4fb; border-radius:8px; padding:14px 18px; margin-bottom:18px; font-size:0.9em; line-height:1.75;">
+                <strong>Three impact metrics:</strong><br>
+                &bull; <strong>Mean |&Delta; contact|</strong> — total contact-map reorganisation (how much anything changed).<br>
+                &bull; <strong>Cross-TAD contact gain</strong> — average gain in contacts across the deletion site; positive = domains merging.<br>
+                &bull; <strong>Insulation weakening</strong> — change in cross-boundary contact frequency at the deletion site; positive = boundary lost, negative = local reorganisation.
+            </div>
+            <div style="background:#fff8e1; border-left:4px solid #f39c12; border-radius:4px; padding:14px 18px; margin-bottom:24px; font-size:0.9em; line-height:1.75;">
+                <strong>Key finding:</strong>
+                Jingyun's insulator also ranks <strong>#7 out of 12</strong> by raw global impact — a strikingly similar pattern to Edward's chr12.
+                Sites in the upstream (left) half of the 1 Mb window consistently show larger global reorganisation, suggesting a gradient of structural sensitivity.
+                The insulation metric reveals that site #6 (83.69 Mb, just upstream of the actual insulator) produces the largest local contact change (−0.044),
+                while Jingyun's actual insulator shows a negative insulation score change (−0.017) — a different signature than Edward's chr12 insulator (which was <em>positive</em>).
+                This contrast suggests the two insulators may operate through different architectural mechanisms: chr12 as a CTCF loop anchor and chr13 as a constitutive chromatin boundary.
+            </div>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_jingyun_chr13_ranked_summary.png', 'Jingyun Scan Summary — WT Structure + Impact Ranking', 'Left: Wild-type triangle TAD plot with all 12 scanned deletion positions marked as coloured lines (red = Jingyun\'s actual insulator, others coloured by genomic position). Right: horizontal bar chart ranking each site by global contact-map impact. Sites in the upstream (left) half of the 1 Mb window produce larger global changes, while the actual insulator (red, rank #7) sits at the transition between high- and low-sensitivity zones.')">
+                    <img src="media/deletion_scan_jingyun_chr13_ranked_summary.png" alt="Jingyun scan summary">
+                    <div class="image-card-title">WT Structure + Impact Ranking</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_jingyun_chr13_sensitivity.png', 'Jingyun Sensitivity Profile — All 3 Metrics', 'Three bar charts for all 12 deletion sites (red bar = Jingyun\'s actual insulator at 83.74 Mb). Top: global mean |Δ contact| — the upstream sites are consistently higher, with a smooth decay towards the right. Middle: cross-TAD contact gain — mixed positive/negative values; site #12 (far right) shows the largest cross-gain. Bottom: insulation weakening — all values are negative for Jingyun\'s region, with site #6 (just upstream of the actual insulator at 83.69 Mb) showing the most negative value (−0.044), suggesting that position has the strongest local contact reorganisation effect.')">
+                    <img src="media/deletion_scan_jingyun_chr13_sensitivity.png" alt="Jingyun sensitivity profile">
+                    <div class="image-card-title">Sensitivity Profile — All 3 Metrics</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_jingyun_chr13_triangle_gallery.png', 'Jingyun Triangle TAD Gallery — Selected Sites', 'Top-left (black border): WT reference triangle map for chr13. Remaining panels show difference maps (deletion − WT) for selected sites. Red border = Jingyun\'s actual insulator. Orange = highest-impact non-insulator. Blue = interior controls. The chr13 WT map is quieter than chr12 (fewer CTCF loop stripes), consistent with a constitutive boundary rather than a loop anchor. The difference maps reveal varied spatial patterns across sites.')">
+                    <img src="media/deletion_scan_jingyun_chr13_triangle_gallery.png" alt="Jingyun triangle gallery">
+                    <div class="image-card-title">Triangle TAD Gallery — Selected Sites</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_jingyun_chr13_montage.png', 'Jingyun All 12 Sites — Difference Map Montage', 'Every scanned deletion on a shared colour scale, in genomic order. The red-bordered panel (Jingyun\'s insulator, rank #7) is near the centre of the window. A clear gradient is visible: upstream deletions produce larger, more diffuse changes while downstream deletions produce weaker, more localised effects. Compare with Edward\'s chr12 montage to see the contrasting spatial signatures of the two regions.')">
+                    <img src="media/deletion_scan_jingyun_chr13_montage.png" alt="Jingyun montage">
                     <div class="image-card-title">All 12 Sites — Difference Map Montage</div>
                 </div>
             </div>

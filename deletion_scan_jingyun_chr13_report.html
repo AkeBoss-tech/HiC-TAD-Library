@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deletion Scan — Jingyun chr13</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+         max-width:1300px;margin:0 auto;padding:24px;background:#f0f2f5;color:#2c3e50}
+    h1{font-size:1.6em;border-bottom:3px solid #2980b9;padding-bottom:8px}
+    h2{font-size:1.2em;color:#1a5276;margin:28px 0 8px}
+    .meta{font-size:.85em;color:#888;margin-bottom:20px}
+    .info{background:#eaf4fb;padding:12px 16px;border-radius:6px;
+           font-size:.88em;margin-bottom:18px;line-height:1.75}
+    table{border-collapse:collapse;width:100%;font-size:.85em;margin-bottom:24px}
+    th{background:#2980b9;color:white;padding:7px 10px;text-align:left}
+    td{padding:6px 10px;border-bottom:1px solid #ddd}
+    tr:hover td{background:#f5faff}
+    .legend{background:#fdfefe;border:1px solid #d5d8dc;border-radius:8px;
+             padding:14px;font-size:.85em;margin:16px 0}
+  </style>
+</head>
+<body>
+<h1>Deletion Sensitivity Scan — Jingyun chr13</h1>
+<p class="meta">
+  chr13 | Mouse ESC (EFO:0004038) | mm10 |
+  12 deletion sites × 5,341 bp each | Generated: 2026-02-18 19:34
+</p>
+
+<div class="info">
+  <b>Hypothesis:</b> Deletions <em>at</em> a TAD boundary cause the largest structural
+  change (TADs merge); deletions <em>within</em> a TAD body cause little change.<br>
+  <b>Method:</b> Predict WT once; for each of 12 evenly-spaced positions,
+  simulate a 5,341-bp deletion and compare to WT using three metrics.<br>
+  <b>Jingyun's actual insulator:</b> chr13:83,739,797–83,745,138
+  (highlighted in red throughout).
+</div>
+
+<div class="legend">
+  <b>Metrics explained</b><br>
+  &bull; <b>Mean |&Delta; contact|</b> — total reorganisation of the contact map;
+    higher = deletion caused more structural change.<br>
+  &bull; <b>Cross-TAD contact gain</b> — average change in contacts across the
+    deletion site; positive = the two domains are merging.<br>
+  &bull; <b>Insulation weakening</b> — how much the local boundary strength
+    decreases; positive = boundary is lost.
+</div>
+
+<h2>Impact Ranking Table</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style=""><td>#1</td><td>83,225,568</td><td>83,225,568–83,230,909</td><td>0.03089</td><td>+0.00479</td><td>-0.00786</td></tr>
+<tr style=""><td>#2</td><td>83,319,064</td><td>83,319,064–83,324,405</td><td>0.02970</td><td>+0.00071</td><td>+0.00059</td></tr>
+<tr style=""><td>#3</td><td>83,412,560</td><td>83,412,560–83,417,901</td><td>0.02916</td><td>-0.00169</td><td>+0.00656</td></tr>
+<tr style=""><td>#4</td><td>83,506,056</td><td>83,506,056–83,511,397</td><td>0.02723</td><td>-0.00293</td><td>-0.02332</td></tr>
+<tr style=""><td>#5</td><td>83,599,552</td><td>83,599,552–83,604,893</td><td>0.02600</td><td>-0.00677</td><td>-0.00094</td></tr>
+<tr style=""><td>#6</td><td>83,693,048</td><td>83,693,048–83,698,389</td><td>0.01976</td><td>+0.00758</td><td>-0.04359</td></tr>
+<tr style="background:#fdecea;font-weight:bold"><td>#7</td><td>83,742,467</td><td>83,742,467–83,747,808</td><td>0.01456 ⭐ ACTUAL</td><td>-0.00141</td><td>-0.01746</td></tr>
+<tr style=""><td>#8</td><td>83,880,040</td><td>83,880,040–83,885,381</td><td>0.01076</td><td>-0.00104</td><td>+0.00334</td></tr>
+<tr style=""><td>#9</td><td>83,973,536</td><td>83,973,536–83,978,877</td><td>0.00936</td><td>-0.00062</td><td>-0.00189</td></tr>
+<tr style=""><td>#10</td><td>84,067,032</td><td>84,067,032–84,072,373</td><td>0.00713</td><td>-0.00398</td><td>+0.01007</td></tr>
+<tr style=""><td>#11</td><td>84,160,528</td><td>84,160,528–84,165,869</td><td>0.00493</td><td>-0.00900</td><td>-0.01228</td></tr>
+<tr style=""><td>#12</td><td>84,254,025</td><td>84,254,025–84,259,366</td><td>0.00460</td><td>-0.04265</td><td>-0.01475</td></tr>
+
+</table>
+
+<h2>Summary: WT Structure + Impact Ranking</h2>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Left: WT triangle TAD plot with all scan positions marked. Right: sites ranked by impact score.</figcaption></figure>
+
+<h2>Sensitivity Profile (all 3 metrics)</h2>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three impact metrics at each scanned position. Red = Jingyun's actual insulator. Higher bars = bigger structural effect.</figcaption></figure>
+
+<h2>Triangle TAD Gallery (selected sites)</h2>
+<p style="font-size:.88em;color:#444">
+  Each panel shows the <b>difference map</b> (deletion &minus; WT) as a rotated 45&deg;
+  triangle. TADs appear as triangles; the insulator is the valley between them.
+  Red border = actual insulator. Orange = highest-impact non-insulator.
+  Blue = interior controls. Cyan dashed lines mark the deletion boundaries.
+</p>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle TAD difference views for selected deletion sites.</figcaption></figure>
+
+<h2>All 12 Sites — Difference Map Montage</h2>
+<p style="font-size:.88em;color:#444">
+  All scanned sites on a single shared colour scale. Compare the spatial pattern
+  of contact changes across sites. Red border = Jingyun's actual insulator.
+</p>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 deletion sites on a shared colour scale.</figcaption></figure>
+
+</body>
+</html>

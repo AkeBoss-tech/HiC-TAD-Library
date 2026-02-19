@@ -1,55 +1,88 @@
 #!/usr/bin/env python3
 """
-Deletion sensitivity scan across Edward's chr12 region.
+Deletion sensitivity scan — configurable for any region.
 
-Tests N evenly-spaced deletions — all the same size as Edward's real insulator
-(~3 kb) — across the 1 Mb analysis window.  Compares each one against the
-wild-type contact map to reveal which genomic positions, when deleted, produce
-the largest structural change.
+Usage:
+    python deletion_scan.py edward    # Edward's chr12 insulator (default)
+    python deletion_scan.py jingyun   # Jingyun's chr13 insulator
+
+Tests N evenly-spaced deletions — all the same size as the real insulator —
+across the 1 Mb analysis window.  Compares each one against the wild-type
+contact map to reveal which genomic positions, when deleted, produce the
+largest structural change.
 
 The hypothesis:
   Deletions AT a TAD boundary  → large contact reorganisation (TADs merge)
   Deletions WITHIN a TAD body → small change (domain interior is redundant)
 
-Edward's confirmed coordinates (mm10):
-  Insulator: chr12:27,333,532–27,336,455  (~3 kb)
-  Full 2-TAD span: chr12:26,440,002–28,560,000  (2.1 Mb)
+Confirmed coordinates (mm10):
+  Edward:  chr12:27,333,532–27,336,455  (~3 kb)
+  Jingyun: chr13:83,739,797–83,745,138  (~5.3 kb)
 
 Cell type: EFO:0004038 (Mouse ESC) — showed the most loop structure for chr12.
 """
 
 import os
+import sys
 import datetime
-import textwrap
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as mgs
-from matplotlib.patches import FancyArrowPatch
 from dotenv import load_dotenv
 
 from alphagenome.data import genome
 from alphagenome.models import dna_client
 
+# ── Region configurations ──────────────────────────────────────────────────────
+REGIONS = {
+    'edward': dict(
+        chrom      = 'chr12',
+        del_start  = 27_333_532,
+        del_end    = 27_336_455,
+        name       = 'Edward',
+        region_label = 'Edward chr12',
+        safe       = 'edward_chr12',
+    ),
+    'jingyun': dict(
+        chrom      = 'chr13',
+        del_start  = 83_739_797,
+        del_end    = 83_745_138,
+        name       = 'Jingyun',
+        region_label = 'Jingyun chr13',
+        safe       = 'jingyun_chr13',
+    ),
+}
+
+# Pick region from command line (default: edward)
+region_key = sys.argv[1].lower() if len(sys.argv) > 1 else 'edward'
+if region_key not in REGIONS:
+    print(f'Unknown region "{region_key}". Choose from: {list(REGIONS.keys())}')
+    sys.exit(1)
+
+cfg = REGIONS[region_key]
+
+CHROM     = cfg['chrom']
+DEL_START = cfg['del_start']
+DEL_END   = cfg['del_end']
+DEL_SIZE  = DEL_END - DEL_START
+SAFE      = cfg['safe']
+NAME      = cfg['name']
+REGION_LABEL = cfg['region_label']
+
 # ── Setup ─────────────────────────────────────────────────────────────────────
 load_dotenv()
 dna_model = dna_client.create(os.getenv('ALPHA_GENOME_API_KEY'))
-print('Model initialized.')
+print(f'Model initialized. Running scan for: {REGION_LABEL}')
 
 ORGANISM  = dna_client.Organism.MUS_MUSCULUS
 CELL_TYPE = 'EFO:0004038'
 CELL_NAME = 'Mouse ESC'
 
-# Edward's insulator (mm10)
-ED_CHROM     = 'chr12'
-ED_DEL_START = 27_333_532
-ED_DEL_END   = 27_336_455
-DEL_SIZE     = ED_DEL_END - ED_DEL_START   # 2,923 bp
-
-# 1 Mb analysis window centred on Edward's deletion
-_mid      = (ED_DEL_START + ED_DEL_END) // 2
+# 1 Mb analysis window centred on the deletion
+_mid      = (DEL_START + DEL_END) // 2
 WIN_START = max(0, _mid - 2**19)
 WIN_END   = _mid + 2**19
-INTERVAL  = genome.Interval(chromosome=ED_CHROM, start=WIN_START, end=WIN_END)
+INTERVAL  = genome.Interval(chromosome=CHROM, start=WIN_START, end=WIN_END)
 
 # Number of candidate deletion centres to test
 N_SITES = 12
@@ -95,7 +128,7 @@ def compute_metrics(wt, dm, del_bin, n, res):
 
 
 # ── Step 1: predict WT ────────────────────────────────────────────────────────
-print(f'\nPredicting WT for {ED_CHROM}:{WIN_START:,}-{WIN_END:,} ...')
+print(f'\nPredicting WT for {CHROM}:{WIN_START:,}-{WIN_END:,} ...')
 wt_out = dna_model.predict_interval(
     interval=INTERVAL,
     requested_outputs={dna_client.OutputType.CONTACT_MAPS},
@@ -113,11 +146,11 @@ margin  = DEL_SIZE + int(res)
 centres = np.linspace(WIN_START + margin, WIN_END - margin - DEL_SIZE,
                       N_SITES, dtype=int)
 
-# Replace the nearest site with Edward's actual centre
-ed_centre  = (ED_DEL_START + ED_DEL_END) // 2
-nearest    = int(np.argmin(np.abs(centres - ed_centre)))
-centres[nearest] = ed_centre
-is_actual  = np.zeros(N_SITES, dtype=bool)
+# Replace the nearest site with the actual insulator centre
+actual_centre = (DEL_START + DEL_END) // 2
+nearest       = int(np.argmin(np.abs(centres - actual_centre)))
+centres[nearest] = actual_centre
+is_actual     = np.zeros(N_SITES, dtype=bool)
 is_actual[nearest] = True
 
 
@@ -127,11 +160,11 @@ for i, centre in enumerate(centres):
     del_s   = int(centre)
     del_e   = del_s + DEL_SIZE
     del_bin = int((centre - WIN_START) / res)
-    tag     = '  ← EDWARD (actual insulator)' if is_actual[i] else ''
-    print(f'  [{i+1:2d}/{N_SITES}]  {ED_CHROM}:{del_s:,}–{del_e:,}{tag}')
+    tag     = f'  ← {NAME.upper()} (actual insulator)' if is_actual[i] else ''
+    print(f'  [{i+1:2d}/{N_SITES}]  {CHROM}:{del_s:,}–{del_e:,}{tag}')
 
     variant = genome.Variant(
-        chromosome=ED_CHROM,
+        chromosome=CHROM,
         position=del_s - 1,
         reference_bases='N' * DEL_SIZE,
         alternate_bases='N',
@@ -165,10 +198,9 @@ rank_labels = [f"#{k+1}" for k in range(len(records))]
 # ── Figure 1: sensitivity profile ────────────────────────────────────────────
 def plot_sensitivity_profile(records):
     """Bar charts of all three metrics at each deletion site."""
-    positions = [r['centre'] for r in records]
-    colours   = ['#e74c3c' if r['is_actual'] else '#3498db' for r in records]
-    x_labels  = [f"{r['centre'] // 1_000_000:.3f} Mb" for r in records]
-    x         = np.arange(len(records))
+    colours  = ['#e74c3c' if r['is_actual'] else '#3498db' for r in records]
+    x_labels = [f"{r['centre'] // 1_000_000:.3f} Mb" for r in records]
+    x        = np.arange(len(records))
 
     metrics = [
         ('global_abs',    'Mean |Δ contact|',       'Total contact reorganisation\n(higher = bigger effect)'),
@@ -179,21 +211,20 @@ def plot_sensitivity_profile(records):
     fig, axes = plt.subplots(3, 1, figsize=(14, 11), sharex=True,
                              gridspec_kw={'hspace': 0.45})
     fig.suptitle(
-        f'Deletion Sensitivity Scan — Edward chr12 ({CELL_NAME})\n'
+        f'Deletion Sensitivity Scan — {REGION_LABEL} ({CELL_NAME})\n'
         f'Each bar = a {DEL_SIZE:,}-bp deletion centred at that genomic position\n'
-        f'Red bar = Edward\'s actual insulator',
+        f"Red bar = {NAME}'s actual insulator",
         fontsize=12, fontweight='bold'
     )
 
     for ax, (key, ylabel, desc) in zip(axes, metrics):
         vals = [r[key] for r in records]
         bars = ax.bar(x, vals, color=colours, edgecolor='white', linewidth=0.5)
-        # Mark the actual insulator
         for j, r in enumerate(records):
             if r['is_actual']:
                 bars[j].set_edgecolor('black')
                 bars[j].set_linewidth(2)
-                ax.annotate("Edward's\ninsulator", xy=(j, vals[j]),
+                ax.annotate(f"{NAME}'s\ninsulator", xy=(j, vals[j]),
                             xytext=(j + 0.5, max(vals) * 0.85),
                             fontsize=7.5, color='#c0392b', fontweight='bold',
                             arrowprops=dict(arrowstyle='->', color='#c0392b', lw=1.2))
@@ -206,7 +237,7 @@ def plot_sensitivity_profile(records):
     axes[-1].set_xticklabels(x_labels, rotation=35, ha='right')
     axes[-1].set_xlabel('Deletion centre (genomic position)', fontsize=10)
 
-    path = 'media/deletion_scan_sensitivity.png'
+    path = f'media/deletion_scan_{SAFE}_sensitivity.png'
     plt.savefig(path, dpi=200, bbox_inches='tight')
     print(f'Saved: {path}')
     plt.close()
@@ -220,9 +251,7 @@ def plot_triangle_gallery(records, wt):
     Selects: actual insulator, top-2 non-actual, 3 random interior sites.
     """
     actual  = next(r for r in records if r['is_actual'])
-    # top-2 by global impact that are not the actual site
     top2    = [r for r in records if not r['is_actual']][:2]
-    # 3 "interior" control sites: evenly pick from remainder, avoid ends
     others  = [r for r in records if not r['is_actual'] and r not in top2]
     step    = max(1, len(others) // 3)
     controls = others[::step][:3]
@@ -244,7 +273,7 @@ def plot_triangle_gallery(records, wt):
 
     fig.suptitle(
         f'Triangle TAD Views — Deletion Scan ({CELL_NAME})\n'
-        f'Red border = Edward\'s actual insulator  |  '
+        f"Red border = {NAME}'s actual insulator  |  "
         f'Orange = highest-impact non-insulator  |  Blue = interior controls',
         fontsize=11, fontweight='bold'
     )
@@ -270,7 +299,7 @@ def plot_triangle_gallery(records, wt):
 
     # WT first
     _tri_panel(axes_flat[0], wt,
-               f'Wild-type (WT)\n{ED_CHROM}:{WIN_START:,}–{WIN_END:,}',
+               f'Wild-type (WT)\n{CHROM}:{WIN_START:,}–{WIN_END:,}',
                border='black')
 
     colour_map = {
@@ -298,7 +327,6 @@ def plot_triangle_gallery(records, wt):
             f"Del: {r['del_s']:,}–{r['del_e']:,}\n"
             f"Δ={r['global_abs']:.4f}  cross={r['cross_gain']:+.4f}"
         )
-        # Show difference map (del − WT) for clearer visual
         cmap_obj = plt.get_cmap('RdBu_r').copy()
         cmap_obj.set_bad('white')
         masked = np.ma.masked_invalid(_rotate45(diff))
@@ -320,11 +348,10 @@ def plot_triangle_gallery(records, wt):
 
         panel_idx += 1
 
-    # Hide unused panels
     for ax in axes_flat[panel_idx:]:
         ax.set_visible(False)
 
-    path = 'media/deletion_scan_triangle_gallery.png'
+    path = f'media/deletion_scan_{SAFE}_triangle_gallery.png'
     plt.savefig(path, dpi=200, bbox_inches='tight')
     print(f'Saved: {path}')
     plt.close()
@@ -368,7 +395,6 @@ def plot_diff_montage(records, wt):
         ax.axvline(r['del_e'], color='cyan', lw=1, ls='--', alpha=0.9)
         ax.set_xlim(start, end)
         ax.set_ylim(0, y_max)
-        # Rank by impact (1 = biggest)
         rank = sorted(records, key=lambda x: x['global_abs'], reverse=True).index(r) + 1
         border = '#e74c3c' if r['is_actual'] else '#888'
         title = (
@@ -385,14 +411,15 @@ def plot_diff_montage(records, wt):
     for ax in axes_flat[len(sorted_records):]:
         ax.set_visible(False)
 
+    actual_label = f"{NAME}'s actual insulator"
     fig.suptitle(
         f'All {N_SITES} Deletion Sites — Difference Maps (del − WT)\n'
         f'{CELL_NAME}  |  Each deletion = {DEL_SIZE:,} bp  |  '
-        f'Colour scale ±{global_vlim:.3f}  |  Red border = Edward\'s actual insulator',
+        f'Colour scale ±{global_vlim:.3f}  |  Red border = {actual_label}',
         fontsize=11, fontweight='bold'
     )
 
-    path = 'media/deletion_scan_montage.png'
+    path = f'media/deletion_scan_{SAFE}_montage.png'
     plt.savefig(path, dpi=200, bbox_inches='tight')
     print(f'Saved: {path}')
     plt.close()
@@ -404,7 +431,6 @@ def plot_ranked_summary(records, wt):
     """
     Left: WT triangle TAD (reference).
     Right: ranked bar chart of global_abs coloured by position along genome.
-    Shows clearly where the most sensitive sites are relative to the TAD structure.
     """
     sorted_by_pos  = sorted(records, key=lambda r: r['centre'])
     sorted_by_rank = sorted(records, key=lambda r: r['global_abs'], reverse=True)
@@ -424,7 +450,6 @@ def plot_ranked_summary(records, wt):
     ax_tri.imshow(np.ma.masked_invalid(_rotate45(wt)), cmap=cmap_obj,
                   aspect='auto', vmin=0, vmax=vmax, origin='lower',
                   extent=[start, end, 0, y_max], interpolation='nearest')
-    # Mark all scan positions
     for r in sorted_by_pos:
         col = '#e74c3c' if r['is_actual'] else cmap_pos(pos_norm(r['centre']))
         ax_tri.axvline(r['centre'] + DEL_SIZE // 2, color=col,
@@ -432,15 +457,15 @@ def plot_ranked_summary(records, wt):
                        ls='-' if r['is_actual'] else ':',
                        alpha=1.0 if r['is_actual'] else 0.6)
     ax_tri.set_xlim(start, end); ax_tri.set_ylim(0, y_max)
-    ax_tri.set_title('Wild-type TAD structure\nColoured lines = scan positions '
-                     '(red = Edward\'s insulator)', fontsize=9, fontweight='bold')
+    insulator_desc = f"red = {NAME}'s insulator"
+    ax_tri.set_title(f'Wild-type TAD structure\nColoured lines = scan positions ({insulator_desc})',
+                     fontsize=9, fontweight='bold')
     ax_tri.set_xlabel('Genomic position (bp)', fontsize=8)
     ax_tri.set_ylabel('Distance/2 (bp)', fontsize=8)
     ax_tri.ticklabel_format(style='plain', axis='both')
 
     # Right: ranked impact bars
     ax_bar = fig.add_subplot(gs[1])
-    centres_ranked = [r['centre'] for r in sorted_by_rank]
     vals_ranked    = [r['global_abs'] for r in sorted_by_rank]
     colours_ranked = ['#e74c3c' if r['is_actual']
                       else cmap_pos(pos_norm(r['centre']))
@@ -448,7 +473,6 @@ def plot_ranked_summary(records, wt):
     y_pos = np.arange(len(records))
     bars  = ax_bar.barh(y_pos, vals_ranked, color=colours_ranked,
                         edgecolor='white', linewidth=0.5)
-    # Thicker border for actual
     for j, r in enumerate(sorted_by_rank):
         if r['is_actual']:
             bars[j].set_edgecolor('black'); bars[j].set_linewidth(2)
@@ -463,14 +487,15 @@ def plot_ranked_summary(records, wt):
                      fontsize=9, fontweight='bold')
     ax_bar.axvline(0, color='black', lw=0.5)
 
+    actual_mb = actual_centre // 1_000_000
     fig.suptitle(
-        f'Deletion Scan Summary — {ED_CHROM} | {CELL_NAME}\n'
+        f'Deletion Scan Summary — {CHROM} | {CELL_NAME}\n'
         f'All deletions = {DEL_SIZE:,} bp  |  '
-        f'Red = Edward\'s actual insulator at {ed_centre // 1_000_000:.3f} Mb',
+        f"Red = {NAME}'s actual insulator at {actual_centre / 1_000_000:.3f} Mb",
         fontsize=11, fontweight='bold'
     )
 
-    path = 'media/deletion_scan_ranked_summary.png'
+    path = f'media/deletion_scan_{SAFE}_ranked_summary.png'
     plt.savefig(path, dpi=200, bbox_inches='tight')
     print(f'Saved: {path}')
     plt.close()
@@ -503,11 +528,12 @@ def generate_scan_html(paths, records):
                 f'<figcaption style="font-size:.82em;color:#555;margin-top:4px">{cap}'
                 f'</figcaption></figure>')
 
-    # Pre-compute captions so no backslashes appear inside f-string expressions
-    cap_summary     = ('Left: WT triangle TAD plot with all scan positions marked. '
-                       'Right: sites ranked by impact score.')
-    cap_sensitivity = ("Three impact metrics at each scanned position. "
-                       "Red = Edward's actual insulator. Higher bars = bigger structural effect.")
+    # Pre-compute caption strings (avoid backslashes inside f-string expressions)
+    name_poss = NAME + "'s"
+    cap_summary     = (f'Left: WT triangle TAD plot with all scan positions marked. '
+                       f'Right: sites ranked by impact score.')
+    cap_sensitivity = (f'Three impact metrics at each scanned position. '
+                       f'Red = {name_poss} actual insulator. Higher bars = bigger structural effect.')
     cap_gallery     = 'Triangle TAD difference views for selected deletion sites.'
     cap_montage     = f'All {N_SITES} deletion sites on a shared colour scale.'
 
@@ -515,7 +541,7 @@ def generate_scan_html(paths, records):
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Deletion Scan — Edward chr12</title>
+  <title>Deletion Scan — {NAME} {CHROM}</title>
   <style>
     body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
          max-width:1300px;margin:0 auto;padding:24px;background:#f0f2f5;color:#2c3e50}}
@@ -533,9 +559,9 @@ def generate_scan_html(paths, records):
   </style>
 </head>
 <body>
-<h1>Deletion Sensitivity Scan — Edward chr12</h1>
+<h1>Deletion Sensitivity Scan — {NAME} {CHROM}</h1>
 <p class="meta">
-  {ED_CHROM} | {CELL_NAME} ({CELL_TYPE}) | mm10 |
+  {CHROM} | {CELL_NAME} ({CELL_TYPE}) | mm10 |
   {N_SITES} deletion sites × {DEL_SIZE:,} bp each | Generated: {now}
 </p>
 
@@ -544,13 +570,13 @@ def generate_scan_html(paths, records):
   change (TADs merge); deletions <em>within</em> a TAD body cause little change.<br>
   <b>Method:</b> Predict WT once; for each of {N_SITES} evenly-spaced positions,
   simulate a {DEL_SIZE:,}-bp deletion and compare to WT using three metrics.<br>
-  <b>Edward's actual insulator:</b> {ED_CHROM}:{ED_DEL_START:,}–{ED_DEL_END:,}
+  <b>{NAME}'s actual insulator:</b> {CHROM}:{DEL_START:,}–{DEL_END:,}
   (highlighted in red throughout).
 </div>
 
 <div class="legend">
   <b>Metrics explained</b><br>
-  &bull; <b>Mean |Δ contact|</b> — total reorganisation of the contact map;
+  &bull; <b>Mean |&Delta; contact|</b> — total reorganisation of the contact map;
     higher = deletion caused more structural change.<br>
   &bull; <b>Cross-TAD contact gain</b> — average change in contacts across the
     deletion site; positive = the two domains are merging.<br>
@@ -561,7 +587,7 @@ def generate_scan_html(paths, records):
 <h2>Impact Ranking Table</h2>
 <table>
   <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
-      <th>Mean |Δ contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
   {table_rows}
 </table>
 
@@ -573,7 +599,7 @@ def generate_scan_html(paths, records):
 
 <h2>Triangle TAD Gallery (selected sites)</h2>
 <p style="font-size:.88em;color:#444">
-  Each panel shows the <b>difference map</b> (deletion − WT) as a rotated 45°
+  Each panel shows the <b>difference map</b> (deletion &minus; WT) as a rotated 45&deg;
   triangle. TADs appear as triangles; the insulator is the valley between them.
   Red border = actual insulator. Orange = highest-impact non-insulator.
   Blue = interior controls. Cyan dashed lines mark the deletion boundaries.
@@ -583,14 +609,14 @@ def generate_scan_html(paths, records):
 <h2>All {N_SITES} Sites — Difference Map Montage</h2>
 <p style="font-size:.88em;color:#444">
   All scanned sites on a single shared colour scale. Compare the spatial pattern
-  of contact changes across sites. Red border = Edward's actual insulator.
+  of contact changes across sites. Red border = {NAME}'s actual insulator.
 </p>
 {img(paths['montage'], cap_montage)}
 
 </body>
 </html>
 """
-    out = 'deletion_scan_report.html'
+    out = f'deletion_scan_{SAFE}_report.html'
     with open(out, 'w') as fh:
         fh.write(html)
     print(f'HTML report saved: {out}')
@@ -613,10 +639,10 @@ if __name__ == '__main__':
     print('\n── Results ────────────────────────────────────────────────────────')
     sorted_by_rank = sorted(records, key=lambda r: r['global_abs'], reverse=True)
     for rank, r in enumerate(sorted_by_rank, 1):
-        flag = '  ← ACTUAL INSULATOR' if r['is_actual'] else ''
+        flag = f'  ← ACTUAL INSULATOR ({NAME})' if r['is_actual'] else ''
         print(f'  #{rank:2d}  {r["centre"]:,}  global_abs={r["global_abs"]:.5f}{flag}')
 
     actual = next(r for r in records if r['is_actual'])
     actual_rank = sorted_by_rank.index(actual) + 1
-    print(f'\nEdward\'s insulator ranks #{actual_rank} out of {N_SITES} by global impact.')
-    print('\nCheck media/ for PNGs and deletion_scan_report.html for the full report.')
+    print(f"\n{NAME}'s insulator ranks #{actual_rank} out of {N_SITES} by global impact.")
+    print(f'\nCheck media/ for PNGs and deletion_scan_{SAFE}_report.html for the full report.')
