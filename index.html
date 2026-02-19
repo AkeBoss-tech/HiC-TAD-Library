@@ -102,6 +102,14 @@
             background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
         }
 
+        .report-card {
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+        }
+
+        .scan-card {
+            background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+        }
+
         .image-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -272,6 +280,47 @@
     <div class="container">
         <h1>HiC-TAD Library Media Gallery</h1>
         <p class="subtitle">Chromatin 3D Structure Visualizations & Hi-C Analysis Results</p>
+
+        <!-- Full HTML Reports -->
+        <div class="section">
+            <h2 class="section-title">Full Analysis Reports</h2>
+            <p style="color:#555; margin-bottom:18px; line-height:1.7;">
+                Standalone HTML reports with all figures, tables, and biological
+                interpretation. Open in a new tab for the complete analysis.
+            </p>
+            <div class="interactive-grid">
+                <a href="analysis_report.html" class="interactive-card report-card" target="_blank">
+                    <div class="icon">📊</div>
+                    <h3>AlphaGenome Analysis</h3>
+                    <p>Full insulator deletion report</p>
+                    <p style="font-size:0.85em;margin-top:10px;">Both Edward & Jingyun — all cell types</p>
+                </a>
+                <a href="deletion_scan_report.html" class="interactive-card scan-card" target="_blank">
+                    <div class="icon">🔍</div>
+                    <h3>Deletion Scan — Edward chr12</h3>
+                    <p>12-site sensitivity scan</p>
+                    <p style="font-size:0.85em;margin-top:10px;">Original insulator size (~3 kb)</p>
+                </a>
+                <a href="deletion_scan_jingyun_chr13_report.html" class="interactive-card scan-card" target="_blank">
+                    <div class="icon">🔍</div>
+                    <h3>Deletion Scan — Jingyun chr13</h3>
+                    <p>12-site sensitivity scan</p>
+                    <p style="font-size:0.85em;margin-top:10px;">Original insulator size (~5.3 kb)</p>
+                </a>
+                <a href="deletion_scan_edward_chr12_10kb_40kb_80kb_report.html" class="interactive-card scan-card" target="_blank">
+                    <div class="icon">📐</div>
+                    <h3>Multi-Size Scan — Edward chr12</h3>
+                    <p>10, 40, 80 kb deletions</p>
+                    <p style="font-size:0.85em;margin-top:10px;">12 positions × 3 sizes</p>
+                </a>
+                <a href="deletion_scan_jingyun_chr13_10kb_40kb_80kb_report.html" class="interactive-card scan-card" target="_blank">
+                    <div class="icon">📐</div>
+                    <h3>Multi-Size Scan — Jingyun chr13</h3>
+                    <p>10, 40, 80 kb deletions</p>
+                    <p style="font-size:0.85em;margin-top:10px;">12 positions × 3 sizes</p>
+                </a>
+            </div>
+        </div>
 
         <!-- Interactive 3D Visualizations -->
         <div class="section">
@@ -670,6 +719,51 @@
                     <div class="image-card-title">All 12 Sites — Difference Map Montage</div>
                 </div>
             </div>
+        </div>
+
+        <!-- Multi-Size Deletion Scan: Cross-Size Comparison -->
+        <div class="section">
+            <h2 class="section-title">Multi-Size Deletion Scan — 10 / 40 / 80 kb <span class="badge badge-new">NEW</span></h2>
+            <p style="color:#555; margin-bottom:10px; line-height:1.7;">
+                <strong>Question:</strong> Does deletion size matter? We re-ran the 12-position scan with three larger deletion sizes (10, 40, 80 kb)
+                to see whether the actual insulator site becomes more or less detectable as deletions grow larger.
+            </p>
+            <div style="background:#eaf4fb; border-radius:8px; padding:14px 18px; margin-bottom:18px; font-size:0.9em; line-height:1.75;">
+                <strong>Key findings:</strong><br>
+                &bull; <strong>Edward chr12:</strong> With 10 kb and 40 kb deletions, his insulator jumps to <strong>rank #1/12</strong> (vs. #7 with the ~3 kb insulator-size deletion),
+                with insulation weakening of <strong>+0.45</strong> — a massive, unambiguous boundary collapse. At 80 kb, it falls to #4 as adjacent CTCF anchors also become disrupted.
+                The insulation weakening remains strongly positive at all sizes, confirming a true functional boundary.<br>
+                &bull; <strong>Jingyun chr13:</strong> Her insulator stays at <strong>rank #7/12 across all sizes</strong>, with near-zero insulation weakening at 40 and 80 kb.
+                This is a sharp contrast: the chr13 site does not become more detectable with larger deletions, suggesting it may not be a dominant architectural element in Mouse ESC —
+                or the boundary is maintained by redundant mechanisms not captured by deleting only one region.
+            </div>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_edward_chr12_cross_size_comparison.png', 'Edward chr12 — Cross-Size Comparison', 'Top: heatmap of mean |Δ contact| for each position × deletion size. The actual insulator column (red border) is brightest at 10 and 40 kb, confirming it is the most structurally sensitive site at those sizes. Middle: insulation weakening heatmap — the actual insulator column shows large positive values (yellow/red) at all sizes. Bottom: rank of the actual insulator across deletion sizes — it is #1 at 10 and 40 kb, dropping to #4 at 80 kb as large deletions begin disrupting adjacent anchors too.')">
+                    <img src="media/deletion_scan_edward_chr12_cross_size_comparison.png" alt="Edward cross-size comparison">
+                    <div class="image-card-title">Edward chr12 — Cross-Size Comparison</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_jingyun_chr13_cross_size_comparison.png', 'Jingyun chr13 — Cross-Size Comparison', 'Top: heatmap of mean |Δ contact| for each position × deletion size. The actual insulator column (red border) is not the brightest at any deletion size — upstream positions consistently dominate. Middle: insulation weakening heatmap — the actual insulator column shows near-zero or slightly negative values, in stark contrast to Edward\'s chr12. Bottom: rank of the actual insulator across deletion sizes — it stays at #7/12 regardless of size, indicating the chr13 locus is not a dominant architectural boundary in Mouse ESC.')">
+                    <img src="media/deletion_scan_jingyun_chr13_cross_size_comparison.png" alt="Jingyun cross-size comparison">
+                    <div class="image-card-title">Jingyun chr13 — Cross-Size Comparison</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_edward_chr12_10kb_sensitivity.png', 'Edward chr12 — 10 kb Deletion Sensitivity', 'Sensitivity profile for 10 kb deletions across Edward\'s chr12 window. The actual insulator (red) now clearly dominates — it is the #1-ranked site by global impact and shows insulation weakening of +0.46, far larger than any other position. This is a clean validation: with a biologically realistic deletion size that covers the full insulator element, the functional boundary is unambiguously identified.')">
+                    <img src="media/deletion_scan_edward_chr12_10kb_sensitivity.png" alt="Edward 10kb sensitivity">
+                    <div class="image-card-title">Edward chr12 — 10 kb Sensitivity Profile</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/deletion_scan_jingyun_chr13_10kb_sensitivity.png', 'Jingyun chr13 — 10 kb Deletion Sensitivity', 'Sensitivity profile for 10 kb deletions across Jingyun\'s chr13 window. The actual insulator (red, rank #7) is not prominent by global impact. Site #6 at 83.69 Mb again shows the largest insulation effect (-0.093). This consistent pattern across both the original ~5 kb scan and the 10 kb scan suggests the AlphaGenome model predicts that the chr13 insulator is a weaker architectural boundary in Mouse ESC compared to chr12.')">
+                    <img src="media/deletion_scan_jingyun_chr13_10kb_sensitivity.png" alt="Jingyun 10kb sensitivity">
+                    <div class="image-card-title">Jingyun chr13 — 10 kb Sensitivity Profile</div>
+                </div>
+            </div>
+            <p style="color:#555; margin-top:16px; font-size:0.9em; line-height:1.7;">
+                Full per-size figures (summary, gallery, montage) for all deletion sizes are available in the
+                <a href="deletion_scan_edward_chr12_10kb_40kb_80kb_report.html" target="_blank">Edward multi-size report</a> and
+                <a href="deletion_scan_jingyun_chr13_10kb_40kb_80kb_report.html" target="_blank">Jingyun multi-size report</a>.
+            </p>
         </div>
     </div>
 

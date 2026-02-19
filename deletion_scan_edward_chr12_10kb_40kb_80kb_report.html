@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deletion Scan — Edward chr12</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+         max-width:1300px;margin:0 auto;padding:24px;background:#f0f2f5;color:#2c3e50}
+    h1{font-size:1.6em;border-bottom:3px solid #2980b9;padding-bottom:8px}
+    h2{font-size:1.2em;color:#1a5276;margin:28px 0 8px}
+    .meta{font-size:.85em;color:#888;margin-bottom:20px}
+    .info{background:#eaf4fb;padding:12px 16px;border-radius:6px;
+           font-size:.88em;margin-bottom:18px;line-height:1.75}
+    table{border-collapse:collapse;width:100%;font-size:.85em;margin-bottom:24px}
+    th{background:#2980b9;color:white;padding:7px 10px;text-align:left}
+    td{padding:6px 10px;border-bottom:1px solid #ddd}
+    tr:hover td{background:#f5faff}
+    .legend{background:#fdfefe;border:1px solid #d5d8dc;border-radius:8px;
+             padding:14px;font-size:.85em;margin:16px 0}
+  </style>
+</head>
+<body>
+<h1>Deletion Sensitivity Scan — Edward chr12</h1>
+<p class="meta">
+  chr12 | Mouse ESC (EFO:0004038) | mm10 |
+  12 deletion sites | Sizes tested: 10 kb, 40 kb, 80 kb | Generated: 2026-02-18 19:55
+</p>
+
+<div class="info">
+  <b>Hypothesis:</b> Deletions <em>at</em> a TAD boundary cause the largest structural
+  change (TADs merge); deletions <em>within</em> a TAD body cause little change.<br>
+  <b>Method:</b> Predict WT once; for each deletion size and each of 12
+  evenly-spaced positions, simulate a deletion and compare to WT.<br>
+  <b>Edward's actual insulator:</b> chr12:27,333,532–27,336,455
+  (2,923 bp) — highlighted in red.
+</div>
+
+<div class="legend">
+  <b>Metrics explained</b><br>
+  &bull; <b>Mean |&Delta; contact|</b> — total reorganisation; higher = more change.<br>
+  &bull; <b>Cross-TAD contact gain</b> — positive = domains merging.<br>
+  &bull; <b>Insulation weakening</b> — positive = boundary lost.
+</div>
+
+
+<h2>Cross-Size Comparison</h2>
+<p style="font-size:.88em;color:#444">
+  How deletion size affects the spatial sensitivity pattern.
+  Top: global impact heatmap (position × size).
+  Middle: insulation weakening heatmap.
+  Bottom: rank of Edward's actual insulator at each deletion size.
+</p>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_cross_size_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Cross-size comparison for Edward chr12.</figcaption></figure>
+
+
+<h2>10 kb Deletions</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style="background:#fdecea;font-weight:bold"><td>#1</td><td>27,334,993</td><td>27,334,993–27,344,993</td><td>0.10677 ⭐ ACTUAL</td><td>+0.14731</td><td>+0.45751</td></tr>
+<tr style=""><td>#2</td><td>26,822,753</td><td>26,822,753–26,832,753</td><td>0.03132</td><td>-0.00894</td><td>+0.00111</td></tr>
+<tr style=""><td>#3</td><td>26,914,978</td><td>26,914,978–26,924,978</td><td>0.03086</td><td>-0.00117</td><td>-0.00396</td></tr>
+<tr style=""><td>#4</td><td>27,007,203</td><td>27,007,203–27,017,203</td><td>0.02929</td><td>-0.00170</td><td>-0.01883</td></tr>
+<tr style=""><td>#5</td><td>27,099,429</td><td>27,099,429–27,109,429</td><td>0.02673</td><td>-0.00572</td><td>+0.00520</td></tr>
+<tr style=""><td>#6</td><td>27,191,654</td><td>27,191,654–27,201,654</td><td>0.02587</td><td>-0.00744</td><td>+0.00729</td></tr>
+<tr style=""><td>#7</td><td>27,283,880</td><td>27,283,880–27,293,880</td><td>0.02449</td><td>-0.01135</td><td>-0.03527</td></tr>
+<tr style=""><td>#8</td><td>27,468,331</td><td>27,468,331–27,478,331</td><td>0.01591</td><td>-0.00887</td><td>-0.01128</td></tr>
+<tr style=""><td>#9</td><td>27,560,556</td><td>27,560,556–27,570,556</td><td>0.01378</td><td>-0.01924</td><td>-0.03932</td></tr>
+<tr style=""><td>#10</td><td>27,652,782</td><td>27,652,782–27,662,782</td><td>0.00607</td><td>+0.00031</td><td>-0.00763</td></tr>
+<tr style=""><td>#11</td><td>27,745,007</td><td>27,745,007–27,755,007</td><td>0.00395</td><td>+0.00029</td><td>-0.00839</td></tr>
+<tr style=""><td>#12</td><td>27,837,233</td><td>27,837,233–27,847,233</td><td>0.00309</td><td>-0.01541</td><td>-0.02495</td></tr>
+
+</table>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_10kb_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">WT triangle with 10 kb scan positions. Right: impact ranking.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_10kb_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three metrics at each position for 10 kb deletions. Red bar = Edward's actual insulator.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_10kb_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle difference maps for selected sites (10 kb deletions).</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_10kb_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 sites — 10 kb deletions — shared colour scale.</figcaption></figure>
+
+<h2>40 kb Deletions</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style="background:#fdecea;font-weight:bold"><td>#1</td><td>27,334,993</td><td>27,334,993–27,374,993</td><td>0.10421 ⭐ ACTUAL</td><td>+0.11737</td><td>+0.44881</td></tr>
+<tr style=""><td>#2</td><td>27,020,840</td><td>27,020,840–27,060,840</td><td>0.07842</td><td>+0.02186</td><td>-0.06186</td></tr>
+<tr style=""><td>#3</td><td>26,936,796</td><td>26,936,796–26,976,796</td><td>0.07569</td><td>+0.00127</td><td>+0.02857</td></tr>
+<tr style=""><td>#4</td><td>26,852,753</td><td>26,852,753–26,892,753</td><td>0.07550</td><td>-0.00841</td><td>-0.00227</td></tr>
+<tr style=""><td>#5</td><td>27,104,883</td><td>27,104,883–27,144,883</td><td>0.06721</td><td>-0.01946</td><td>-0.05073</td></tr>
+<tr style=""><td>#6</td><td>27,272,971</td><td>27,272,971–27,312,971</td><td>0.06610</td><td>-0.02965</td><td>-0.21282</td></tr>
+<tr style=""><td>#7</td><td>27,188,927</td><td>27,188,927–27,228,927</td><td>0.06541</td><td>-0.02006</td><td>+0.02359</td></tr>
+<tr style=""><td>#8</td><td>27,441,058</td><td>27,441,058–27,481,058</td><td>0.03658</td><td>-0.02410</td><td>-0.02451</td></tr>
+<tr style=""><td>#9</td><td>27,525,102</td><td>27,525,102–27,565,102</td><td>0.02650</td><td>-0.01986</td><td>-0.08078</td></tr>
+<tr style=""><td>#10</td><td>27,609,145</td><td>27,609,145–27,649,145</td><td>0.01052</td><td>+0.00748</td><td>+0.00554</td></tr>
+<tr style=""><td>#11</td><td>27,693,189</td><td>27,693,189–27,733,189</td><td>0.00935</td><td>-0.00564</td><td>+0.01661</td></tr>
+<tr style=""><td>#12</td><td>27,777,233</td><td>27,777,233–27,817,233</td><td>0.00605</td><td>+0.00267</td><td>-0.01487</td></tr>
+
+</table>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_40kb_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">WT triangle with 40 kb scan positions. Right: impact ranking.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_40kb_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three metrics at each position for 40 kb deletions. Red bar = Edward's actual insulator.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_40kb_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle difference maps for selected sites (40 kb deletions).</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_40kb_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 sites — 40 kb deletions — shared colour scale.</figcaption></figure>
+
+<h2>80 kb Deletions</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style=""><td>#1</td><td>26,965,887</td><td>26,965,887–27,045,887</td><td>0.10772</td><td>-0.02084</td><td>-0.09471</td></tr>
+<tr style=""><td>#2</td><td>26,892,753</td><td>26,892,753–26,972,753</td><td>0.10711</td><td>-0.02037</td><td>+0.00609</td></tr>
+<tr style=""><td>#3</td><td>27,039,022</td><td>27,039,022–27,119,022</td><td>0.10241</td><td>+0.00425</td><td>+0.03987</td></tr>
+<tr style="background:#fdecea;font-weight:bold"><td>#4</td><td>27,334,993</td><td>27,334,993–27,414,993</td><td>0.10230 ⭐ ACTUAL</td><td>+0.08531</td><td>+0.44669</td></tr>
+<tr style=""><td>#5</td><td>27,258,425</td><td>27,258,425–27,338,425</td><td>0.10018</td><td>-0.04707</td><td>-0.44191</td></tr>
+<tr style=""><td>#6</td><td>27,112,156</td><td>27,112,156–27,192,156</td><td>0.09700</td><td>-0.03220</td><td>-0.03197</td></tr>
+<tr style=""><td>#7</td><td>27,185,291</td><td>27,185,291–27,265,291</td><td>0.09511</td><td>-0.03511</td><td>+0.01600</td></tr>
+<tr style=""><td>#8</td><td>27,404,694</td><td>27,404,694–27,484,694</td><td>0.05690</td><td>-0.03676</td><td>-0.01728</td></tr>
+<tr style=""><td>#9</td><td>27,550,963</td><td>27,550,963–27,630,963</td><td>0.05584</td><td>+0.09296</td><td>+0.02513</td></tr>
+<tr style=""><td>#10</td><td>27,477,829</td><td>27,477,829–27,557,829</td><td>0.04614</td><td>-0.02667</td><td>-0.05754</td></tr>
+<tr style=""><td>#11</td><td>27,624,098</td><td>27,624,098–27,704,098</td><td>0.01180</td><td>-0.01003</td><td>-0.01270</td></tr>
+<tr style=""><td>#12</td><td>27,697,233</td><td>27,697,233–27,777,233</td><td>0.00935</td><td>-0.00607</td><td>+0.01676</td></tr>
+
+</table>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_80kb_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">WT triangle with 80 kb scan positions. Right: impact ranking.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_80kb_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three metrics at each position for 80 kb deletions. Red bar = Edward's actual insulator.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_80kb_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle difference maps for selected sites (80 kb deletions).</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_edward_chr12_80kb_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 sites — 80 kb deletions — shared colour scale.</figcaption></figure>
+
+
+</body>
+</html>

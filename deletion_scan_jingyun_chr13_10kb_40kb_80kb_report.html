@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deletion Scan — Jingyun chr13</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+         max-width:1300px;margin:0 auto;padding:24px;background:#f0f2f5;color:#2c3e50}
+    h1{font-size:1.6em;border-bottom:3px solid #2980b9;padding-bottom:8px}
+    h2{font-size:1.2em;color:#1a5276;margin:28px 0 8px}
+    .meta{font-size:.85em;color:#888;margin-bottom:20px}
+    .info{background:#eaf4fb;padding:12px 16px;border-radius:6px;
+           font-size:.88em;margin-bottom:18px;line-height:1.75}
+    table{border-collapse:collapse;width:100%;font-size:.85em;margin-bottom:24px}
+    th{background:#2980b9;color:white;padding:7px 10px;text-align:left}
+    td{padding:6px 10px;border-bottom:1px solid #ddd}
+    tr:hover td{background:#f5faff}
+    .legend{background:#fdfefe;border:1px solid #d5d8dc;border-radius:8px;
+             padding:14px;font-size:.85em;margin:16px 0}
+  </style>
+</head>
+<body>
+<h1>Deletion Sensitivity Scan — Jingyun chr13</h1>
+<p class="meta">
+  chr13 | Mouse ESC (EFO:0004038) | mm10 |
+  12 deletion sites | Sizes tested: 10 kb, 40 kb, 80 kb | Generated: 2026-02-18 19:55
+</p>
+
+<div class="info">
+  <b>Hypothesis:</b> Deletions <em>at</em> a TAD boundary cause the largest structural
+  change (TADs merge); deletions <em>within</em> a TAD body cause little change.<br>
+  <b>Method:</b> Predict WT once; for each deletion size and each of 12
+  evenly-spaced positions, simulate a deletion and compare to WT.<br>
+  <b>Jingyun's actual insulator:</b> chr13:83,739,797–83,745,138
+  (5,341 bp) — highlighted in red.
+</div>
+
+<div class="legend">
+  <b>Metrics explained</b><br>
+  &bull; <b>Mean |&Delta; contact|</b> — total reorganisation; higher = more change.<br>
+  &bull; <b>Cross-TAD contact gain</b> — positive = domains merging.<br>
+  &bull; <b>Insulation weakening</b> — positive = boundary lost.
+</div>
+
+
+<h2>Cross-Size Comparison</h2>
+<p style="font-size:.88em;color:#444">
+  How deletion size affects the spatial sensitivity pattern.
+  Top: global impact heatmap (position × size).
+  Middle: insulation weakening heatmap.
+  Bottom: rank of Jingyun's actual insulator at each deletion size.
+</p>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_cross_size_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Cross-size comparison for Jingyun chr13.</figcaption></figure>
+
+
+<h2>10 kb Deletions</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style=""><td>#1</td><td>83,230,227</td><td>83,230,227–83,240,227</td><td>0.04632</td><td>-0.00785</td><td>+0.00165</td></tr>
+<tr style=""><td>#2</td><td>83,322,452</td><td>83,322,452–83,332,452</td><td>0.04527</td><td>-0.00793</td><td>+0.00206</td></tr>
+<tr style=""><td>#3</td><td>83,414,677</td><td>83,414,677–83,424,677</td><td>0.04453</td><td>-0.01370</td><td>+0.00386</td></tr>
+<tr style=""><td>#4</td><td>83,506,903</td><td>83,506,903–83,516,903</td><td>0.04270</td><td>-0.01549</td><td>-0.04950</td></tr>
+<tr style=""><td>#5</td><td>83,599,128</td><td>83,599,128–83,609,128</td><td>0.04242</td><td>-0.01998</td><td>-0.01820</td></tr>
+<tr style=""><td>#6</td><td>83,691,354</td><td>83,691,354–83,701,354</td><td>0.03110</td><td>+0.00986</td><td>-0.09313</td></tr>
+<tr style="background:#fdecea;font-weight:bold"><td>#7</td><td>83,742,467</td><td>83,742,467–83,752,467</td><td>0.01917 ⭐ ACTUAL</td><td>-0.00143</td><td>-0.02074</td></tr>
+<tr style=""><td>#8</td><td>83,875,805</td><td>83,875,805–83,885,805</td><td>0.01518</td><td>-0.00006</td><td>+0.00914</td></tr>
+<tr style=""><td>#9</td><td>83,968,030</td><td>83,968,030–83,978,030</td><td>0.01301</td><td>-0.00220</td><td>-0.00433</td></tr>
+<tr style=""><td>#10</td><td>84,060,256</td><td>84,060,256–84,070,256</td><td>0.01133</td><td>-0.00586</td><td>+0.02876</td></tr>
+<tr style=""><td>#11</td><td>84,152,481</td><td>84,152,481–84,162,481</td><td>0.00749</td><td>-0.01853</td><td>-0.00843</td></tr>
+<tr style=""><td>#12</td><td>84,244,707</td><td>84,244,707–84,254,707</td><td>0.00189</td><td>-0.01496</td><td>-0.00795</td></tr>
+
+</table>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_10kb_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">WT triangle with 10 kb scan positions. Right: impact ranking.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_10kb_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three metrics at each position for 10 kb deletions. Red bar = Jingyun's actual insulator.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_10kb_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle difference maps for selected sites (10 kb deletions).</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_10kb_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 sites — 10 kb deletions — shared colour scale.</figcaption></figure>
+
+<h2>40 kb Deletions</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style=""><td>#1</td><td>83,260,227</td><td>83,260,227–83,300,227</td><td>0.13404</td><td>-0.03358</td><td>+0.01310</td></tr>
+<tr style=""><td>#2</td><td>83,344,270</td><td>83,344,270–83,384,270</td><td>0.13368</td><td>-0.03600</td><td>-0.00370</td></tr>
+<tr style=""><td>#3</td><td>83,428,314</td><td>83,428,314–83,468,314</td><td>0.13154</td><td>-0.04720</td><td>-0.00035</td></tr>
+<tr style=""><td>#4</td><td>83,512,357</td><td>83,512,357–83,552,357</td><td>0.13033</td><td>-0.05017</td><td>+0.11384</td></tr>
+<tr style=""><td>#5</td><td>83,596,401</td><td>83,596,401–83,636,401</td><td>0.12772</td><td>-0.06665</td><td>-0.31579</td></tr>
+<tr style=""><td>#6</td><td>83,680,445</td><td>83,680,445–83,720,445</td><td>0.11145</td><td>+0.09747</td><td>-0.14793</td></tr>
+<tr style="background:#fdecea;font-weight:bold"><td>#7</td><td>83,742,467</td><td>83,742,467–83,782,467</td><td>0.03519 ⭐ ACTUAL</td><td>+0.00793</td><td>-0.00140</td></tr>
+<tr style=""><td>#8</td><td>83,848,532</td><td>83,848,532–83,888,532</td><td>0.03064</td><td>-0.00509</td><td>+0.01234</td></tr>
+<tr style=""><td>#9</td><td>83,932,576</td><td>83,932,576–83,972,576</td><td>0.02901</td><td>-0.01421</td><td>-0.00353</td></tr>
+<tr style=""><td>#10</td><td>84,016,619</td><td>84,016,619–84,056,619</td><td>0.02684</td><td>-0.01762</td><td>-0.04049</td></tr>
+<tr style=""><td>#11</td><td>84,100,663</td><td>84,100,663–84,140,663</td><td>0.02025</td><td>-0.03513</td><td>+0.00755</td></tr>
+<tr style=""><td>#12</td><td>84,184,707</td><td>84,184,707–84,224,707</td><td>0.01361</td><td>+0.02266</td><td>+0.03018</td></tr>
+
+</table>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_40kb_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">WT triangle with 40 kb scan positions. Right: impact ranking.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_40kb_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three metrics at each position for 40 kb deletions. Red bar = Jingyun's actual insulator.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_40kb_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle difference maps for selected sites (40 kb deletions).</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_40kb_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 sites — 40 kb deletions — shared colour scale.</figcaption></figure>
+
+<h2>80 kb Deletions</h2>
+<table>
+  <tr><th>Rank</th><th>Centre (bp)</th><th>Deletion range</th>
+      <th>Mean |&Delta; contact|</th><th>Cross-TAD gain</th><th>Ins. weakening</th></tr>
+  <tr style=""><td>#1</td><td>83,592,765</td><td>83,592,765–83,672,765</td><td>0.23932</td><td>+0.05701</td><td>-0.22627</td></tr>
+<tr style=""><td>#2</td><td>83,300,227</td><td>83,300,227–83,380,227</td><td>0.22774</td><td>-0.07537</td><td>-0.00086</td></tr>
+<tr style=""><td>#3</td><td>83,373,361</td><td>83,373,361–83,453,361</td><td>0.22612</td><td>-0.08524</td><td>+0.02423</td></tr>
+<tr style=""><td>#4</td><td>83,446,496</td><td>83,446,496–83,526,496</td><td>0.22223</td><td>-0.09831</td><td>-0.04565</td></tr>
+<tr style=""><td>#5</td><td>83,519,630</td><td>83,519,630–83,599,630</td><td>0.22128</td><td>-0.10264</td><td>+0.09753</td></tr>
+<tr style=""><td>#6</td><td>83,665,899</td><td>83,665,899–83,745,899</td><td>0.18357</td><td>+0.22852</td><td>+0.04059</td></tr>
+<tr style="background:#fdecea;font-weight:bold"><td>#7</td><td>83,742,467</td><td>83,742,467–83,822,467</td><td>0.04664 ⭐ ACTUAL</td><td>+0.01350</td><td>-0.00775</td></tr>
+<tr style=""><td>#8</td><td>83,812,168</td><td>83,812,168–83,892,168</td><td>0.04358</td><td>+0.00064</td><td>-0.00100</td></tr>
+<tr style=""><td>#9</td><td>83,885,303</td><td>83,885,303–83,965,303</td><td>0.04104</td><td>-0.00973</td><td>+0.01664</td></tr>
+<tr style=""><td>#10</td><td>83,958,437</td><td>83,958,437–84,038,437</td><td>0.03812</td><td>-0.00655</td><td>-0.00754</td></tr>
+<tr style=""><td>#11</td><td>84,031,572</td><td>84,031,572–84,111,572</td><td>0.03529</td><td>-0.03594</td><td>+0.01108</td></tr>
+<tr style=""><td>#12</td><td>84,104,707</td><td>84,104,707–84,184,707</td><td>0.03012</td><td>-0.03462</td><td>-0.02701</td></tr>
+
+</table>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_80kb_ranked_summary.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">WT triangle with 80 kb scan positions. Right: impact ranking.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_80kb_sensitivity.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Three metrics at each position for 80 kb deletions. Red bar = Jingyun's actual insulator.</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_80kb_triangle_gallery.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">Triangle difference maps for selected sites (80 kb deletions).</figcaption></figure>
+<figure style="margin:0 0 16px 0"><img src="media/deletion_scan_jingyun_chr13_80kb_montage.png" style="width:100%;border:1px solid #ddd;border-radius:6px"><figcaption style="font-size:.82em;color:#555;margin-top:4px">All 12 sites — 80 kb deletions — shared colour scale.</figcaption></figure>
+
+
+</body>
+</html>
