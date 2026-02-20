@@ -355,6 +355,169 @@ def plot_triangles(wt, dm, interval, deletion_start, deletion_end,
     return path
 
 
+# ── Plot 5a: TF binding and ATAC tracks ──────────────────────────────────────
+def plot_1d_tracks(wt_tf, dm_tf, wt_atac, dm_atac, interval, deletion_start,
+                   deletion_end, label, chrom, cell_type, cell_name):
+    """
+    Plot 1D genomic tracks for TF binding and ATAC-seq.
+
+    Shows wild-type vs deletion for both data types, with difference tracks.
+    """
+    n_tf = wt_tf.shape[0]
+    n_atac = wt_atac.shape[0]
+    pos_tf = np.linspace(interval.start, interval.end, n_tf)
+    pos_atac = np.linspace(interval.start, interval.end, n_atac)
+
+    fig, axes = plt.subplots(4, 1, figsize=(16, 12), sharex=True)
+    fig.suptitle(
+        f'TF Binding & ATAC-seq — {label}\n'
+        f'{cell_type} ({cell_name})\n'
+        f'Deletion: {chrom}:{deletion_start:,}–{deletion_end:,}',
+        fontsize=12, fontweight='bold'
+    )
+
+    # TF binding - raw tracks
+    ax = axes[0]
+    for i in range(min(5, wt_tf.shape[1])):  # Plot up to 5 TF tracks
+        ax.plot(pos_tf, wt_tf[:, i], alpha=0.6, lw=1, label=f'WT TF{i+1}')
+        ax.plot(pos_tf, dm_tf[:, i], alpha=0.6, lw=1, ls='--', label=f'Del TF{i+1}')
+    ax.axvspan(deletion_start, deletion_end, alpha=0.15, color='red', label='Deletion')
+    ax.set_ylabel('TF Binding Signal', fontsize=9)
+    ax.set_title('ChIP-seq TF Binding Tracks (WT solid, Deletion dashed)', fontsize=10, fontweight='bold')
+    ax.legend(ncol=3, fontsize=7, loc='upper right')
+    ax.grid(alpha=0.3)
+
+    # TF binding - mean difference
+    ax = axes[1]
+    mean_wt_tf = wt_tf.mean(axis=1) if wt_tf.ndim > 1 else wt_tf
+    mean_dm_tf = dm_tf.mean(axis=1) if dm_tf.ndim > 1 else dm_tf
+    diff_tf = mean_dm_tf - mean_wt_tf
+    ax.fill_between(pos_tf, 0, diff_tf, where=(diff_tf > 0), color='red', alpha=0.3, label='Gained')
+    ax.fill_between(pos_tf, 0, diff_tf, where=(diff_tf <= 0), color='blue', alpha=0.3, label='Lost')
+    ax.plot(pos_tf, diff_tf, color='black', lw=1, alpha=0.7)
+    ax.axhline(0, color='gray', lw=0.8, ls=':')
+    ax.axvspan(deletion_start, deletion_end, alpha=0.15, color='red')
+    ax.set_ylabel('ΔTF Binding\n(Del - WT)', fontsize=9)
+    ax.set_title('Mean TF Binding Change', fontsize=10, fontweight='bold')
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+
+    # ATAC - raw tracks
+    ax = axes[2]
+    for i in range(min(5, wt_atac.shape[1])):  # Plot up to 5 ATAC tracks
+        ax.plot(pos_atac, wt_atac[:, i], alpha=0.6, lw=1, label=f'WT ATAC{i+1}')
+        ax.plot(pos_atac, dm_atac[:, i], alpha=0.6, lw=1, ls='--', label=f'Del ATAC{i+1}')
+    ax.axvspan(deletion_start, deletion_end, alpha=0.15, color='red', label='Deletion')
+    ax.set_ylabel('ATAC Signal', fontsize=9)
+    ax.set_title('ATAC-seq Accessibility Tracks (WT solid, Deletion dashed)', fontsize=10, fontweight='bold')
+    ax.legend(ncol=3, fontsize=7, loc='upper right')
+    ax.grid(alpha=0.3)
+
+    # ATAC - mean difference
+    ax = axes[3]
+    mean_wt_atac = wt_atac.mean(axis=1) if wt_atac.ndim > 1 else wt_atac
+    mean_dm_atac = dm_atac.mean(axis=1) if dm_atac.ndim > 1 else dm_atac
+    diff_atac = mean_dm_atac - mean_wt_atac
+    ax.fill_between(pos_atac, 0, diff_atac, where=(diff_atac > 0), color='red', alpha=0.3, label='Gained')
+    ax.fill_between(pos_atac, 0, diff_atac, where=(diff_atac <= 0), color='blue', alpha=0.3, label='Lost')
+    ax.plot(pos_atac, diff_atac, color='black', lw=1, alpha=0.7)
+    ax.axhline(0, color='gray', lw=0.8, ls=':')
+    ax.axvspan(deletion_start, deletion_end, alpha=0.15, color='red')
+    ax.set_ylabel('ΔATAC\n(Del - WT)', fontsize=9)
+    ax.set_xlabel('Genomic Position (bp)', fontsize=9)
+    ax.set_title('Mean ATAC-seq Accessibility Change', fontsize=10, fontweight='bold')
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+    ax.ticklabel_format(style='plain', axis='x')
+
+    plt.tight_layout()
+    safe = f'{chrom}_{deletion_start}_{deletion_end}_{cell_type.replace(":", "_")}'
+    path = f'media/mouse_deletion_{safe}_1d_tracks.png'
+    plt.savefig(path, dpi=200, bbox_inches='tight')
+    print(f'  Saved: {path}')
+    plt.close()
+    return path
+
+
+# ── Plot 5b: combined multi-modal overview ────────────────────────────────────
+def plot_multimodal_overview(wt, dm, wt_tf, dm_tf, wt_atac, dm_atac,
+                              interval, deletion_start, deletion_end,
+                              label, chrom, cell_type, cell_name):
+    """
+    Combined overview showing contact maps, TF binding, and ATAC in one figure.
+    """
+    n_tf = wt_tf.shape[0]
+    n_atac = wt_atac.shape[0]
+    pos_tf = np.linspace(interval.start, interval.end, n_tf)
+    pos_atac = np.linspace(interval.start, interval.end, n_atac)
+
+    fig = plt.figure(figsize=(20, 12))
+    gs = fig.add_gridspec(3, 3, height_ratios=[3, 1, 1], hspace=0.4, wspace=0.3)
+
+    fig.suptitle(
+        f'Multi-Modal Deletion Analysis — {label}\n'
+        f'{cell_type} ({cell_name}) | Deletion: {chrom}:{deletion_start:,}–{deletion_end:,}',
+        fontsize=13, fontweight='bold'
+    )
+
+    extent = [interval.start, interval.end, interval.end, interval.start]
+    vmax = np.percentile(wt, 99)
+    diff = dm - wt
+    vlim = np.percentile(np.abs(diff), 99)
+
+    # Row 1: Contact maps
+    ax = fig.add_subplot(gs[0, 0])
+    im = _heatmap(ax, wt, 'WT Contact Map', extent, deletion_start, deletion_end, vmax=vmax)
+    plt.colorbar(im, ax=ax, shrink=0.7)
+
+    ax = fig.add_subplot(gs[0, 1])
+    im = _heatmap(ax, dm, 'Deletion Contact Map', extent, deletion_start, deletion_end, vmax=vmax)
+    plt.colorbar(im, ax=ax, shrink=0.7)
+
+    ax = fig.add_subplot(gs[0, 2])
+    im = _heatmap(ax, diff, 'Δ Contact Map', extent, deletion_start, deletion_end,
+                  cmap='RdBu_r', vmin=-vlim, vmax=vlim, marker_color='black')
+    plt.colorbar(im, ax=ax, shrink=0.7)
+
+    # Row 2: TF binding
+    ax = fig.add_subplot(gs[1, :])
+    mean_wt_tf = wt_tf.mean(axis=1) if wt_tf.ndim > 1 else wt_tf
+    mean_dm_tf = dm_tf.mean(axis=1) if dm_tf.ndim > 1 else dm_tf
+    diff_tf = mean_dm_tf - mean_wt_tf
+    ax.plot(pos_tf, mean_wt_tf, color='steelblue', lw=2, label='WT', alpha=0.8)
+    ax.plot(pos_tf, mean_dm_tf, color='firebrick', lw=2, label='Deletion', alpha=0.8)
+    ax.axvspan(deletion_start, deletion_end, alpha=0.15, color='red', label='Deletion region')
+    ax.set_ylabel('Mean TF Binding', fontsize=9, fontweight='bold')
+    ax.set_title('ChIP-seq TF Binding', fontsize=10, fontweight='bold')
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+    ax.set_xlim(interval.start, interval.end)
+    ax.ticklabel_format(style='plain', axis='x')
+
+    # Row 3: ATAC-seq
+    ax = fig.add_subplot(gs[2, :])
+    mean_wt_atac = wt_atac.mean(axis=1) if wt_atac.ndim > 1 else wt_atac
+    mean_dm_atac = dm_atac.mean(axis=1) if dm_atac.ndim > 1 else dm_atac
+    diff_atac = mean_dm_atac - mean_wt_atac
+    ax.plot(pos_atac, mean_wt_atac, color='steelblue', lw=2, label='WT', alpha=0.8)
+    ax.plot(pos_atac, mean_dm_atac, color='firebrick', lw=2, label='Deletion', alpha=0.8)
+    ax.axvspan(deletion_start, deletion_end, alpha=0.15, color='red', label='Deletion region')
+    ax.set_ylabel('Mean ATAC Signal', fontsize=9, fontweight='bold')
+    ax.set_xlabel('Genomic Position (bp)', fontsize=9)
+    ax.set_title('ATAC-seq Accessibility', fontsize=10, fontweight='bold')
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+    ax.set_xlim(interval.start, interval.end)
+    ax.ticklabel_format(style='plain', axis='x')
+
+    safe = f'{chrom}_{deletion_start}_{deletion_end}_{cell_type.replace(":", "_")}'
+    path = f'media/mouse_deletion_{safe}_multimodal.png'
+    plt.savefig(path, dpi=200, bbox_inches='tight')
+    print(f'  Saved: {path}')
+    plt.close()
+    return path
+
+
 # ── Plot 5: triangle view comparison across all cell types ────────────────────
 def plot_triangle_comparison(results, interval, deletion_start, deletion_end,
                              label, chrom):
@@ -480,6 +643,22 @@ def generate_html_report(all_results):
             ct_data = r['per_cell_type'].get(ct, {})
             region_html += f"""
           <h3>{ct} — {ct_name}</h3>
+
+          <h4>Multi-Modal Overview</h4>
+          <p style="font-size:0.88em;color:#444">
+            Combined view showing contact maps, TF binding (ChIP-seq), and chromatin
+            accessibility (ATAC-seq) predictions before and after deletion.
+          </p>
+          {_img(ct_data.get('multimodal',''), 'Multi-modal overview: Contact maps + TF binding + ATAC-seq')}
+
+          <h4>1D Genomic Tracks (TF Binding & ATAC-seq)</h4>
+          <p style="font-size:0.88em;color:#444">
+            Detailed TF binding and ATAC-seq tracks showing individual predictions and
+            difference profiles (red = gained signal, blue = lost signal after deletion).
+          </p>
+          {_img(ct_data.get('1d_tracks',''), 'TF binding and ATAC-seq detailed tracks')}
+
+          <h4>Contact Map Analysis</h4>
           <div class="grid">
             <div>
               <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
@@ -545,6 +724,12 @@ def generate_html_report(all_results):
 </p>
 
 <div class="legend">
+  <h4>Data Types Analyzed</h4>
+  <ul>
+    <li><b>Contact Maps:</b> 3D DNA-DNA contact probabilities showing TAD structure and chromatin loops</li>
+    <li><b>TF Binding (ChIP-seq):</b> Transcription factor binding site predictions across multiple TFs</li>
+    <li><b>ATAC-seq:</b> Chromatin accessibility predictions indicating open/active regulatory regions</li>
+  </ul>
   <h4>How to read the triangle TAD plot</h4>
   <ul>
     <li><b>x-axis:</b> genomic position (bp)</li>
@@ -553,8 +738,8 @@ def generate_html_report(all_results):
     <li><b>Dark upward triangles</b> = TADs (self-interacting domains)</li>
     <li><b>Valleys between triangles</b> = TAD boundaries / insulators</li>
     <li><b>Cyan dashed lines</b> = insulator deletion boundaries</li>
-    <li>In difference panels: <b style="color:#c0392b">red = gained contacts</b>,
-        <b style="color:#2980b9">blue = lost contacts</b> after deletion</li>
+    <li>In difference panels: <b style="color:#c0392b">red = gained signal</b>,
+        <b style="color:#2980b9">blue = lost signal</b> after deletion</li>
   </ul>
   <h4>Cell types used (no inner-ear cell type in AlphaGenome training data)</h4>
   <ul>
@@ -605,11 +790,17 @@ if __name__ == '__main__':
             print('    Predicting WT...')
             wt_out = dna_model.predict_interval(
                 interval=interval,
-                requested_outputs={dna_client.OutputType.CONTACT_MAPS},
+                requested_outputs={
+                    dna_client.OutputType.CONTACT_MAPS,
+                    dna_client.OutputType.CHIP_TF,
+                    dna_client.OutputType.ATAC,
+                },
                 ontology_terms=[cell_type],
                 organism=ORGANISM,
             )
             wt = wt_out.contact_maps.values[:, :, 0]
+            wt_tf = wt_out.chip_tf.values  # TF binding predictions
+            wt_atac = wt_out.atac.values  # ATAC predictions
 
             variant = genome.Variant(
                 chromosome=chrom,
@@ -621,12 +812,22 @@ if __name__ == '__main__':
             del_out = dna_model.predict_variant(
                 interval=interval,
                 variant=variant,
-                requested_outputs={dna_client.OutputType.CONTACT_MAPS},
+                requested_outputs={
+                    dna_client.OutputType.CONTACT_MAPS,
+                    dna_client.OutputType.CHIP_TF,
+                    dna_client.OutputType.ATAC,
+                },
                 ontology_terms=[cell_type],
                 organism=ORGANISM,
             )
             dm = del_out.alternate.contact_maps.values[:, :, 0]
-            results[cell_type] = {'wt': wt, 'dm': dm}
+            dm_tf = del_out.alternate.chip_tf.values  # TF binding predictions
+            dm_atac = del_out.alternate.atac.values  # ATAC predictions
+            results[cell_type] = {
+                'wt': wt, 'dm': dm,
+                'wt_tf': wt_tf, 'dm_tf': dm_tf,
+                'wt_atac': wt_atac, 'dm_atac': dm_atac,
+            }
 
             p_main     = plot_main(wt, dm, interval, ds, de, dlen, transcripts,
                                    label, chrom, cell_type, cell_name)
@@ -634,8 +835,13 @@ if __name__ == '__main__':
                                     label, chrom, cell_type, cell_name)
             p_triangle = plot_triangles(wt, dm, interval, ds, de,
                                         label, chrom, cell_type, cell_name)
+            p_1d_tracks = plot_1d_tracks(wt_tf, dm_tf, wt_atac, dm_atac,
+                                         interval, ds, de, label, chrom, cell_type, cell_name)
+            p_multimodal = plot_multimodal_overview(wt, dm, wt_tf, dm_tf, wt_atac, dm_atac,
+                                                    interval, ds, de, label, chrom, cell_type, cell_name)
             per_cell_type[cell_type] = {
                 'main': p_main, 'extra': p_extra, 'triangle': p_triangle,
+                '1d_tracks': p_1d_tracks, 'multimodal': p_multimodal,
             }
 
         p_comparison          = plot_celltype_comparison(results, interval, ds, de, label, chrom)

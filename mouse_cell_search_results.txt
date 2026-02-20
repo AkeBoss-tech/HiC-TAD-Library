@@ -1,0 +1,140 @@
+================================================================================
+COMPREHENSIVE MOUSE CELL TYPE SCAN FOR MULTI-MODAL DATA
+================================================================================
+Testing 54 cell types/tissues/developmental stages
+
+ID                   Name                                     Contact  TF     ATAC   RNA   
+================================================================================
+UBERON:0007023       Adult organism                           ERROR: <_MultiThreadedRende
+CL:0000236           B cell                                   ✗        ✗      ✗      ✓     
+UBERON:0002371       Bone marrow                              ✗        ✓      ✗      ✓     
+UBERON:0000955       Brain                                    ✗        ✓      ✗      ✓     
+CL:0000624           CD4-positive T cell                      ERROR: <_MultiThreadedRende
+CL:0000625           CD8-positive T cell                      ERROR: <_MultiThreadedRende
+CL:0000746           Cardiac muscle cell                      ✗        ✗      ✗      ✗     
+CL:0002494           Cardiomyocyte                            ERROR: <_MultiThreadedRende
+UBERON:0002037       Cerebellum                               ✗        ✓      ✗      ✓     
+UBERON:0001851       Cortex                                   ERROR: <_MultiThreadedRende
+CL:0000451           Dendritic cell                           ERROR: <_MultiThreadedRende
+CL:0000700           Dopaminergic neuron                      ERROR: <_MultiThreadedRende
+UBERON:0007220       E10.5 embryo                             ERROR: <_MultiThreadedRende
+UBERON:0007221       E11.5 embryo                             ERROR: <_MultiThreadedRende
+UBERON:0007222       E12.5 embryo                             ERROR: <_MultiThreadedRende
+UBERON:0007223       E13.5 embryo                             ERROR: <_MultiThreadedRende
+UBERON:0007224       E14.5 embryo                             ERROR: <_MultiThreadedRende
+UBERON:0007225       E15.5 embryo                             ERROR: <_MultiThreadedRende
+UBERON:0000922       Embryo                                   ✗        ✗      ✗      ✗     
+CL:0002322           Embryonic stem cell                      ERROR: <_MultiThreadedRende
+UBERON:0000068       Embryonic structure                      ERROR: <_MultiThreadedRende
+CL:0000115           Endothelial cell                         ERROR: <_MultiThreadedRende
+CL:0000584           Enterocyte                               ✗        ✗      ✗      ✗     
+CL:0000066           Epithelial cell                          ERROR: <_MultiThreadedRende
+CL:0000136           Fat cell                                 ✗        ✗      ✗      ✗     
+CL:0000057           Fibroblast                               ✗        ✗      ✗      ✗     
+CL:0000617           GABAergic neuron                         ERROR: <_MultiThreadedRende
+CL:0000125           Glial cell                               ERROR: <_MultiThreadedRende
+UBERON:0000948       Heart                                    ✗        ✓      ✓      ✓     
+CL:0000182           Hepatocyte                               ✗        ✗      ✗      ✗     
+UBERON:0002421       Hippocampus                              ERROR: <_MultiThreadedRende
+UBERON:0000160       Intestine                                ✗        ✓      ✓      ✓     
+UBERON:0002113       Kidney                                   ✗        ✓      ✓      ✓     
+UBERON:0002107       Liver                                    ✗        ✓      ✓      ✓     
+UBERON:0002048       Lung                                     ✗        ✓      ✓      ✓     
+CL:0000542           Lymphocyte                               ERROR: <_MultiThreadedRende
+CL:0000235           Macrophage                               ✗        ✗      ✗      ✓     
+EFO:0004038          Mouse embryonic stem cell (mESC)         ✓        ✗      ✗      ✗     
+CL:0000048           Multi-fate stem cell                     ERROR: <_MultiThreadedRende
+CL:0000187           Muscle cell                              ✗        ✓      ✗      ✓     
+CL:0000623           Natural killer cell                      ✗        ✗      ✗      ✗     
+CL:0000540           Neuron                                   ERROR: <_MultiThreadedRende
+CL:0000207           Olfactory receptor cell                  ✓        ✗      ✗      ✗     
+CL:0000210           Photoreceptor cell                       ERROR: <_MultiThreadedRende
+CL:0002248           Pluripotent stem cell                    ERROR: <_MultiThreadedRende
+CL:0000653           Podocyte                                 ERROR: <_MultiThreadedRende
+CL:0000670           Primordial germ cell                     ERROR: <_MultiThreadedRende
+CL:0000815           Regulatory T cell                        ✗        ✗      ✗      ✗     
+UBERON:0001134       Skeletal muscle tissue                   ✗        ✗      ✗      ✓     
+UBERON:0002106       Spleen                                   ✗        ✓      ✗      ✓     
+CL:0000034           Stem cell                                ERROR: <_MultiThreadedRende
+UBERON:0002370       Thymus                                   ✗        ✗      ✗      ✓     
+CL:0002062           Type II pneumocyte                       ERROR: <_MultiThreadedRende
+CL:0000359           Vascular associated smooth muscle cell   ERROR: <_MultiThreadedRende
+
+================================================================================
+SUMMARY
+================================================================================
+
+✓ Cell types with BOTH TF and ATAC: 5
+  • UBERON:0000948: Heart
+  • UBERON:0000160: Intestine
+  • UBERON:0002113: Kidney
+  • UBERON:0002107: Liver
+  • UBERON:0002048: Lung
+
+✓ Cell types with EITHER TF or ATAC: 5
+  • UBERON:0002371: Bone marrow (TF available)
+  • UBERON:0000955: Brain (TF available)
+  • UBERON:0002037: Cerebellum (TF available)
+  • CL:0000187: Muscle cell (TF available)
+  • UBERON:0002106: Spleen (TF available)
+
+✓ Cell types with TF binding: 10
+  • UBERON:0002371: Bone marrow
+  • UBERON:0000955: Brain
+  • UBERON:0002037: Cerebellum
+  • UBERON:0000948: Heart
+  • UBERON:0000160: Intestine
+  • UBERON:0002113: Kidney
+  • UBERON:0002107: Liver
+  • UBERON:0002048: Lung
+  • CL:0000187: Muscle cell
+  • UBERON:0002106: Spleen
+
+✓ Cell types with ATAC-seq: 5
+  • UBERON:0000948: Heart
+  • UBERON:0000160: Intestine
+  • UBERON:0002113: Kidney
+  • UBERON:0002107: Liver
+  • UBERON:0002048: Lung
+
+✓ Cell types with RNA-seq: 14
+  • CL:0000236: B cell
+  • UBERON:0002371: Bone marrow
+  • UBERON:0000955: Brain
+  • UBERON:0002037: Cerebellum
+  • UBERON:0000948: Heart
+  • UBERON:0000160: Intestine
+  • UBERON:0002113: Kidney
+  • UBERON:0002107: Liver
+  • UBERON:0002048: Lung
+  • CL:0000235: Macrophage
+  ... and 4 more
+
+✓ Cell types with contact maps only: 2
+
+✗ Errors encountered: 30
+
+================================================================================
+RECOMMENDATION
+================================================================================
+✓ Use these cell types for FULL multi-modal analysis (Contact + TF + ATAC):
+
+  CELL_TYPES = {
+      'UBERON:0000948': 'Heart',
+  }
+
+  CELL_TYPES = {
+      'UBERON:0000160': 'Intestine',
+  }
+
+  CELL_TYPES = {
+      'UBERON:0002113': 'Kidney',
+  }
+
+  CELL_TYPES = {
+      'UBERON:0002107': 'Liver',
+  }
+
+  CELL_TYPES = {
+      'UBERON:0002048': 'Lung',
+  }
