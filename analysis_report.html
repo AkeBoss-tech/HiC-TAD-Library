@@ -40,12 +40,18 @@
 
 <h1>Insulator Deletion Analysis — AlphaGenome Predictions</h1>
 <p class="meta">
-  Mouse mm10 &nbsp;|&nbsp; Generated: 2026-02-18 18:52 &nbsp;|&nbsp;
+  Mouse mm10 &nbsp;|&nbsp; Generated: 2026-02-19 20:08 &nbsp;|&nbsp;
   Model: AlphaGenome (MUS_MUSCULUS) &nbsp;|&nbsp;
   Window: 1 Mb centred on deletion (API max)
 </p>
 
 <div class="legend">
+  <h4>Data Types Analyzed</h4>
+  <ul>
+    <li><b>Contact Maps:</b> 3D DNA-DNA contact probabilities showing TAD structure and chromatin loops</li>
+    <li><b>TF Binding (ChIP-seq):</b> Transcription factor binding site predictions across multiple TFs</li>
+    <li><b>ATAC-seq:</b> Chromatin accessibility predictions indicating open/active regulatory regions</li>
+  </ul>
   <h4>How to read the triangle TAD plot</h4>
   <ul>
     <li><b>x-axis:</b> genomic position (bp)</li>
@@ -54,8 +60,8 @@
     <li><b>Dark upward triangles</b> = TADs (self-interacting domains)</li>
     <li><b>Valleys between triangles</b> = TAD boundaries / insulators</li>
     <li><b>Cyan dashed lines</b> = insulator deletion boundaries</li>
-    <li>In difference panels: <b style="color:#c0392b">red = gained contacts</b>,
-        <b style="color:#2980b9">blue = lost contacts</b> after deletion</li>
+    <li>In difference panels: <b style="color:#c0392b">red = gained signal</b>,
+        <b style="color:#2980b9">blue = lost signal</b> after deletion</li>
   </ul>
   <h4>Cell types used (no inner-ear cell type in AlphaGenome training data)</h4>
   <ul>
@@ -90,6 +96,22 @@
           <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_celltype_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square contact map — WT | Deletion | Difference for each cell type"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square contact map — WT | Deletion | Difference for each cell type</figcaption></figure>
         
           <h3>CL:0000207 — Olfactory receptor cell</h3>
+
+          <h4>Multi-Modal Overview</h4>
+          <p style="font-size:0.88em;color:#444">
+            Combined view showing contact maps, TF binding (ChIP-seq), and chromatin
+            accessibility (ATAC-seq) predictions before and after deletion.
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207_multimodal.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Multi-modal overview: Contact maps + TF binding + ATAC-seq"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Multi-modal overview: Contact maps + TF binding + ATAC-seq</figcaption></figure>
+
+          <h4>1D Genomic Tracks (TF Binding & ATAC-seq)</h4>
+          <p style="font-size:0.88em;color:#444">
+            Detailed TF binding and ATAC-seq tracks showing individual predictions and
+            difference profiles (red = gained signal, blue = lost signal after deletion).
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207_1d_tracks.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="TF binding and ATAC-seq detailed tracks"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">TF binding and ATAC-seq detailed tracks</figcaption></figure>
+
+          <h4>Contact Map Analysis</h4>
           <div class="grid">
             <div>
               <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
@@ -104,6 +126,22 @@
           <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207_extra.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Extra analysis"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Extra analysis</figcaption></figure>
             
           <h3>EFO:0004038 — Mouse embryonic stem cell</h3>
+
+          <h4>Multi-Modal Overview</h4>
+          <p style="font-size:0.88em;color:#444">
+            Combined view showing contact maps, TF binding (ChIP-seq), and chromatin
+            accessibility (ATAC-seq) predictions before and after deletion.
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_multimodal.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Multi-modal overview: Contact maps + TF binding + ATAC-seq"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Multi-modal overview: Contact maps + TF binding + ATAC-seq</figcaption></figure>
+
+          <h4>1D Genomic Tracks (TF Binding & ATAC-seq)</h4>
+          <p style="font-size:0.88em;color:#444">
+            Detailed TF binding and ATAC-seq tracks showing individual predictions and
+            difference profiles (red = gained signal, blue = lost signal after deletion).
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_1d_tracks.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="TF binding and ATAC-seq detailed tracks"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">TF binding and ATAC-seq detailed tracks</figcaption></figure>
+
+          <h4>Contact Map Analysis</h4>
           <div class="grid">
             <div>
               <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
@@ -142,6 +180,22 @@
           <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_celltype_comparison.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Square contact map — WT | Deletion | Difference for each cell type"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Square contact map — WT | Deletion | Difference for each cell type</figcaption></figure>
         
           <h3>CL:0000207 — Olfactory receptor cell</h3>
+
+          <h4>Multi-Modal Overview</h4>
+          <p style="font-size:0.88em;color:#444">
+            Combined view showing contact maps, TF binding (ChIP-seq), and chromatin
+            accessibility (ATAC-seq) predictions before and after deletion.
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207_multimodal.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Multi-modal overview: Contact maps + TF binding + ATAC-seq"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Multi-modal overview: Contact maps + TF binding + ATAC-seq</figcaption></figure>
+
+          <h4>1D Genomic Tracks (TF Binding & ATAC-seq)</h4>
+          <p style="font-size:0.88em;color:#444">
+            Detailed TF binding and ATAC-seq tracks showing individual predictions and
+            difference profiles (red = gained signal, blue = lost signal after deletion).
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207_1d_tracks.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="TF binding and ATAC-seq detailed tracks"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">TF binding and ATAC-seq detailed tracks</figcaption></figure>
+
+          <h4>Contact Map Analysis</h4>
           <div class="grid">
             <div>
               <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>
@@ -156,6 +210,22 @@
           <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207_extra.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Extra analysis"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Extra analysis</figcaption></figure>
             
           <h3>EFO:0004038 — Mouse embryonic stem cell</h3>
+
+          <h4>Multi-Modal Overview</h4>
+          <p style="font-size:0.88em;color:#444">
+            Combined view showing contact maps, TF binding (ChIP-seq), and chromatin
+            accessibility (ATAC-seq) predictions before and after deletion.
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_multimodal.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="Multi-modal overview: Contact maps + TF binding + ATAC-seq"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">Multi-modal overview: Contact maps + TF binding + ATAC-seq</figcaption></figure>
+
+          <h4>1D Genomic Tracks (TF Binding & ATAC-seq)</h4>
+          <p style="font-size:0.88em;color:#444">
+            Detailed TF binding and ATAC-seq tracks showing individual predictions and
+            difference profiles (red = gained signal, blue = lost signal after deletion).
+          </p>
+          <figure style="margin:0 0 12px 0"><img src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_1d_tracks.png" style="width:100%;border:1px solid #ddd;border-radius:6px;" alt="TF binding and ATAC-seq detailed tracks"><figcaption style="font-size:0.82em;color:#555;margin-top:4px">TF binding and ATAC-seq detailed tracks</figcaption></figure>
+
+          <h4>Contact Map Analysis</h4>
           <div class="grid">
             <div>
               <div class="label">Triangle TAD view (WT / Deletion / Difference)</div>

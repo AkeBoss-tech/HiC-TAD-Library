@@ -10,6 +10,7 @@ import pandas as pd
 from unittest.mock import Mock, MagicMock
 import tempfile
 import os
+import textwrap
 
 
 @pytest.fixture
@@ -94,11 +95,12 @@ def mock_cooler():
     def mock_bins_fetch(region=None):
         """Mock bins().fetch() to return genomic bins."""
         if region:
-            # Parse region like "chr12:26000000-28000000"
+            # Parse region like "chr12:26,000,000-28,000,000"
             parts = region.split(':')
             chrom = parts[0]
             if len(parts) > 1:
-                start, end = map(int, parts[1].split('-'))
+                lo, hi = parts[1].split('-')
+                start, end = int(lo.replace(',', '')), int(hi.replace(',', ''))
             else:
                 start, end = 0, mock_clr.chromsizes[chrom]
 
@@ -123,7 +125,8 @@ def mock_cooler():
             n = 100  # Default size
             if ':' in region:
                 parts = region.split(':')[1].split('-')
-                start, end = int(parts[0]), int(parts[1])
+                start = int(parts[0].replace(',', ''))
+                end   = int(parts[1].replace(',', ''))
                 n = (end - start) // mock_clr.binsize
 
             # Return the mock contact matrix
@@ -240,3 +243,79 @@ def reset_random_state(random_seed):
     yield
     # Reset after test
     np.random.seed(None)
+
+
+# ---------------------------------------------------------------------------
+# Enhancer ID fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def sample_tad_df():
+    """
+    TAD interval table matching the mock_cooler chr12 region (26M–26.5M, 5kb bins).
+    Two TADs covering most of the region with a boundary gap around bin 40.
+    """
+    return pd.DataFrame({
+        'chrom': ['chr12', 'chr12'],
+        'start': [26_000_000, 26_225_000],
+        'end':   [26_200_000, 26_500_000],
+        'tad_id': [0, 1],
+        'length_bp': [200_000, 275_000],
+        'n_bins': [40, 55],
+        'left_boundary_class': [None, 'strong'],
+        'right_boundary_class': ['strong', None],
+    })
+
+
+@pytest.fixture
+def sample_candidate_df():
+    """
+    Small candidate enhancer DataFrame for AlphaGenome / CNN tests.
+    Five bins from chr12 within a TAD.
+    """
+    n = 5
+    return pd.DataFrame({
+        'chrom': ['chr12'] * n,
+        'start': [26_050_000 + i * 5000 for i in range(n)],
+        'end':   [26_055_000 + i * 5000 for i in range(n)],
+        'contact_score': np.linspace(0.5, 2.5, n, dtype=np.float32),
+        'tad_id': [0] * n,
+        'near_boundary': [False] * n,
+    })
+
+
+@pytest.fixture
+def mock_ag_client():
+    """
+    Mock AlphaGenome client that returns synthetic accessibility values.
+    predict() returns a dict with an 'ATAC' key containing a 1D numpy array.
+    """
+    client = MagicMock()
+    rng = np.random.default_rng(42)
+
+    def _predict(chrom, pos, tracks):
+        result = {}
+        for t in tracks:
+            result[t] = rng.random(200).astype(np.float32)
+        return result
+
+    client.predict.side_effect = _predict
+    return client
+
+
+@pytest.fixture
+def mock_fasta_path(tmp_path):
+    """
+    Write a minimal FASTA file with a 500 bp sequence on 'chrTest'.
+    Requires pyfaidx to be installed; skips the fixture otherwise.
+    """
+    pyfaidx = pytest.importorskip("pyfaidx")
+
+    sequence = "ACGT" * 125  # 500 bp
+    fasta_file = tmp_path / "test_genome.fa"
+    fasta_file.write_text(f">chrTest\n{sequence}\n")
+
+    # Index the FASTA so pyfaidx can use it
+    pyfaidx.Fasta(str(fasta_file))  # creates .fai index on first open
+
+    return str(fasta_file)
