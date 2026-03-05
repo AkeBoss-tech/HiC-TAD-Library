@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing - HiC-TAD Library</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #2196F3;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        a { color: #1976D2; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        blockquote {
+            border-left: 4px solid #2196F3;
+            margin: 0;
+            padding-left: 15px;
+            color: #666;
+            background-color: #f5fafe;
+            padding: 10px 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            margin-top: -10px;
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .back-link:hover { background-color: #e0e0e0; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Gallery</a>
+        <h1 id="testing-guide-for-hic-tad-library">Testing Guide for HiC-TAD-Library</h1>
+<h2 id="overview">Overview</h2>
+<p>The HiC-TAD-Library includes a comprehensive test suite with <strong>70+ tests</strong> covering all core functionality:</p>
+<ul>
+<li><strong>test_loaders.py</strong> (10 tests) - Data loading utilities</li>
+<li><strong>test_tad_boundaries.py</strong> (35+ tests) - TAD boundary detection and analysis</li>
+<li><strong>test_polymer_sim.py</strong> (25+ tests) - 3D polymer simulation</li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<pre><code class="language-bash"># Run all tests
+make test
+
+# Run with coverage
+make test-coverage
+
+# Run only unit tests (fast)
+make test-unit
+
+# Run verbose output
+make test-verbose
+</code></pre>
+<h2 id="installation">Installation</h2>
+<p>Install test dependencies:</p>
+<pre><code class="language-bash"># Update conda environment with test packages
+conda env update -f environment.yml
+
+# Or install manually
+conda install pytest pytest-cov pytest-mock
+</code></pre>
+<h2 id="test-commands-reference">Test Commands Reference</h2>
+<h3 id="makefile-commands">Makefile Commands</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>make test</code></td>
+<td>Run all tests</td>
+</tr>
+<tr>
+<td><code>make test-unit</code></td>
+<td>Run only unit tests (fast, no data required)</td>
+</tr>
+<tr>
+<td><code>make test-integration</code></td>
+<td>Run integration tests (may require data files)</td>
+</tr>
+<tr>
+<td><code>make test-coverage</code></td>
+<td>Run tests with coverage report (HTML + terminal)</td>
+</tr>
+<tr>
+<td><code>make test-verbose</code></td>
+<td>Run tests with detailed output</td>
+</tr>
+</tbody>
+</table>
+<h3 id="direct-pytest-commands">Direct Pytest Commands</h3>
+<pre><code class="language-bash"># Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_loaders.py
+pytest tests/test_tad_boundaries.py
+pytest tests/test_polymer_sim.py
+
+# Run specific test class
+pytest tests/test_tad_boundaries.py::TestBoundaryProminence
+
+# Run specific test function
+pytest tests/test_loaders.py::TestGetCooler::test_get_cooler_default_resolution
+
+# Run with pattern matching
+pytest -k &quot;boundary&quot;  # All tests with &quot;boundary&quot; in name
+pytest -k &quot;not slow&quot;  # Exclude slow tests
+
+# Run with markers
+pytest -m unit         # Only unit tests
+pytest -m integration  # Only integration tests
+pytest -m &quot;not slow&quot;   # Exclude slow tests
+
+# Verbose output options
+pytest -v              # Verbose
+pytest -vv             # Very verbose
+pytest -s              # Show print statements
+
+# Debug options
+pytest --tb=short      # Short traceback
+pytest --tb=long       # Long traceback
+pytest --pdb           # Drop into debugger on failure
+pytest --lf            # Run last failed tests
+pytest --ff            # Run failures first, then rest
+
+# Coverage options (requires pytest-cov)
+pytest --cov=src                           # Basic coverage
+pytest --cov=src --cov-report=html         # HTML report
+pytest --cov=src --cov-report=term-missing # Show missing lines
+pytest --cov=src --cov-branch              # Branch coverage
+</code></pre>
+<h2 id="test-structure">Test Structure</h2>
+<h3 id="directory-layout">Directory Layout</h3>
+<pre><code>tests/
+├── __init__.py           # Package marker
+├── README.md             # Detailed test documentation
+├── conftest.py           # Shared fixtures and test data
+├── test_loaders.py       # Tests for src/loaders.py
+├── test_tad_boundaries.py # Tests for src/tad_boundaries.py
+└── test_polymer_sim.py   # Tests for src/polymer_sim.py
+</code></pre>
+<h3 id="test-markers">Test Markers</h3>
+<p>Tests are organized with pytest markers for selective execution:</p>
+<ul>
+<li><strong><code>@pytest.mark.unit</code></strong> - Fast unit tests, no external dependencies</li>
+<li><strong><code>@pytest.mark.integration</code></strong> - Integration tests, may need data files</li>
+<li><strong><code>@pytest.mark.slow</code></strong> - Tests that take longer to run</li>
+<li><strong><code>@pytest.mark.requires_data</code></strong> - Tests requiring actual Hi-C data files</li>
+</ul>
+<h2 id="coverage-reports">Coverage Reports</h2>
+<h3 id="generate-coverage-report">Generate Coverage Report</h3>
+<pre><code class="language-bash"># Terminal + HTML report
+make test-coverage
+
+# Or with pytest directly
+pytest --cov=src --cov-report=html --cov-report=term
+</code></pre>
+<h3 id="view-html-report">View HTML Report</h3>
+<pre><code class="language-bash"># Open in browser
+open htmlcov/index.html      # macOS
+xdg-open htmlcov/index.html  # Linux
+start htmlcov/index.html     # Windows
+</code></pre>
+<p>The HTML report shows:
+- Line-by-line coverage for each module
+- Highlighted covered/uncovered lines
+- Branch coverage statistics
+- Summary by module</p>
+<h2 id="test-modules">Test Modules</h2>
+<h3 id="test_loaderspy">test_loaders.py</h3>
+<p>Tests data loading functionality:</p>
+<p>✅ Path construction for .mcool and .cool files
+✅ Resolution URI formatting
+✅ Error handling for missing files
+✅ Default parameter values
+✅ Integration with real data files (when available)</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">pytest tests/test_loaders.py -v
+</code></pre>
+<h3 id="test_tad_boundariespy">test_tad_boundaries.py</h3>
+<p>Comprehensive tests for TAD analysis:</p>
+<p>✅ Coordinate parsing (<code>parse_coordinates</code>)
+✅ Directionality Index computation
+✅ Boundary prominence scoring
+✅ TAD interval calling
+✅ Multi-scale insulation analysis
+✅ Boundary persistence classification
+✅ Boundary pileup analysis
+✅ Edge cases and error handling</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">pytest tests/test_tad_boundaries.py::TestBoundaryProminence -v
+</code></pre>
+<h3 id="test_polymer_simpy">test_polymer_sim.py</h3>
+<p>Tests 3D polymer simulation engine:</p>
+<p>✅ Contact matrix to restraints conversion
+✅ Insulation to backbone stiffness mapping
+✅ Langevin dynamics simulation
+✅ Reproducibility with fixed seeds
+✅ Numerical stability
+✅ Chain connectivity constraints
+✅ Temperature effects
+✅ Edge cases (empty matrices, extreme values)</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">pytest tests/test_polymer_sim.py::TestSimulatePolymer -v
+</code></pre>
+<h2 id="fixtures-conftestpy">Fixtures (conftest.py)</h2>
+<p>Shared test data and mocks available to all tests:</p>
+<table>
+<thead>
+<tr>
+<th>Fixture</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mock_contact_matrix</code></td>
+<td>100x100 synthetic Hi-C matrix with TAD structure</td>
+</tr>
+<tr>
+<td><code>mock_insulation_scores</code></td>
+<td>Synthetic insulation scores with boundaries</td>
+</tr>
+<tr>
+<td><code>mock_cooler</code></td>
+<td>Mock cooler.Cooler object for testing</td>
+</tr>
+<tr>
+<td><code>sample_bins_df</code></td>
+<td>Sample genomic bins DataFrame</td>
+</tr>
+<tr>
+<td><code>sample_insulation_table</code></td>
+<td>Sample insulation table from cooltools</td>
+</tr>
+<tr>
+<td><code>sample_boundary_df</code></td>
+<td>Sample boundary DataFrame with prominence</td>
+</tr>
+<tr>
+<td><code>sample_restraints</code></td>
+<td>Sample polymer restraints for testing</td>
+</tr>
+<tr>
+<td><code>random_seed</code></td>
+<td>Fixed random seed (42) for reproducibility</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Using fixtures:</strong></p>
+<pre><code class="language-python">@pytest.mark.unit
+def test_with_mock_cooler(mock_cooler):
+    result = your_function(mock_cooler)
+    assert result is not None
+</code></pre>
+<h2 id="writing-new-tests">Writing New Tests</h2>
+<h3 id="test-template">Test Template</h3>
+<pre><code class="language-python">import pytest
+from src.your_module import your_function
+
+class TestYourFunction:
+    &quot;&quot;&quot;Test suite for your_function.&quot;&quot;&quot;
+
+    @pytest.mark.unit
+    def test_basic_functionality(self):
+        &quot;&quot;&quot;Test basic functionality works.&quot;&quot;&quot;
+        result = your_function(test_input)
+        assert result == expected_output
+
+    @pytest.mark.unit
+    def test_edge_case(self):
+        &quot;&quot;&quot;Test edge case handling.&quot;&quot;&quot;
+        with pytest.raises(ValueError):
+            your_function(invalid_input)
+
+    @pytest.mark.integration
+    @pytest.mark.requires_data
+    def test_with_real_data(self):
+        &quot;&quot;&quot;Test with real data file.&quot;&quot;&quot;
+        if not data_available():
+            pytest.skip(&quot;Test data not found&quot;)
+        result = your_function(real_data)
+        assert result is not None
+</code></pre>
+<h3 id="best-practices">Best Practices</h3>
+<ol>
+<li><strong>One test, one behavior</strong> - Each test should verify one specific thing</li>
+<li><strong>Descriptive names</strong> - Name tests to describe what they test</li>
+<li><strong>Use fixtures</strong> - Leverage conftest.py fixtures for common test data</li>
+<li><strong>Mark appropriately</strong> - Use @pytest.mark.unit, .integration, .slow</li>
+<li><strong>Test edge cases</strong> - Include tests for empty inputs, NaNs, extreme values</li>
+<li><strong>Check coverage</strong> - Aim for &gt;80% coverage on critical modules</li>
+<li><strong>Make reproducible</strong> - Use fixed seeds for tests with randomness</li>
+<li><strong>Fast by default</strong> - Keep unit tests fast (&lt;1s each)</li>
+</ol>
+<h2 id="continuous-integration">Continuous Integration</h2>
+<h3 id="github-actions-example">GitHub Actions Example</h3>
+<pre><code class="language-yaml">name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: environment.yml
+          activate-environment: hic-analysis
+      - name: Run tests
+        shell: bash -l {0}
+        run: |
+          make test-coverage
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+</code></pre>
+<h2 id="debugging-tests">Debugging Tests</h2>
+<h3 id="common-issues">Common Issues</h3>
+<p><strong>Import errors:</strong></p>
+<pre><code class="language-bash"># Make sure you're in the project root
+cd /path/to/HiC-TAD-Library
+pytest
+</code></pre>
+<p><strong>Missing dependencies:</strong></p>
+<pre><code class="language-bash">conda activate hic-analysis
+conda env update -f environment.yml
+</code></pre>
+<p><strong>Tests fail randomly:</strong>
+- Check for missing <code>seed</code> parameters in random operations
+- Use fixtures from conftest.py for consistent test data</p>
+<h3 id="debug-strategies">Debug Strategies</h3>
+<pre><code class="language-bash"># Run single test with full traceback
+pytest tests/test_file.py::test_name -vv --tb=long
+
+# Drop into debugger on failure
+pytest tests/test_file.py::test_name --pdb
+
+# Show print statements
+pytest tests/test_file.py::test_name -s
+
+# Run last failed tests
+pytest --lf
+
+# Run in verbose mode with warnings
+pytest -vv -W all
+</code></pre>
+<h2 id="performance">Performance</h2>
+<p>Test suite performance metrics:</p>
+<ul>
+<li><strong>Unit tests</strong>: ~0.1-0.5s each</li>
+<li><strong>Full suite</strong>: ~10-30s (depends on system)</li>
+<li><strong>Coverage analysis</strong>: +2-5s overhead</li>
+</ul>
+<p>Optimize test runs:</p>
+<pre><code class="language-bash"># Skip slow tests during development
+pytest -m &quot;not slow&quot;
+
+# Run only tests that changed
+pytest --lf
+
+# Run tests in parallel (requires pytest-xdist)
+pytest -n auto
+</code></pre>
+<h2 id="cicd-integration">CI/CD Integration</h2>
+<p>The test suite is designed for easy CI/CD integration:</p>
+<ul>
+<li>✅ No GUI dependencies for core tests</li>
+<li>✅ Mocked data for most tests (no large downloads)</li>
+<li>✅ Fast execution (&lt;30s typical)</li>
+<li>✅ Clear pass/fail signals</li>
+<li>✅ Coverage reports in XML/HTML format</li>
+</ul>
+<h2 id="resources">Resources</h2>
+<ul>
+<li><strong><a href="tests/README.md">tests/README.md</a></strong> - Detailed test documentation</li>
+<li><strong><a href="https://docs.pytest.org/">pytest documentation</a></strong> - Official pytest docs</li>
+<li><strong><a href="https://pytest-cov.readthedocs.io/">pytest-cov</a></strong> - Coverage plugin docs</li>
+<li><strong><a href="CLAUDE.md">CLAUDE.md</a></strong> - Project architecture and structure</li>
+<li><strong><a href="README.md">README.md</a></strong> - Project overview</li>
+</ul>
+<h2 id="support">Support</h2>
+<p>If tests fail or you encounter issues:</p>
+<ol>
+<li>Check test output for specific error messages</li>
+<li>Review <a href="tests/README.md">tests/README.md</a> for detailed guidance</li>
+<li>Ensure dependencies are up to date: <code>conda env update -f environment.yml</code></li>
+<li>Check that you're in the project root directory</li>
+<li>Try running a single test in verbose mode: <code>pytest path/to/test -vv</code></li>
+</ol>
+<hr />
+<p><strong>Quick Reference:</strong></p>
+<pre><code class="language-bash">make test              # Run all tests
+make test-coverage     # Run with coverage report
+make test-unit         # Run only unit tests (fast)
+pytest -m unit         # Unit tests only
+pytest -k &quot;boundary&quot;   # Tests matching &quot;boundary&quot;
+pytest --lf            # Run last failed
+open htmlcov/index.html # View coverage report
+</code></pre>
+    </div>
+</body>
+</html>

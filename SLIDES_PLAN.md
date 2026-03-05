@@ -111,3 +111,20 @@ _rotate45(matrix):
 > heatmap and a gain of interactions at long genomic distances in the P(s) curve.
 
 This is a *computational prediction* to complement the wet-lab deletion experiments.
+
+---
+
+## Slide 3: Next Steps — Synthetic Enhancers & Validation
+
+**Title:** From Loss-of-Function to Gain-of-Function & Wet-Lab Validation
+
+**Talking points:**
+- **In Silico Design:** Moving beyond deleting known insulators to generating *new* regulatory syntax using Deep Learning (CNNs).
+- Our pipeline already extracts neural enhancer sequences (`train_enhancers.py`), laying the foundation for synthetic enhancer design.
+- We can use AlphaGenome to test inserted synthetic enhancer sequences *before* cloning, asking: "Does this establish new promoter loops?"
+- **Wet-Lab Validation:** Jingyun and Ed's upcoming high-res **Micro-C** datasets (using Dovetail workflows) will give us the ground-truth contact matrices.
+- This codebase is ready to ingest pipeline-processed `.mcool` outputs directly into our 3D visualization and validation pipelines to confirm if the *in silico* TAD predictions match reality!
+
+**Visual ideas:**
+- Load `index.html` to show the beautiful interactive 3D standard/DNA-like structures of the Chr12/Chr13 regions as an explicit tease of our computational analysis capabilities.
+- Show a screenshot of the `train_enhancers.py` script running or plotting to demonstrate that the framework for Deep Learning sequence-scoring is already built.

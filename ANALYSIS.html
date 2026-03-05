@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis - HiC-TAD Library</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #2196F3;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        a { color: #1976D2; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        blockquote {
+            border-left: 4px solid #2196F3;
+            margin: 0;
+            padding-left: 15px;
+            color: #666;
+            background-color: #f5fafe;
+            padding: 10px 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            margin-top: -10px;
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .back-link:hover { background-color: #e0e0e0; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Gallery</a>
+        <h1 id="hic-tad-library-analysis-pipeline-documentation">HiC-TAD-Library — Analysis Pipeline Documentation</h1>
+<p>This document explains every script in the repository: what it does, how the
+key algorithms work, what it reads, and what it writes.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-project-layout">Project Layout</a></li>
+<li><a href="#2-setup--data">Setup &amp; Data</a></li>
+<li><a href="#3-core-library-src">Core Library (<code>src/</code>)</a>
+   - <a href="#srcloaderspy">loaders.py</a>
+   - <a href="#srctad_boundariespy">tad_boundaries.py</a>
+   - <a href="#srcpolymer_simpy">polymer_sim.py</a></li>
+<li><a href="#4-visualization-scripts">Visualization Scripts</a>
+   - <a href="#visualize_tadspy">visualize_tads.py</a>
+   - <a href="#visualize_boundariespy">visualize_boundaries.py</a>
+   - <a href="#visualize_polymer_3dpy">visualize_polymer_3d.py</a>
+   - <a href="#visualize_alphagenomepy">visualize_alphagenome.py</a></li>
+<li><a href="#5-alphagenome-deletion-analysis">AlphaGenome Deletion Analysis</a>
+   - <a href="#run_mouse_deletionpy">run_mouse_deletion.py</a>
+   - <a href="#deletion_scanpy">deletion_scan.py</a>
+   - <a href="#analyze_deletion_effectspy">analyze_deletion_effects.py</a>
+   - <a href="#visualize_deletion_enhancedpy">visualize_deletion_enhanced.py</a></li>
+<li><a href="#6-utility-scripts">Utility Scripts</a>
+   - <a href="#plot_full_tad_trianglespy">plot_full_tad_triangles.py</a>
+   - <a href="#tal1_example_workflowpy">tal1_example_workflow.py</a></li>
+<li><a href="#7-testing">Testing</a></li>
+<li><a href="#8-makefile-reference">Makefile Reference</a></li>
+</ol>
+<hr />
+<h2 id="1-project-layout">1. Project Layout</h2>
+<pre><code>HiC-TAD-Library/
+├── src/                        # Core reusable library
+│   ├── loaders.py              # Load cooler/mcool files
+│   ├── tad_boundaries.py       # TAD detection algorithms
+│   ├── polymer_sim.py          # 3D polymer simulation engine
+│   └── alphagenome/            # AlphaGenome API notebooks &amp; metadata
+├── tests/                      # pytest test suite (70+ tests)
+│   ├── conftest.py             # Shared fixtures
+│   ├── test_loaders.py
+│   ├── test_tad_boundaries.py
+│   └── test_polymer_sim.py
+├── data/
+│   ├── raw/                    # mouse_microc.mcool (not in git)
+│   └── processed/
+├── media/                      # All generated PNG/HTML outputs
+├── externals/                  # Git submodules (alphagenome SDK, etc.)
+├── notebooks/                  # Exploratory Jupyter notebooks
+│── visualize_tads.py           # Hi-C heatmaps &amp; compartment plots
+├── visualize_boundaries.py     # TAD boundary analysis plots
+├── visualize_polymer_3d.py     # 3D polymer simulation &amp; rendering
+├── visualize_alphagenome.py    # AlphaGenome prediction visualizations
+├── run_mouse_deletion.py       # Insulator deletion comparison (AI)
+├── deletion_scan.py            # Multi-position / multi-size deletion scan
+├── analyze_deletion_effects.py # Before/after structural variant analysis
+├── visualize_deletion_enhanced.py  # Enhanced deletion visualizations
+├── plot_full_tad_triangles.py  # Full-TAD triangle plots from real Micro-C
+├── tal1_example_workflow.py    # TAL1 oncogenic variant workflow example
+├── ANALYSIS.md                 # This file
+├── SLIDES_PLAN.md              # Slide plan for lab presentation
+├── environment.yml             # Conda environment definition
+├── Makefile                    # All runnable make targets
+└── CLAUDE.md                   # AI assistant context file
+</code></pre>
+<hr />
+<h2 id="2-setup-data">2. Setup &amp; Data</h2>
+<h3 id="conda-environment">Conda environment</h3>
+<pre><code class="language-bash">conda env create -f environment.yml
+conda activate hic-analysis
+make install          # installs cooler/cooltools + AlphaGenome SDK
+</code></pre>
+<p>Python version: <strong>3.11</strong>. The environment includes cooler, cooltools, bioframe,
+matplotlib, plotly, scipy, numpy, pandas, and pytest.</p>
+<h3 id="alphagenome-api-key">AlphaGenome API key</h3>
+<p>Create a <code>.env</code> file in the project root:</p>
+<pre><code>ALPHA_GENOME_API_KEY=your_key_here
+</code></pre>
+<p>This is read by <code>python-dotenv</code> at the top of every AlphaGenome script.</p>
+<h3 id="primary-data-file">Primary data file</h3>
+<p>All visualization and boundary-detection scripts read from:</p>
+<pre><code>data/raw/mouse_microc.mcool
+</code></pre>
+<p>This is a multi-resolution cooler (HDF5) file from
+<a href="https://data.4dnucleome.org/">4DNucleome</a> containing mouse Micro-C contact
+maps (mm10 genome). The default resolution used throughout is <strong>5,000 bp (5 kb)</strong>.
+Large-region scripts (compartments) use 25 kb or 50 kb.</p>
+<h3 id="common-genomic-regions">Common genomic regions</h3>
+<table>
+<thead>
+<tr>
+<th>Alias</th>
+<th>Coordinates</th>
+<th>Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Sox11_Chr12</code></td>
+<td>chr12:26,000,000–28,000,000</td>
+<td>Sox11 / Edward's insulator</td>
+</tr>
+<tr>
+<td><code>Mir9-2_Chr13</code></td>
+<td>chr13:83,500,000–84,500,000</td>
+<td>Mef2c / Jingyun's insulator</td>
+</tr>
+<tr>
+<td><code>Compartments_Chr2</code></td>
+<td>chr2:0–50,000,000</td>
+<td>A/B compartment example</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-core-library-src">3. Core Library (<code>src/</code>)</h2>
+<h3 id="srcloaderspy"><code>src/loaders.py</code></h3>
+<p><strong>What it does:</strong> Thin wrapper that resolves the absolute path to
+<code>data/raw/&lt;file&gt;</code> and opens a <code>cooler.Cooler</code> object at the right resolution.</p>
+<pre><code class="language-python">clr = get_cooler('mouse_microc.mcool', resolution=5000)
+</code></pre>
+<p>For <code>.mcool</code> files the function appends <code>::resolutions/&lt;res&gt;</code> to the path;
+for plain <code>.cool</code> files it opens directly. Raises <code>FileNotFoundError</code> if the
+file is missing so you get a clear message rather than a cryptic HDF5 error.</p>
+<hr />
+<h3 id="srctad_boundariespy"><code>src/tad_boundaries.py</code></h3>
+<p>The main algorithmic module. Contains five functional groups:</p>
+<h4 id="1-helpers">1. Helpers</h4>
+<p><code>parse_coordinates(s)</code> — converts <code>"chr12:26,000,000-28,000,000"</code> to
+<code>("chr12", 26000000, 28000000)</code>. Strips commas so human-readable strings work.</p>
+<p><code>make_view_df(chrom, start, end)</code> — builds the single-row DataFrame that
+cooltools functions need to know which region to operate on.</p>
+<h4 id="2-directionality-index-dixon-et-al-2012">2. Directionality Index (Dixon et al. 2012)</h4>
+<pre><code class="language-python">di_df = compute_directionality_index(clr, &quot;chr12:26,000,000-28,000,000&quot;)
+</code></pre>
+<p>For each bin <strong>i</strong> at resolution <em>r</em>, sums contacts in the upstream window
+<strong>A</strong> = contacts(i − W .. i) and downstream window <strong>B</strong> = contacts(i .. i + W)
+(default W = 500 kb). The index is:</p>
+<pre><code>E = (A + B) / 2
+DI = sign(B − A) × [(A − E)² + (B − E)²] / E
+</code></pre>
+<p>Positive DI → more downstream contacts (inside a TAD); negative DI → more
+upstream contacts. Sign changes mark TAD boundaries. Returns a DataFrame with
+columns <code>chrom, start, end, upstream_sum, downstream_sum, DI</code>.</p>
+<h4 id="3-boundary-prominence-scoring">3. Boundary Prominence Scoring</h4>
+<pre><code class="language-python">scored = score_boundary_prominence(insulation_table, window_bp=50_000)
+</code></pre>
+<p>Takes an insulation score track (from cooltools) and finds local minima using
+<code>scipy.signal.find_peaks</code> on the negated signal. Each minimum is assigned a
+<strong>topographic prominence</strong> — how much the score dips below the surrounding
+landscape. Boundaries are classified:</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Prominence threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strong</code></td>
+<td>≥ 0.5</td>
+</tr>
+<tr>
+<td><code>weak</code></td>
+<td>≥ 0.2</td>
+</tr>
+<tr>
+<td><code>sub_threshold</code></td>
+<td>&lt; 0.2</td>
+</tr>
+</tbody>
+</table>
+<p>The auto-threshold mode uses Li's iterative minimum cross-entropy method
+(<code>_li_threshold</code>) to pick the prominence cutoff from the data itself, without
+needing scikit-image.</p>
+<h4 id="4-tad-interval-calling">4. TAD Interval Calling</h4>
+<pre><code class="language-python">tads = call_tad_intervals(boundary_df, clr, boundary_class_min='weak')
+</code></pre>
+<p>Pairs consecutive boundaries to define TAD intervals. Each interval records its
+chromosome, start/end coordinates, length, number of bins, and the class of its
+left and right boundary. Intervals longer than <code>max_tad_length_bp</code> (default
+3 Mb) are discarded as likely mis-calls.</p>
+<h4 id="5-multi-scale-insulation-boundary-persistence">5. Multi-scale Insulation &amp; Boundary Persistence</h4>
+<pre><code class="language-python">table, windows = multiscale_insulation(clr, region, n_windows=8)
+persistence_df = classify_boundary_persistence(table, windows)
+</code></pre>
+<p>Computes the insulation score at <strong>n</strong> log-spaced window sizes (default 8
+windows from 25 kb to 500 kb) and asks, at each genomic bin: is it a boundary
+at this scale? Boundaries are then classified:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>constitutive</code></td>
+<td>Boundary at ≥ 75% of scales — strong, scale-invariant</td>
+</tr>
+<tr>
+<td><code>nested_sub</code></td>
+<td>Only at small scales — fine-grained inner structure</td>
+</tr>
+<tr>
+<td><code>nested_meta</code></td>
+<td>Only at large scales — coarse domain boundary</td>
+</tr>
+<tr>
+<td><code>mixed</code></td>
+<td>Present at some intermediate set of scales</td>
+</tr>
+</tbody>
+</table>
+<h4 id="6-boundary-pileup">6. Boundary Pileup</h4>
+<pre><code class="language-python">pileup, n = boundary_pileup(clr, boundary_df, flank_bins=40)
+</code></pre>
+<p>Meta-analysis: extracts a 81×81 sub-matrix centred on each boundary and
+averages them. Optionally normalises by the distance-dependent expected contact
+frequency so the result shows enrichment above background. Useful for checking
+that called boundaries look like real TAD boundaries (depleted diagonal,
+strong flanking domains).</p>
+<hr />
+<h3 id="srcpolymer_simpy"><code>src/polymer_sim.py</code></h3>
+<p>A self-contained 3D polymer simulation engine written in pure NumPy/SciPy
+(no OpenMM, no polychrom). Converts a Hi-C contact matrix into a 3D bead-on-
+a-string model.</p>
+<h4 id="pipeline">Pipeline</h4>
+<pre><code>Hi-C matrix
+    ↓  contact_matrix_to_restraints()
+Harmonic spring list [(i, j, rest_len, k), ...]
+    ↓  simulate_polymer()
+3D bead coordinates  (n_beads × 3)
+</code></pre>
+<h4 id="1-contact-matrix-restraints">1. Contact matrix → restraints</h4>
+<p>Only contacts above the 70th percentile (configurable) generate springs.
+Spring constant <strong>k</strong> scales logarithmically with contact frequency:
+stronger contacts → stiffer springs. Rest length decreases with contact
+strength (high frequency → shorter preferred distance), so frequently
+interacting loci are pulled together.</p>
+<h4 id="2-backbone-stiffness-from-insulation">2. Backbone stiffness from insulation</h4>
+<p><code>insulation_to_backbone_stiffness()</code> maps the 1D insulation score to per-bead
+backbone spring constants. Low insulation (strong boundary) → stiff backbone
+spring → a kink in the polymer chain at the TAD boundary.</p>
+<h4 id="3-overdamped-langevin-dynamics">3. Overdamped Langevin dynamics</h4>
+<p><code>simulate_polymer()</code> integrates:</p>
+<pre><code>Δx = (F_backbone + F_restraints + F_excluded_volume) / γ  ·  dt  +  noise
+</code></pre>
+<p>where γ is friction, noise is <code>√(2 k_B T / γ dt)</code> Gaussian, and
+excluded-volume is a soft repulsive potential that prevents bead overlap.
+No velocities are tracked (overdamped / high-friction limit, appropriate
+for chromatin at genomic timescales). Runs for <code>n_steps</code> steps (default 5,000).</p>
+<h4 id="end-to-end-convenience-function">End-to-end convenience function</h4>
+<pre><code class="language-python">coords = polymer_from_cooler(clr, &quot;chr12:26,000,000-28,000,000&quot;)
+# returns (n_beads, 3) array
+</code></pre>
+<hr />
+<h2 id="4-visualization-scripts">4. Visualization Scripts</h2>
+<p>All visualization scripts follow the same pattern:
+1. Open <code>data/raw/mouse_microc.mcool</code> at 5 kb
+2. Process with <code>src/</code> modules
+3. Save figures to <code>media/</code></p>
+<h3 id="visualize_tadspy"><code>visualize_tads.py</code></h3>
+<p>Produces the classic Hi-C contact map visualizations.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Output</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plot_region()</code></td>
+<td>heatmap PNG</td>
+<td>Log-scaled contact map for a genomic region</td>
+</tr>
+<tr>
+<td><code>plot_triangular_region()</code></td>
+<td>triangle PNG</td>
+<td>45°-rotated view, TADs appear as triangles</td>
+</tr>
+<tr>
+<td><code>plot_compartments()</code></td>
+<td>compartment PNG</td>
+<td>A/B compartment eigenvector (E1) track</td>
+</tr>
+<tr>
+<td><code>plot_insulation()</code></td>
+<td>insulation PNG</td>
+<td>Insulation score track with boundary calls</td>
+</tr>
+<tr>
+<td><code>plot_dots()</code></td>
+<td>dots PNG</td>
+<td>Loop dot annotation overlay</td>
+</tr>
+<tr>
+<td><code>plot_saddle()</code></td>
+<td>saddle PNG</td>
+<td>Compartment strength saddle plot</td>
+</tr>
+</tbody>
+</table>
+<p>Run: <code>python visualize_tads.py</code> or <code>make run-tads</code></p>
+<hr />
+<h3 id="visualize_boundariespy"><code>visualize_boundaries.py</code></h3>
+<p>In-depth boundary analysis.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Output</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plot_directionality_index()</code></td>
+<td>DI PNG</td>
+<td>Per-bin directionality index track</td>
+</tr>
+<tr>
+<td><code>plot_boundary_strength()</code></td>
+<td>strength PNG</td>
+<td>Boundary prominence ranked by strength</td>
+</tr>
+<tr>
+<td><code>plot_multiscale_insulation()</code></td>
+<td>multiscale PNG</td>
+<td>Insulation heatmap across window sizes</td>
+</tr>
+<tr>
+<td><code>plot_tad_overlay()</code></td>
+<td>overlay PNG</td>
+<td>Contact map with TAD intervals drawn</td>
+</tr>
+<tr>
+<td><code>plot_boundary_pileup()</code></td>
+<td>pileup PNG</td>
+<td>Averaged meta-boundary contact pattern</td>
+</tr>
+<tr>
+<td><code>plot_combined_boundary_panel()</code></td>
+<td>combined PNG</td>
+<td>Multi-panel summary figure</td>
+</tr>
+</tbody>
+</table>
+<p>Run: <code>python visualize_boundaries.py</code> or <code>make run-boundaries</code></p>
+<hr />
+<h3 id="visualize_polymer_3dpy"><code>visualize_polymer_3d.py</code></h3>
+<p>Converts the contact matrix to a 3D polymer model and renders it.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Output</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run_polymer_viz()</code></td>
+<td>—</td>
+<td>Orchestrator: runs simulation, calls renderers</td>
+</tr>
+<tr>
+<td><code>plot_polymer_matplotlib()</code></td>
+<td>static PNG</td>
+<td>3D scatter coloured by compartment/TAD</td>
+</tr>
+<tr>
+<td><code>plot_polymer_with_heatmap()</code></td>
+<td>side-by-side PNG</td>
+<td>3D model + contact map</td>
+</tr>
+<tr>
+<td><code>plot_dna_like_polymer_matplotlib()</code></td>
+<td>DNA-style PNG</td>
+<td>Helical bead rendering</td>
+</tr>
+<tr>
+<td><code>plot_polymer_plotly()</code></td>
+<td>interactive HTML</td>
+<td>Rotatable 3D plot in browser</td>
+</tr>
+<tr>
+<td><code>plot_dna_like_polymer_plotly()</code></td>
+<td>interactive HTML</td>
+<td>DNA-style interactive plot</td>
+</tr>
+</tbody>
+</table>
+<p>Bead colouring options: A/B compartment eigenvector, insulation score, or
+TAD membership. The interactive HTML files are the most useful for exploration.</p>
+<p>Run: <code>python visualize_polymer_3d.py</code> or <code>make run-polymer</code></p>
+<hr />
+<h3 id="visualize_alphagenomepy"><code>visualize_alphagenome.py</code></h3>
+<p>Queries the AlphaGenome API and plots the predictions.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Output</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>visualize_gene_expression()</code></td>
+<td>expression PNG</td>
+<td>Predicted CAGE / RNA-seq tracks</td>
+</tr>
+<tr>
+<td><code>visualize_contact_maps()</code></td>
+<td>contact PNG</td>
+<td>Predicted Hi-C contact map</td>
+</tr>
+<tr>
+<td><code>visualize_virtual_4c()</code></td>
+<td>4C PNG</td>
+<td>Virtual 4C from a viewpoint locus</td>
+</tr>
+<tr>
+<td><code>visualize_ctcf_signal()</code></td>
+<td>CTCF PNG</td>
+<td>Predicted CTCF binding signal</td>
+</tr>
+</tbody>
+</table>
+<p>Requires <code>ALPHA_GENOME_API_KEY</code> in <code>.env</code>. Run: <code>python visualize_alphagenome.py</code>
+or <code>make run-alphagenome</code></p>
+<hr />
+<h2 id="5-alphagenome-deletion-analysis">5. AlphaGenome Deletion Analysis</h2>
+<p>These scripts use the AlphaGenome API to predict what happens to 3D chromatin
+structure when a specific DNA sequence is deleted. All require the API key.</p>
+<h3 id="background-how-alphagenome-variant-prediction-works">Background: how AlphaGenome variant prediction works</h3>
+<p>AlphaGenome accepts a 1 Mb DNA sequence and predicts dozens of genomic
+tracks (contact maps, CTCF binding, CAGE expression, histone marks). For
+deletion analysis:</p>
+<ol>
+<li>Predict the <strong>wild-type (WT)</strong> contact map for a 1 Mb window centred on the
+   deletion site.</li>
+<li>Simulate the deletion as a <code>Variant</code>: replace the deleted bases with a
+   single <code>N</code> (effectively shortening the sequence). Predict the
+   <strong>deletion (DM)</strong> contact map.</li>
+<li>Compare WT vs DM — the difference reveals which contacts were maintained by
+   the deleted sequence.</li>
+</ol>
+<p>The maximum supported window size is <strong>1,048,576 bp (2²⁰ ≈ 1 Mb)</strong>.</p>
+<hr />
+<h3 id="run_mouse_deletionpy"><code>run_mouse_deletion.py</code></h3>
+<p>The main insulator deletion prediction script. Analyses two confirmed insulator
+sites:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Coordinates</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jingyun — chr13</td>
+<td>chr13:83,739,797–83,745,138</td>
+<td>~5.3 kb</td>
+</tr>
+<tr>
+<td>Edward — chr12</td>
+<td>chr12:27,333,532–27,336,455</td>
+<td>~3 kb</td>
+</tr>
+</tbody>
+</table>
+<p>For each region × cell type, it generates <strong>5 figure types</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Figure type</th>
+<th>File pattern</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WT | Deletion | Difference heatmaps</td>
+<td><code>*_&lt;celltype&gt;.png</code></td>
+<td>Square contact maps with gene track</td>
+</tr>
+<tr>
+<td>Log₂ ratio + Virtual 4C + P(s)</td>
+<td><code>*_&lt;celltype&gt;_extra.png</code></td>
+<td>Quantitative measures</td>
+</tr>
+<tr>
+<td>Cell-type comparison grid</td>
+<td><code>*_celltype_comparison.png</code></td>
+<td>All cell types in one figure</td>
+</tr>
+<tr>
+<td>Triangle TAD view (per cell type)</td>
+<td><code>*_&lt;celltype&gt;_triangle.png</code></td>
+<td>Rotated 45° contact maps</td>
+</tr>
+<tr>
+<td>Triangle comparison (all cell types)</td>
+<td><code>*_triangle_comparison.png</code></td>
+<td>WT/Del/Diff for each cell type</td>
+</tr>
+</tbody>
+</table>
+<p>At the end it writes <code>analysis_report.html</code> — a self-contained HTML report
+with all figures.</p>
+<p><strong>Cell types used:</strong></p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CL:0000207</code></td>
+<td>Olfactory receptor cell</td>
+</tr>
+<tr>
+<td><code>EFO:0004038</code></td>
+<td>Mouse embryonic stem cell (PI recommendation)</td>
+</tr>
+</tbody>
+</table>
+<p>Run: <code>python run_mouse_deletion.py</code> or <code>make run-deletion</code></p>
+<hr />
+<h3 id="deletion_scanpy"><code>deletion_scan.py</code></h3>
+<p>Tests <strong>12 evenly-spaced deletion positions</strong> across the 1 Mb window to ask:
+<em>is the actual insulator site special, or would any deletion produce a similar
+effect?</em></p>
+<h4 id="usage">Usage</h4>
+<pre><code class="language-bash">python deletion_scan.py edward                         # original ~3 kb size
+python deletion_scan.py jingyun                        # original ~5.3 kb size
+python deletion_scan.py edward  --del-sizes 10 40 80   # 10/40/80 kb
+python deletion_scan.py jingyun --del-sizes 10 40 80
+</code></pre>
+<h4 id="how-it-works">How it works</h4>
+<ol>
+<li><strong>Predict WT once</strong> — reused across all deletion sizes.</li>
+<li><strong>Build scan positions</strong> — <code>np.linspace</code> across the usable window, then
+   snap the nearest position to the actual insulator centre.</li>
+<li><strong>For each position × size</strong> — call <code>predict_variant</code> with a deletion of
+   that size centred at that position.</li>
+<li><strong>Compute three metrics</strong> for each (WT, DM) pair:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>global_abs</code></td>
+<td>mean |DM − WT|</td>
+<td>Total contact reorganisation</td>
+</tr>
+<tr>
+<td><code>cross_gain</code></td>
+<td>mean(DM[left, right]) − mean(WT[left, right])</td>
+<td>Cross-boundary contact change; positive = TADs merging</td>
+</tr>
+<tr>
+<td><code>ins_weakening</code></td>
+<td>mean(DM[diamond]) − mean(WT[diamond])</td>
+<td>Change in contacts in a 50 kb diamond centred on the deletion; positive = boundary weakened</td>
+</tr>
+</tbody>
+</table>
+<ol start="5">
+<li><strong>Rank positions</strong> by <code>global_abs</code> and generate four figures:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Figure</th>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sensitivity profile</td>
+<td><code>deletion_scan_&lt;region&gt;_&lt;size&gt;kb_sensitivity.png</code></td>
+<td>Bar chart of all 3 metrics</td>
+</tr>
+<tr>
+<td>Ranked summary</td>
+<td><code>deletion_scan_&lt;region&gt;_&lt;size&gt;kb_ranked_summary.png</code></td>
+<td>WT triangle + impact ranking bars</td>
+</tr>
+<tr>
+<td>Triangle gallery</td>
+<td><code>deletion_scan_&lt;region&gt;_&lt;size&gt;kb_triangle_gallery.png</code></td>
+<td>Difference maps for selected sites</td>
+</tr>
+<tr>
+<td>Diff montage</td>
+<td><code>deletion_scan_&lt;region&gt;_&lt;size&gt;kb_montage.png</code></td>
+<td>All 12 sites on a shared scale</td>
+</tr>
+</tbody>
+</table>
+<p>When multiple <code>--del-sizes</code> are given, a fifth figure is also produced:</p>
+<table>
+<thead>
+<tr>
+<th>Figure</th>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cross-size comparison</td>
+<td><code>deletion_scan_&lt;region&gt;_cross_size_comparison.png</code></td>
+<td>Heatmaps (position × size) + rank trend</td>
+</tr>
+</tbody>
+</table>
+<p>Finally, a self-contained HTML report is written:
+<code>deletion_scan_&lt;region&gt;_&lt;sizes&gt;_report.html</code></p>
+<h4 id="key-results">Key results</h4>
+<table>
+<thead>
+<tr>
+<th>Region</th>
+<th style="text-align: center;">Original size (~3–5 kb) rank</th>
+<th style="text-align: center;">10 kb rank</th>
+<th style="text-align: center;">40 kb rank</th>
+<th style="text-align: center;">80 kb rank</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Edward chr12</td>
+<td style="text-align: center;">#7/12</td>
+<td style="text-align: center;"><strong>#1/12</strong></td>
+<td style="text-align: center;"><strong>#1/12</strong></td>
+<td style="text-align: center;">#4/12</td>
+</tr>
+<tr>
+<td>Jingyun chr13</td>
+<td style="text-align: center;">#7/12</td>
+<td style="text-align: center;">#7/12</td>
+<td style="text-align: center;">#7/12</td>
+<td style="text-align: center;">#7/12</td>
+</tr>
+</tbody>
+</table>
+<p>Edward's chr12 insulator becomes rank #1 with 10–40 kb deletions (insulation
+weakening +0.46, ~10× any other site), confirming it is a genuine functional
+boundary. Jingyun's chr13 site stays at #7 at all sizes, suggesting a
+different or more redundant architectural role in Mouse ESC.</p>
+<hr />
+<h3 id="analyze_deletion_effectspy"><code>analyze_deletion_effects.py</code></h3>
+<p>Computes structural variant effects on the contact map for a configurable
+set of deletions. Simpler than <code>deletion_scan.py</code> — focuses on visualising
+before/after for a single deletion rather than scanning many positions.</p>
+<p><code>visualize_deletion_effect()</code> — produces a three-panel figure: WT, DM,
+and difference map (RdBu colour scale).</p>
+<p>Run: <code>python analyze_deletion_effects.py</code> or <code>make run-deletion-effects</code></p>
+<hr />
+<h3 id="visualize_deletion_enhancedpy"><code>visualize_deletion_enhanced.py</code></h3>
+<p>Extended version of the deletion visualisation with additional tracks and
+annotation overlays (gene models, CTCF peaks, insulation score). Intended
+for producing publication-quality panels.</p>
+<p>Run: <code>python visualize_deletion_enhanced.py</code> or <code>make run-deletion-enhanced</code></p>
+<hr />
+<h2 id="6-utility-scripts">6. Utility Scripts</h2>
+<h3 id="plot_full_tad_trianglespy"><code>plot_full_tad_triangles.py</code></h3>
+<p>Plots Edward's and Jingyun's complete 2-TAD pair regions as triangle contact
+maps using <strong>real Mouse Micro-C data</strong> (not AlphaGenome predictions).</p>
+<table>
+<thead>
+<tr>
+<th>Region</th>
+<th>Coordinates</th>
+<th>Bins</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Edward chr12</td>
+<td>chr12:26,440,002–28,560,000</td>
+<td>424 × 424</td>
+</tr>
+<tr>
+<td>Jingyun chr13</td>
+<td>chr13:81,760,002–85,200,000</td>
+<td>688 × 688</td>
+</tr>
+</tbody>
+</table>
+<p>The triangle rotation formula maps matrix element <code>[i, j]</code> (j ≥ i) to:</p>
+<pre><code>x = i + j    (genomic midpoint of the contact pair)
+y = j − i    (genomic distance / 2)
+</code></pre>
+<p>producing a (n, 2n) array displayed with <code>origin='lower'</code> so the diagonal
+sits at the bottom and TADs appear as dark upward-pointing triangles.</p>
+<p>Outputs:
+- <code>media/Edward_chr12_full_tad_triangle.png</code>
+- <code>media/Jingyun_chr13_full_tad_triangle.png</code>
+- <code>media/full_tad_triangles_combined.png</code></p>
+<p>Run: <code>python plot_full_tad_triangles.py</code> or <code>make run-tad-triangles</code></p>
+<hr />
+<h3 id="tal1_example_workflowpy"><code>tal1_example_workflow.py</code></h3>
+<p>Demonstrates the AlphaGenome variant effect prediction workflow using the
+TAL1 oncogenic translocation (chr1:47,595,955 T→A) as an example.</p>
+<p>Steps:
+1. Load mm10 GENCODE M23 gene annotations with <code>load_gtf_and_extractor()</code>
+2. Define the TAL1 variant(s) with <code>oncogenic_tal1_variants()</code>
+3. Query AlphaGenome for predicted RNA expression, accessibility, and
+   histone modifications at each variant position
+4. Generate multi-track comparison figures</p>
+<p>This is a worked example / tutorial for how to extend the deletion analysis
+to point mutations and other structural variants.</p>
+<p>Run: <code>python tal1_example_workflow.py</code> or <code>make run-tal1</code></p>
+<hr />
+<h2 id="7-testing">7. Testing</h2>
+<pre><code class="language-bash">make test              # run all tests
+make test-unit         # fast unit tests only (no data needed)
+make test-coverage     # generate HTML coverage report in htmlcov/
+make test-verbose      # detailed per-test output
+</code></pre>
+<h3 id="structure">Structure</h3>
+<pre><code>tests/
+├── conftest.py              # Shared fixtures (mock matrices, coolers, etc.)
+├── test_loaders.py          # 10 tests  — src/loaders.py
+├── test_tad_boundaries.py   # 35+ tests — src/tad_boundaries.py
+└── test_polymer_sim.py      # 25+ tests — src/polymer_sim.py
+</code></pre>
+<h3 id="test-markers">Test markers</h3>
+<table>
+<thead>
+<tr>
+<th>Marker</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@pytest.mark.unit</code></td>
+<td>Fast, no external files needed</td>
+</tr>
+<tr>
+<td><code>@pytest.mark.integration</code></td>
+<td>May use mock coolers</td>
+</tr>
+<tr>
+<td><code>@pytest.mark.slow</code></td>
+<td>Longer simulations</td>
+</tr>
+<tr>
+<td><code>@pytest.mark.requires_data</code></td>
+<td>Needs real mcool file</td>
+</tr>
+</tbody>
+</table>
+<p>All unit tests use mock data from <code>conftest.py</code> — a synthetic 100×100
+contact matrix with two TAD blocks and a boundary gap, plus corresponding
+mock insulation scores and mock cooler objects.</p>
+<hr />
+<h2 id="8-makefile-reference">8. Makefile Reference</h2>
+<p>See the Makefile for the full target list. Below is a quick reference:</p>
+<pre><code class="language-bash"># ── Setup ──────────────────────────────────────────────────────────
+make install                   # install all dependencies
+make setup                     # install + run core visualizations
+
+# ── Core visualizations (use real Micro-C data) ────────────────────
+make run-tads                  # visualize_tads.py
+make run-boundaries            # visualize_boundaries.py
+make run-polymer               # visualize_polymer_3d.py
+make run-alphagenome           # visualize_alphagenome.py
+make run                       # tads + boundaries + alphagenome
+
+# ── AlphaGenome deletion analysis (require API key) ────────────────
+make run-deletion              # run_mouse_deletion.py (both regions)
+make run-deletion-effects      # analyze_deletion_effects.py
+make run-deletion-enhanced     # visualize_deletion_enhanced.py
+
+# ── Deletion sensitivity scans (original insulator size) ───────────
+make scan-edward               # edward, ~3 kb deletions
+make scan-jingyun              # jingyun, ~5.3 kb deletions
+make scan-all                  # both regions, original size
+
+# ── Deletion sensitivity scans (10 / 40 / 80 kb) ──────────────────
+make scan-large-edward         # edward, 10 40 80 kb
+make scan-large-jingyun        # jingyun, 10 40 80 kb
+make scan-large                # both regions, large sizes
+
+# ── Utility scripts ────────────────────────────────────────────────
+make run-tad-triangles         # real Micro-C full-TAD triangles
+make run-tal1                  # TAL1 variant workflow example
+
+# ── Run everything ─────────────────────────────────────────────────
+make run-all                   # all analysis (no deletion scans)
+make analysis                  # core viz + both deletion scans
+
+# ── Testing ────────────────────────────────────────────────────────
+make test                      # all tests
+make test-unit                 # unit tests only
+make test-coverage             # with HTML coverage report
+make test-verbose              # detailed output
+
+# ── Housekeeping ───────────────────────────────────────────────────
+make clean                     # remove media/*.png and test artefacts
+make clean-html                # remove generated HTML reports
+make clean-all                 # media/ + HTML + htmlcov/ + caches
+make help                      # print this reference
+</code></pre>
+    </div>
+</body>
+</html>

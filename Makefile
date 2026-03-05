@@ -19,10 +19,12 @@ LARGE_SIZES ?= 10 40 80
         scan-edward scan-jingyun scan-all \
         scan-large-edward scan-large-jingyun scan-large \
         run-tad-triangles run-tal1 \
+        run-compartments run-loops run-sv-cnv run-variants \
+        run-hichip run-capture-hic run-phasing run-dovetail \
         run-all analysis \
         test test-unit test-integration test-coverage test-verbose \
         clean clean-html clean-all \
-        setup
+        setup docs
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 help:
@@ -59,6 +61,17 @@ help:
 	@echo "Utility scripts"
 	@echo "  make run-tad-triangles    Real Micro-C full-TAD triangle plots"
 	@echo "  make run-tal1             TAL1 oncogenic variant workflow"
+	@echo "  make docs                 Generate HTML documentation from Markdown files"
+	@echo ""
+	@echo "Dovetail analysis suite"
+	@echo "  make run-compartments     A/B compartment analysis (real mcool)"
+	@echo "  make run-loops            Chromatin loop calling (real mcool)"
+	@echo "  make run-sv-cnv           SV and CNV detection (real mcool + optional BAM)"
+	@echo "  make run-variants         SNV/indel calling (BAM; demo mode if absent)"
+	@echo "  make run-hichip           HiChIP loop analysis (real mcool; demo peaks if absent)"
+	@echo "  make run-capture-hic      Capture Hi-C interaction calling (demo baits if absent)"
+	@echo "  make run-phasing          Hi-C haplotype phasing (BAM+VCF; demo if absent)"
+	@echo "  make run-dovetail         All seven Dovetail analyses"
 	@echo ""
 	@echo "Combined targets"
 	@echo "  make run-all              All visualizations (no deletion scans)"
@@ -136,6 +149,36 @@ run-tad-triangles:
 run-tal1:
 	$(PYTHON) tal1_example_workflow.py
 
+docs:
+	$(PYTHON) scripts/build_docs.py
+
+# ── Dovetail analysis suite ───────────────────────────────────────────────────
+run-compartments:
+	$(PYTHON) visualize_compartments.py
+
+run-loops:
+	$(PYTHON) visualize_loops.py
+
+run-sv-cnv:
+	$(PYTHON) analyze_sv_cnv.py
+
+run-variants:
+	$(PYTHON) analyze_variants.py
+
+run-hichip:
+	$(PYTHON) analyze_hichip.py
+
+run-capture-hic:
+	$(PYTHON) analyze_capture_hic.py
+
+run-phasing:
+	$(PYTHON) analyze_phasing.py
+
+# Run all Dovetail analyses (compartments + loops use real data;
+# variants/hichip/capture/phasing use demo data if BAM/VCF/BED absent)
+run-dovetail: run-compartments run-loops run-sv-cnv run-variants \
+              run-hichip run-capture-hic run-phasing
+
 # ── Combined targets ──────────────────────────────────────────────────────────
 
 # All visualizations that use real Micro-C data (no API key needed)
@@ -170,6 +213,7 @@ clean:
 clean-html:
 	rm -f analysis_report.html
 	rm -f deletion_scan_*.html
+	rm -f README.html ANALYSIS.html TESTING.html notebooks.html
 
 clean-all: clean clean-html
 	rm -f media/*.html

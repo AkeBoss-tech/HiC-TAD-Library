@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebooks - HiC-TAD Library</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #2196F3;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        a { color: #1976D2; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        blockquote {
+            border-left: 4px solid #2196F3;
+            margin: 0;
+            padding-left: 15px;
+            color: #666;
+            background-color: #f5fafe;
+            padding: 10px 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            margin-top: -10px;
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .back-link:hover { background-color: #e0e0e0; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Gallery</a>
+        <h1 id="notebooks-documentation">Notebooks Documentation</h1>
+<p>This directory contains Jupyter notebooks and scripts for analyzing Hi-C data.</p>
+<h2 id="overview">Overview</h2>
+<p>The analysis workflow is divided into three main stages:
+1. <strong>Data Fetching</strong>: <code>00_fetch_data.py</code>
+2. <strong>Exploration</strong>: <code>01_explore.ipynb</code>
+3. <strong>TAD Analysis</strong>: <code>02_tad_analysis.ipynb</code>
+4. <strong>Compartment Analysis</strong>: <code>03_compartments.ipynb</code></p>
+<hr />
+<h2 id="detailed-descriptions">Detailed Descriptions</h2>
+<h3 id="00_fetch_datapy"><a href="../notebooks/00_fetch_data.py">00_fetch_data.py</a></h3>
+<p><strong>Purpose</strong>: download test data for the library.
+- Fetches <code>test.mcool</code> (HFF Micro-C data) from a remote source if not present.
+- Saves the file to <code>data/raw/</code>.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">python notebooks/00_fetch_data.py
+</code></pre>
+<h3 id="01_exploreipynb"><a href="../notebooks/01_explore.ipynb">01_explore.ipynb</a></h3>
+<p><strong>Purpose</strong>: Load and visualize Contact Matrices.
+- <strong>Key Features</strong>:
+    - Demonstrates how to use <code>src.loaders.get_cooler</code> to load <code>.mcool</code> files.
+    - Visualizes the contact matrix for a specific chromosome (e.g., <code>chr17</code>) using <code>matplotlib</code>.
+    - Applies <code>log1p</code> transformation for better visibility of contact frequencies.</p>
+<h3 id="02_tad_analysisipynb"><a href="../notebooks/02_tad_analysis.ipynb">02_tad_analysis.ipynb</a></h3>
+<p><strong>Purpose</strong>: Identify and visualize Topologically Associating Domains (TADs).
+- <strong>Key Features</strong>:
+    - Calculates the insulation score using <code>cooltools.insulation</code>.
+    - Calls TAD boundaries based on insulation minima.
+    - Visualizes the contact matrix with overlaid TAD boundaries.</p>
+<h3 id="03_compartmentsipynb"><a href="../notebooks/03_compartments.ipynb">03_compartments.ipynb</a></h3>
+<p><strong>Purpose</strong>: A/B Compartment Analysis.
+- <strong>Key Features</strong>:
+    - Performs eigenvector decomposition using <code>cooltools.eigs_cis</code> to separate active (A) and inactive (B) compartments.
+    - Visualizes the first eigenvector (PC1) alongside the contact map.
+    - <em>Note</em>: Requires <code>test.mcool</code> in <code>data/raw/</code> (fixed file path issue).</p>
+    </div>
+</body>
+</html>

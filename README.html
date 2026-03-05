@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Readme - HiC-TAD Library</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #2196F3;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        a { color: #1976D2; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        blockquote {
+            border-left: 4px solid #2196F3;
+            margin: 0;
+            padding-left: 15px;
+            color: #666;
+            background-color: #f5fafe;
+            padding: 10px 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            margin-top: -10px;
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .back-link:hover { background-color: #e0e0e0; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Gallery</a>
+        <h1 id="hic-tad-library">HiC-TAD-Library</h1>
+<p>A Python library for visualizing and analyzing Hi-C data, focusing on Topologically Associating Domains (TADs), compartments, and insulation scores.</p>
+<h2 id="installation">Installation</h2>
+<p>You can install the required dependencies using the provided <code>Makefile</code>:</p>
+<pre><code class="language-bash">make install
+</code></pre>
+<p>Required packages include: <code>cooler</code>, <code>cooltools</code>, <code>bioframe</code>, <code>matplotlib</code>, <code>pandas</code>, <code>numpy</code>, and <code>alphagenome</code>.</p>
+<h3 id="alphagenome-integration">AlphaGenome Integration</h3>
+<p>This project now integrates <a href="https://www.alphagenomedocs.com/">AlphaGenome</a> for high-resolution genomic predictions and visualizations.</p>
+<p>To set up AlphaGenome:
+1. Ensure your API key is in the <code>.env</code> file as <code>ALPHA_GENOME_API_KEY</code>.
+2. Run <code>make install-alphagenome</code>.</p>
+<h2 id="usage">Usage</h2>
+<p>Generated visualizations are saved in the <code>media/</code> directory.</p>
+<h3 id="quick-start">Quick Start</h3>
+<p>To install dependencies and run all visualizations:</p>
+<pre><code class="language-bash">make setup
+</code></pre>
+<h3 id="individual-commands">Individual Commands</h3>
+<ul>
+<li><strong>Run Visualizations</strong>: <code>make run</code></li>
+<li><strong>Clean Output</strong>: <code>make clean</code></li>
+</ul>
+<h2 id="visualizations">Visualizations</h2>
+<p>This library generates various Hi-C visualizations that reveal different aspects of 3D chromatin organization. Below are examples from two genomic regions: <strong>Sox11 (Chr12)</strong> and <strong>Mir9-2 (Chr13)</strong>, demonstrating the full suite of analysis capabilities.</p>
+<h3 id="1-high-resolution-contact-heatmaps">1. High-Resolution Contact Heatmaps</h3>
+<p>Standard square heatmaps display Hi-C contact frequencies, where darker/warmer colors indicate higher interaction frequencies. The diagonal represents self-ligation events, while off-diagonal patterns reveal TAD structures as triangular blocks of enriched interactions.</p>
+<h4 id="sox11-region-chr1226-28-mb">Sox11 Region (chr12:26-28 Mb)</h4>
+<p><img alt="Sox11 Heatmap" src="media/Sox11_Chr12_heatmap.png" />
+<em>The Sox11 locus shows clear TAD structures visible as block-like enrichments along the diagonal. These self-interacting domains are fundamental units of chromatin organization.</em></p>
+<h4 id="mir9-2-region-chr13835-845-mb">Mir9-2 Region (chr13:83.5-84.5 Mb)</h4>
+<p><img alt="Mir9-2 Heatmap" src="media/Mir9-2_Chr13_heatmap.png" />
+<em>The Mir9-2 region demonstrates well-defined TAD boundaries (visible as transitions between enriched blocks) that compartmentalize the genome into functional units.</em></p>
+<h3 id="2-triangular-heatmaps">2. Triangular Heatmaps</h3>
+<p>Rotated 45-degree views are the standard in Hi-C visualization. This transformation makes TAD boundaries appear as vertical valleys and highlights the hierarchical organization of chromatin domains.</p>
+<h4 id="sox11-region">Sox11 Region</h4>
+<p><img alt="Sox11 Triangular" src="media/Sox11_Chr12_triangular.png" />
+<em>Triangular view of Sox11 clearly reveals TAD boundaries as vertical dips and the nested hierarchical structure of chromatin domains within larger compartments.</em></p>
+<h4 id="mir9-2-region">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 Triangular" src="media/Mir9-2_Chr13_triangular.png" />
+<em>This rotated view makes it easier to see the insulation at TAD boundaries and the continuous interaction landscape across the region.</em></p>
+<h3 id="3-insulation-scores-boundaries">3. Insulation Scores &amp; Boundaries</h3>
+<p>Insulation score analysis uses sliding windows to quantify local interaction frequencies. Minima in the insulation track (valleys) correspond to TAD boundaries where interactions are depleted. Multiple window sizes (25kb, 50kb, 100kb) reveal boundaries at different scales.</p>
+<h4 id="sox11-region_1">Sox11 Region</h4>
+<p><img alt="Sox11 Insulation" src="media/Sox11_Chr12_insulation.png" />
+<em>Top: Hi-C heatmap with detected boundaries marked as dashed lines. Bottom: Insulation scores at three window sizes. Boundaries appear where all three curves dip simultaneously, indicating robust structural transitions.</em></p>
+<h4 id="mir9-2-region_1">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 Insulation" src="media/Mir9-2_Chr13_insulation.png" />
+<em>The insulation track reveals multiple boundary positions where chromatin interactions are depleted. Concordance across window sizes indicates strong, consistent boundaries.</em></p>
+<h3 id="4-directionality-index">4. Directionality Index</h3>
+<p>The Directionality Index (DI) measures the bias in interaction directionality, helping identify TAD boundaries. Positive values (red) indicate downstream bias, negative values (blue) indicate upstream bias, and transitions through zero mark boundaries.</p>
+<h4 id="sox11-region_2">Sox11 Region</h4>
+<p><img alt="Sox11 DI" src="media/Sox11_Chr12_directionality_index.png" />
+<em>Directional bias changes reveal TAD organization. Red regions show loci preferentially interacting downstream, blue regions upstream. Transitions mark domain boundaries.</em></p>
+<h4 id="mir9-2-region_2">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 DI" src="media/Mir9-2_Chr13_directionality_index.png" />
+<em>Clear directional changes across the Mir9-2 region highlight TAD boundaries and the bipartite nature of chromatin domains.</em></p>
+<h3 id="5-boundary-strength-analysis">5. Boundary Strength Analysis</h3>
+<p>Not all boundaries are equal. This analysis ranks boundaries by their prominence (depth of insulation minima), classifying them as strong (red), weak (orange), or sub-threshold (gray). Stronger boundaries typically mark more stable, functionally important domain transitions.</p>
+<h4 id="sox11-region_3">Sox11 Region</h4>
+<p><img alt="Sox11 Boundary Strength" src="media/Sox11_Chr12_boundary_strength.png" />
+<em>Ranked boundary prominence for Sox11. The tallest bars represent the strongest boundaries with the deepest insulation valleys. Strong boundaries (above red line) are most conserved across cell types.</em></p>
+<h4 id="mir9-2-region_3">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 Boundary Strength" src="media/Mir9-2_Chr13_boundary_strength.png" />
+<em>Distribution of boundary strengths at Mir9-2. Variation in prominence suggests a hierarchy of domain organization, with major boundaries separating large regions and minor boundaries creating sub-domains.</em></p>
+<h3 id="6-multi-scale-insulation-analysis">6. Multi-Scale Insulation Analysis</h3>
+<p>Multi-scale analysis reveals how boundaries appear across different window sizes (5kb to 500kb). Persistent boundaries that span multiple scales are typically the most functionally significant, while scale-specific features may represent transient or cell-type-specific organization.</p>
+<h4 id="sox11-region_4">Sox11 Region</h4>
+<p><img alt="Sox11 Multiscale" src="media/Sox11_Chr12_multiscale_insulation.png" />
+<em>Heatmap showing insulation scores across genomic positions (x-axis) and window sizes (y-axis). Vertical blue streaks indicate boundaries persistent across scales. Red regions show locally high interaction.</em></p>
+<h4 id="mir9-2-region_4">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 Multiscale" src="media/Mir9-2_Chr13_multiscale_insulation.png" />
+<em>Scale-dependent boundary detection. Strong boundaries appear as vertical features spanning multiple window sizes, while weak or cell-type-specific boundaries may only be visible at specific scales.</em></p>
+<h3 id="7-tad-overlay-on-contact-maps">7. TAD Overlay on Contact Maps</h3>
+<p>TADs are called from boundary positions and overlaid on contact maps as L-shaped brackets marking the start and end of each domain. The bottom track shows the insulation score with detected boundaries highlighted.</p>
+<h4 id="sox11-region_5">Sox11 Region</h4>
+<p><img alt="Sox11 TAD Overlay" src="media/Sox11_Chr12_tad_overlay.png" />
+<em>Top: Contact map with TAD boundaries drawn as L-shaped corners. Each TAD is a self-interacting chromatin domain. Bottom: Insulation score track with strong (red) and weak (orange) boundaries marked.</em></p>
+<h4 id="mir9-2-region_5">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 TAD Overlay" src="media/Mir9-2_Chr13_tad_overlay.png" />
+<em>TAD calling results overlaid on the contact map. The L-shaped brackets delineate individual TADs, showing how the genome is partitioned into discrete interaction domains.</em></p>
+<h3 id="8-boundary-pileup-analysis">8. Boundary Pileup Analysis</h3>
+<p>This meta-analysis aggregates all boundaries genome-wide to create an average "typical boundary" contact pattern. The characteristic corner peak shows that TAD boundaries prevent interactions across the boundary while allowing interactions within each domain.</p>
+<h4 id="sox11-region_6">Sox11 Region</h4>
+<p><img alt="Sox11 Boundary Pileup" src="media/Sox11_Chr12_boundary_pileup.png" />
+<em>Average contact pattern around boundaries (N boundaries aligned at center). The characteristic square pattern with corner enrichment shows blocked interactions across boundaries and enriched within-TAD contacts.</em></p>
+<h4 id="mir9-2-region_6">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 Boundary Pileup" src="media/Mir9-2_Chr13_boundary_pileup.png" />
+<em>Pileup analysis reveals the stereotypical boundary signature: interactions are depleted at the boundary center (crosshairs) and form characteristic corner peaks flanking the boundary.</em></p>
+<h3 id="9-combined-multi-panel-boundary-analysis">9. Combined Multi-Panel Boundary Analysis</h3>
+<p>Comprehensive view integrating heatmap, TAD calls, insulation score, directionality index, and boundary positions in a single figure for complete chromatin architecture assessment.</p>
+<h4 id="sox11-region_7">Sox11 Region</h4>
+<p><img alt="Sox11 Combined" src="media/Sox11_Chr12_combined_boundary.png" />
+<em>Integrated view: (1) Contact map with TAD brackets, (2) Insulation score with boundary classification, (3) Directionality index showing interaction bias, (4) Boundary tick marks showing positions and strengths. This comprehensive view enables correlation of multiple boundary detection methods.</em></p>
+<h4 id="mir9-2-region_7">Mir9-2 Region</h4>
+<p><img alt="Mir9-2 Combined" src="media/Mir9-2_Chr13_combined_boundary.png" />
+<em>Complete boundary analysis panel. All tracks are aligned to facilitate comparison between detection methods. Strong boundaries show concordant signals across all metrics.</em></p>
+<h3 id="10-ab-compartments-e1-eigenvector-track">10. A/B Compartments (E1 Eigenvector Track)</h3>
+<p>Large-scale genomic compartmentalization (A/B compartments) revealed by principal component analysis. A compartments (positive E1, red) are transcriptionally active and gene-rich; B compartments (negative E1, blue) are inactive and gene-poor. The triangular heatmap below shows characteristic checkerboard patterns of A-A and B-B interactions.</p>
+<p><img alt="Compartments E1" src="media/Compartments_Chr2_triangular_track.png" />
+<em>Top: E1 eigenvector track showing compartment assignments across Chr2. Bottom: Triangular contact map showing checkerboard pattern where A compartments (red) interact preferentially with other A compartments, and B (blue) with B.</em></p>
+<h3 id="11-saddle-plots">11. Saddle Plots</h3>
+<p>Saddle plots quantify compartment strength by binning genomic regions by E1 value and plotting interaction enrichment. Strong compartmentalization produces a saddle shape with high A-A (top-right) and B-B (bottom-left) interactions and depleted A-B interactions.</p>
+<p><img alt="Saddle Plot" src="media/Compartments_Chr2_saddle.png" />
+<em>Interaction strength vs. E1 quantile. The saddle shape (corners elevated, center depressed) indicates strong compartmentalization. Top-right: A-A interactions (enriched). Bottom-left: B-B interactions (enriched). Center: A-B interactions (depleted).</em></p>
+<h3 id="12-tal1-variant-analysis-alphagenome">12. TAL1 Variant Analysis (AlphaGenome)</h3>
+<p>Using AlphaGenome AI models to predict the functional impact of oncogenic variants near the TAL1 locus, a master regulator in T-cell leukemia.</p>
+<h4 id="variant-positions">Variant Positions</h4>
+<p><img alt="TAL1 Variant Positions" src="media/tal1_variant_positions.png" />
+<em>Genomic positions of oncogenic T-ALL variants that dysregulate TAL1 expression. The variants cluster in three regions: a new 3' enhancer (47212072-74), an intergenic region (47230639), and the MUTE site (47239291-296). The TAL1 gene is shown with its exon structure.</em></p>
+<h4 id="jurkat-variant-effect-prediction">Jurkat Variant Effect Prediction</h4>
+<p><img alt="TAL1 Jurkat Effect" src="media/tal1_jurkat_variant_effect.png" />
+<em>AlphaGenome prediction of the Jurkat variant (13bp insertion at chr1:47239296) on gene expression, chromatin accessibility, and histone modifications in CD34+ hematopoietic stem cells. Positive values (red) indicate increased signal; negative (blue) indicates decreased signal. The variant dramatically increases TAL1 RNA expression by creating a new enhancer element, explaining its oncogenic potential.</em></p>
+<h3 id="13-alphagenome-predictions-additional">13. AlphaGenome Predictions (Additional)</h3>
+<p>Advanced modalities including predicted contact maps, CTCF binding, and Virtual 4C tracks.</p>
+<h4 id="predicted-tads-and-ctcf">Predicted TADs and CTCF</h4>
+<p><img alt="AlphaGenome Contacts" src="media/alphagenome_contacts_chr22_36_000_000-36_500_000.png" />
+<img alt="AlphaGenome CTCF" src="media/alphagenome_ctcf_chr22_36_245_000-36_275_000.png" /></p>
+<h4 id="virtual-4c">Virtual 4C</h4>
+<p><img alt="AlphaGenome Virtual 4C" src="media/alphagenome_v4c_chr22_36_000_000-36_500_000.png" /></p>
+<h3 id="14-dna-deletion-effect-analysis-alphagenome">14. DNA Deletion Effect Analysis (AlphaGenome)</h3>
+<p><strong>In silico perturbation experiments</strong> using AlphaGenome AI to predict how structural variants (deletions) affect 3D genome organization. These analyses simulate the consequences of removing genomic regions—such as TAD boundaries, CTCF binding sites, or regulatory elements—and visualize the resulting changes in chromatin contact patterns.</p>
+<h4 id="understanding-the-visualizations">Understanding the Visualizations</h4>
+<p>Each deletion analysis figure contains three components:
+1. <strong>Gene Track (Top)</strong>: Shows all protein-coding genes in the region with gene names labeled. The red shaded area marks the deleted region.
+2. <strong>Wild-Type Contact Map (Left)</strong>: AlphaGenome's predicted chromatin contact frequencies for the reference genome, showing TAD structures as diagonal blocks of high interaction (dark red).
+3. <strong>After Deletion Contact Map (Right)</strong>: Predicted contact frequencies after removing the specified genomic region, revealing how the deletion disrupts chromatin architecture.</p>
+<p><strong>Reading Contact Maps</strong>:
+- <strong>Diagonal blocks (red)</strong> = TADs (self-interacting chromatin domains)
+- <strong>Off-diagonal blocks</strong> = Long-range chromatin loops
+- <strong>Blue dashed lines</strong> = Boundaries of the deleted region
+- <strong>Color intensity</strong> = Contact probability (darker = stronger interactions)</p>
+<hr />
+<h4 id="oct4-tad-boundary-deletion-chr630630000-31630000">OCT4 TAD Boundary Deletion (chr6:30,630,000-31,630,000)</h4>
+<p><img alt="OCT4 Deletion Effect" src="media/enhanced_deletion_chr6_30630000_31630000_31100000_31150000.png" /></p>
+<p><strong>Deletion</strong>: 50kb removal at position 31,100,000-31,150,000 (potential TAD boundary region)</p>
+<p><strong>What This Shows</strong>:
+- The OCT4 locus contains multiple genes involved in pluripotency and development
+- The <strong>wild-type</strong> (left) shows complex TAD organization with strong diagonal contact blocks
+- <strong>After deletion</strong> (right), the contact pattern is disrupted around the deletion site
+- This demonstrates how <strong>TAD boundary deletions</strong> can alter compartment structure and potentially affect gene regulation
+- The deletion removes a structural element that normally insulates chromatin domains, leading to aberrant inter-domain contacts</p>
+<p><strong>Biological Significance</strong>: Deletions at TAD boundaries can cause "enhancer hijacking" where regulatory elements gain access to genes they normally don't control, potentially causing developmental disorders or cancer. The OCT4 region is critical for embryonic stem cell identity, so architectural disruptions here could affect cell fate decisions.</p>
+<hr />
+<h4 id="nanog-enhancer-deletion-chr127280000-8280000">NANOG Enhancer Deletion (chr12:7,280,000-8,280,000)</h4>
+<p><img alt="NANOG Deletion Effect" src="media/enhanced_deletion_chr12_7280000_8280000_7750000_7800000.png" /></p>
+<p><strong>Deletion</strong>: 50kb removal at position 7,750,000-7,800,000 (regulatory element region)</p>
+<p><strong>What This Shows</strong>:
+- The NANOG region contains multiple genes including NANOG (pluripotency regulator) and KRAS (oncogene)
+- <strong>Wild-type</strong> shows well-defined TAD structures with strong contact domains
+- <strong>After deletion</strong>, the chromatin architecture is extensively remodeled
+- The deletion removes a genomic segment that may contain enhancers or CTCF sites that organize local chromatin structure
+- Notice how contact patterns both upstream and downstream of the deletion are altered, showing long-range effects</p>
+<p><strong>Biological Significance</strong>: This type of deletion could:
+1. <strong>Remove enhancers</strong> that activate NANOG or nearby genes, potentially disrupting pluripotency networks
+2. <strong>Disrupt CTCF loop anchors</strong>, allowing inappropriate gene-enhancer contacts
+3. <strong>Alter TAD boundaries</strong>, changing the regulatory landscape across hundreds of kilobases</p>
+<p>Such structural variants are found in developmental disorders and cancers where precise gene regulation is critical.</p>
+<hr />
+<h4 id="sox2-regulatory-element-deletion-chr3181210000-182210000">SOX2 Regulatory Element Deletion (chr3:181,210,000-182,210,000)</h4>
+<p><img alt="SOX2 Deletion Effect" src="media/enhanced_deletion_chr3_181210000_182210000_181700000_181750000.png" /></p>
+<p><strong>Deletion</strong>: 50kb removal at position 181,700,000-181,750,000 (regulatory region)</p>
+<p><strong>What This Shows</strong>:
+- The SOX2 locus is a master regulator of neural development and stem cell maintenance
+- <strong>Wild-type</strong> displays characteristic TAD organization with strong self-interactions (diagonal red blocks)
+- <strong>After deletion</strong>, contact maps show altered interaction patterns, particularly affecting the middle of the region
+- The symmetric nature of contact map changes reflects the biophysical constraints of chromatin looping
+- Blue dashed lines mark where the deletion occurred, showing immediate and distal effects on chromatin folding</p>
+<p><strong>Biological Significance</strong>: SOX2 is essential for:
+- <strong>Neural stem cell maintenance</strong>
+- <strong>Embryonic development</strong>
+- <strong>Cellular reprogramming</strong> (iPS cell generation)</p>
+<p>Deletions in this region could:
+- Disrupt long-range enhancer-promoter contacts essential for SOX2 expression
+- Alter TAD insulation, causing misregulation of nearby genes
+- Lead to neurodevelopmental disorders when occurring in human patients</p>
+<p><strong>Key Insight</strong>: Even deletions that don't directly affect coding sequences can have profound effects by reorganizing 3D chromatin architecture and disrupting regulatory element positioning.</p>
+<hr />
+<h3 id="15-mouse-insulator-deletion-analysis-alphagenome-mm10">15. Mouse Insulator Deletion Analysis (AlphaGenome, mm10)</h3>
+<p><strong>In silico prediction of insulator deletion effects in mouse</strong> across two cell types suggested by the PI. Regions provided by collaborators studying inner ear development (mm10 reference).</p>
+<h4 id="cell-types-used">Cell Types Used</h4>
+<table>
+<thead>
+<tr>
+<th>Ontology</th>
+<th>Name</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CL:0000207</code></td>
+<td>Olfactory receptor cell</td>
+<td>Primary sensory neuron; cranial placode origin — closest available proxy to inner ear hair cells</td>
+</tr>
+<tr>
+<td><code>EFO:0004038</code></td>
+<td>Mouse embryonic stem cell</td>
+<td>PI-suggested; shows baseline pluripotent chromatin organization</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note on inner ear ontology terms:</strong> <code>UBERON:0001846</code> (internal ear) exists in AlphaGenome but only for CAGE output, not contact maps. GO otic placode terms (<code>GO:1905040</code>, <code>GO:0030916</code>, <code>GO:0071599</code>, <code>GO:0043049</code>) and otic placode UBERON terms (<code>UBERON:0003249</code>, <code>UBERON:0003069</code>) are not present in the mouse contact map training data. Only 8 mouse contact map tracks exist in total.</p>
+</blockquote>
+<p>Each region produces <strong>5 figures</strong>: WT|Deletion|Diff for each cell type, plus a cell-type comparison figure.</p>
+<hr />
+<h4 id="jingyuns-region-chr1383739797-83745138-5342-bp">Jingyun's Region — chr13:83,739,797-83,745,138 (5,342 bp)</h4>
+<blockquote>
+<p><strong>PI note:</strong> The deletion site falls within the <strong>Mef2c gene body</strong> (the only annotated transcript in the 1 MB window). Coordinates should be verified with Jingyun — the intended target may be an insulator <em>near</em> Mef2c rather than within it.</p>
+</blockquote>
+<p><strong>Olfactory receptor cell (CL:0000207)</strong></p>
+<p><img alt="Jingyun CL:0000207" src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207.png" />
+<em>Wild-type (left): a dense TAD occupies the lower-right half of the window with Mef2c at its core. After deletion (middle): the TAD structure is largely preserved but the diagonal contact pattern shifts. Difference map (right): widespread blue (lost contacts) radiating from the deletion site, with red ectopic contacts appearing across the former boundary — consistent with loss of insulator function.</em></p>
+<p><img alt="Jingyun CL:0000207 extra" src="media/mouse_deletion_chr13_83739797_83745138_CL_0000207_extra.png" />
+<em>Log₂ ratio (left): strong depletion (blue) in the lower-right TAD body and gain (red) near the deletion boundary. Virtual 4C (middle): contacts from the deletion viewpoint are redistributed — the deletion curve (red) shows reduced near-cis interactions and altered long-range contacts. P(s) curve (right): both curves follow typical polymer decay but diverge at mid-range distances (~100–400 kb), indicating the deletion primarily disrupts TAD-scale organization.</em></p>
+<p><strong>Mouse embryonic stem cell (EFO:0004038)</strong></p>
+<p><img alt="Jingyun EFO:0004038" src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038.png" />
+<em>The ES cell wild-type shows a more diffuse contact pattern than olfactory cells, consistent with the open, pluripotent chromatin state of stem cells. After deletion, the difference map shows a qualitatively similar disruption pattern — suggesting the insulator function at this site is not highly cell-type-specific.</em></p>
+<p><img alt="Jingyun EFO:0004038 extra" src="media/mouse_deletion_chr13_83739797_83745138_EFO_0004038_extra.png" />
+<em>Log₂ ratio and virtual 4C confirm similar contact redistribution in ES cells. The P(s) curve divergence occurs at similar distances to the olfactory cell result, reinforcing that the deletion disrupts TAD-scale contacts regardless of cell type.</em></p>
+<p><strong>Cell type comparison</strong></p>
+<p><img alt="Jingyun cell type comparison" src="media/mouse_deletion_chr13_83739797_83745138_celltype_comparison.png" />
+<em>Direct comparison of both cell types at the same color scale. The olfactory receptor cell (top row) shows stronger, more defined TAD boundaries in the wild-type. The ES cell (bottom row) has a more homogeneous contact pattern. Both show directionally similar deletion effects in the difference map, but the ES cell exhibits less pronounced boundary disruption — consistent with its globally more open chromatin.</em></p>
+<p><strong>Biological significance</strong>: Mef2c is a master regulator of inner ear hair cell differentiation and survival. Deletion of regulatory sequence within or near Mef2c could disrupt the TAD boundary that normally restricts enhancer access, potentially causing ectopic activation or silencing of Mef2c.</p>
+<hr />
+<h4 id="edwards-region-chr1227333532-27336455-2924-bp">Edward's Region — chr12:27,333,532-27,336,455 (2,924 bp)</h4>
+<blockquote>
+<p>No protein-coding genes are annotated within the 1 MB analysis window (GENCODE M23), suggesting this deletion targets an intergenic regulatory element or insulator.</p>
+</blockquote>
+<p><strong>Olfactory receptor cell (CL:0000207)</strong></p>
+<p><img alt="Edward CL:0000207" src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207.png" />
+<em>Wild-type (left): two moderately separated contact domains flank the deletion site. After deletion (middle): the inter-domain boundary weakens. Difference map (right): blue signal (contact loss) concentrated within the left-hand domain and red signal (contact gain) across the former domain boundary — indicative of partial TAD merging.</em></p>
+<p><img alt="Edward CL:0000207 extra" src="media/mouse_deletion_chr12_27333532_27336455_CL_0000207_extra.png" />
+<em>Log₂ ratio (left): the deletion creates a stripe of gained contacts spanning across the original boundary, visible as a red cross-shaped pattern. Virtual 4C (middle): contacts from the deletion viewpoint shift from local interactions to broader, longer-range contacts. P(s) curve (right): the deletion curve rises above wild-type at mid-range distances, confirming increased long-range contacts after boundary loss.</em></p>
+<p><strong>Mouse embryonic stem cell (EFO:0004038)</strong></p>
+<p><img alt="Edward EFO:0004038" src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038.png" />
+<em>ES cells show less defined domain structure in the wild-type, but the deletion still produces a detectable shift in contact patterns. The difference map shows a subtler effect compared to olfactory cells, consistent with weaker boundary strength in pluripotent chromatin.</em></p>
+<p><img alt="Edward EFO:0004038 extra" src="media/mouse_deletion_chr12_27333532_27336455_EFO_0004038_extra.png" />
+<em>The virtual 4C and P(s) curves for ES cells show smaller deletion-induced changes than olfactory cells, suggesting the insulator at this site is more functionally important in differentiated sensory neurons than in stem cells.</em></p>
+<p><strong>Cell type comparison</strong></p>
+<p><img alt="Edward cell type comparison" src="media/mouse_deletion_chr12_27333532_27336455_celltype_comparison.png" />
+<em>The chr12 insulator shows a larger effect in olfactory receptor cells (top) than ES cells (bottom), in contrast to the chr13 Mef2c region where both cell types responded similarly. This suggests the chr12 insulator is more cell-type-specific in its boundary activity — potentially relevant to inner ear-specific gene regulation.</em></p>
+<p><strong>Biological significance</strong>: The absence of annotated genes at this locus suggests this deletion targets a non-coding regulatory element — possibly a CTCF anchor or enhancer that organizes chromatin structure. The stronger effect in differentiated sensory neurons vs. stem cells implies this element gains insulator activity during neuronal differentiation.</p>
+<hr />
+<h3 id="technical-details-how-deletion-analysis-works">Technical Details: How Deletion Analysis Works</h3>
+<ol>
+<li>
+<p><strong>AlphaGenome Prediction</strong>: Google DeepMind's AlphaGenome AI model predicts chromatin contact frequencies from DNA sequence alone, trained on thousands of Hi-C experiments.</p>
+</li>
+<li>
+<p><strong>In Silico Deletion</strong>: We create two predictions:
+   - <strong>Reference</strong>: Wild-type genomic sequence → Contact map
+   - <strong>Variant</strong>: Sequence with deletion → Contact map showing architectural changes</p>
+</li>
+<li>
+<p><strong>Side-by-Side Comparison</strong>: Visual comparison reveals how structural variants affect:
+   - TAD boundaries and insulation
+   - Long-range chromatin loops
+   - Compartmentalization (A/B compartments)
+   - Gene regulatory landscapes</p>
+</li>
+<li>
+<p><strong>Applications</strong>:
+   - <strong>Disease variant interpretation</strong>: Predict pathogenicity of structural variants found in patients
+   - <strong>CRISPR experiment design</strong>: Preview deletion effects before costly experiments
+   - <strong>Evolutionary genomics</strong>: Understand how structural variants shape genome evolution
+   - <strong>Therapeutic target identification</strong>: Find chromatin architectural features essential for disease</p>
+</li>
+</ol>
+<hr />
+<p><em>Data sourced from <a href="https://data.4dnucleome.org/">4DNucleome</a> and <a href="https://www.alphagenomedocs.com/">AlphaGenome</a></em></p>
+    </div>
+</body>
+</html>
