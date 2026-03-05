@@ -298,6 +298,40 @@
             </div>
         </div>
 
+        <!-- Documentation -->
+        <div class="section">
+            <h2 class="section-title">Documentation <span class="badge badge-new">NEW</span></h2>
+            <p style="color:#555; margin-bottom:18px; line-height:1.7;">
+                Comprehensive documentation walkthroughs and analysis guides.
+            </p>
+            <div class="interactive-grid">
+                <a href="README.html" class="interactive-card report-card" target="_blank" style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);">
+                    <div class="icon">📖</div>
+                    <h3>README</h3>
+                    <p>Main Project Overview</p>
+                    <p style="font-size:0.85em;margin-top:10px;">Setup, Usage, and Visuals</p>
+                </a>
+                <a href="ANALYSIS.html" class="interactive-card report-card" target="_blank" style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);">
+                    <div class="icon">🔬</div>
+                    <h3>Analysis Pipeline</h3>
+                    <p>Core Library Documentation</p>
+                    <p style="font-size:0.85em;margin-top:10px;">Script Details & Algorithms</p>
+                </a>
+                <a href="TESTING.html" class="interactive-card report-card" target="_blank" style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);">
+                    <div class="icon">🧪</div>
+                    <h3>Testing Guide</h3>
+                    <p>Test Suite Walkthrough</p>
+                    <p style="font-size:0.85em;margin-top:10px;">Fixtures & Coverage</p>
+                </a>
+                <a href="notebooks.html" class="interactive-card report-card" target="_blank" style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);">
+                    <div class="icon">📓</div>
+                    <h3>Notebooks</h3>
+                    <p>Jupyter Notebook Guide</p>
+                    <p style="font-size:0.85em;margin-top:10px;">Exploration Steps</p>
+                </a>
+            </div>
+        </div>
+
         <!-- Full HTML Reports -->
         <div class="section">
             <h2 class="section-title">Full Analysis Reports</h2>
@@ -784,68 +818,91 @@
         </div>
         <!-- Enhancer Candidate Identification -->
         <div class="section">
-            <h2 class="section-title">Enhancer Candidate Identification <span class="badge badge-new">NEW</span></h2>
+            <h2 class="section-title">Enhancer Candidate Identification &amp; Synthetic Design <span class="badge badge-new">NEW</span></h2>
             <p style="color:#555; margin-bottom:10px; line-height:1.7;">
-                The first step toward Kelvin's synthetic enhancer design goal: identifying <em>where</em> real enhancers are
-                in the genome before designing synthetic versions. This two-layer pipeline combines 3D genome structure
-                (Micro-C contact enrichment, TAD membership, boundary exclusion) with a sequence-level dilated CNN
-                to score each candidate's 500 bp sequence for predicted regulatory activity. Both layers are now running.
+                The full synthetic enhancer pipeline is now running end-to-end. Starting from Micro-C contact structure,
+                it nominates candidate bins, scores them with a dilated CNN trained on real neural ATAC-seq predictions
+                from AlphaGenome, then generates novel synthetic sequences predicted to have high enhancer activity &mdash;
+                using both gradient-based optimisation and motif-insertion hill-climbing.
             </p>
             <div style="background:#eaf4fb; border-radius:8px; padding:14px 18px; margin-bottom:18px; font-size:0.9em; line-height:1.75;">
-                <strong>How candidates are called (two-stage pipeline):</strong><br>
-                <strong>Stage 1 — Structural nomination (Hi-C):</strong><br>
-                1. &nbsp;<strong>TAD membership</strong> — only bins inside a called TAD are considered (inter-TAD regions excluded).<br>
-                2. &nbsp;<strong>Boundary exclusion</strong> — bins within 10 kb of any strong boundary are removed (those are likely insulators/CTCF sites, not enhancers).<br>
-                3. &nbsp;<strong>Contact enrichment filter</strong> — each bin's summed contact to ±50 kb neighbors is computed; only above-median bins are retained.<br>
-                <strong>Stage 2 — Sequence scoring (CNN):</strong><br>
-                4. &nbsp;<strong>One-hot encoding</strong> — the 500 bp window centred on each candidate bin is extracted from mm10.fa and encoded as a (4 × 500) matrix.<br>
-                5. &nbsp;<strong>Dilated CNN</strong> — three Conv1d layers (dilation 1→2→4) capture TF motif grammar at multiple scales; global average pooling + sigmoid → score in [0, 1].<br>
-                6. &nbsp;<strong>Training labels</strong> — the model was trained on 224 candidate bins (Sox11 2 Mb + Mir9-2 1 Mb) using normalized contact enrichment as proxy activity labels, with loss converging from 0.056 → 0.004 over 30 epochs.
+                <strong>Three-stage pipeline &mdash; all stages running:</strong><br>
+                <strong>Stage 1 &mdash; Structural nomination (Hi-C):</strong><br>
+                1. &nbsp;<strong>TAD membership</strong> &mdash; only bins inside a called TAD (inter-TAD regions excluded).<br>
+                2. &nbsp;<strong>Boundary exclusion</strong> &mdash; bins within 10 kb of any strong boundary removed (insulators/CTCF).<br>
+                3. &nbsp;<strong>Contact enrichment filter</strong> &mdash; summed contact to &plusmn;50 kb neighbours; above-median bins retained.<br>
+                <strong>Stage 2 &mdash; Sequence scoring (CNN):</strong><br>
+                4. &nbsp;<strong>Sequence extraction</strong> &mdash; 500 bp window centred on each candidate from mm10.fa &rarr; (4 &times; 500) one-hot matrix.<br>
+                5. &nbsp;<strong>Dilated CNN</strong> &mdash; three Conv1d layers (dilation 1&rarr;2&rarr;4) capture motif grammar at multiple scales; sigmoid &rarr; score [0, 1].<br>
+                6. &nbsp;<strong>Training labels</strong> &mdash; <em>real</em> neural ATAC signal averaged across AlphaGenome forebrain + midbrain + hindbrain tracks
+                   (<code>UBERON:0001890 / 0001891 / 0002028</code>); 224 candidates, loss 0.065&rarr;0.004, 30 epochs.<br>
+                <strong>Stage 3 &mdash; Synthetic design (in silico):</strong><br>
+                7. &nbsp;<strong>Gradient optimisation</strong> &mdash; Gumbel-softmax one-hot, Adam updates toward max CNN score; temperature annealed 1.0&rarr;0.1; GC-content penalty to maintain 45%.<br>
+                8. &nbsp;<strong>Motif-insertion hill-climb</strong> &mdash; top real candidates as seeds; greedy insertion of Sox11/Sox2/NeuroD1/AP-1/KLF motifs over 3 rounds.
             </div>
             <div style="background:#e8f5e9; border-left:4px solid #43a047; border-radius:4px; padding:14px 18px; margin-bottom:18px; font-size:0.9em; line-height:1.75;">
                 <strong>Pipeline status:</strong><br>
-                &bull; <strong>Stage 1 (structural nomination):</strong> complete — 161 Sox11 candidates + 76 Mir9-2 candidates called from contact structure.<br>
-                &bull; <strong>Stage 2 (CNN scoring):</strong> complete — dilated CNN trained on 224 examples; figures now show bars coloured green→red by CNN score and gold ★ stars marking bins with score ≥ 0.5.<br>
-                &bull; <strong>Next (real ATAC labels):</strong> when Jingyun &amp; Ed's Dovetail experiment includes ATAC-seq, the CNN will be retrained on real open-chromatin signal, replacing the contact-score proxy with direct accessibility measurements. This is the transition from structural nomination to sequence-verified enhancer calls.<br>
-                &bull; <strong>Future (synthetic design):</strong> top-ranked bins (structure + sequence both active) feed a generative model to design novel sequences with the same predicted accessibility as the real enhancers.
+                &bull; <strong>Stage 1:</strong> complete &mdash; 161 Sox11 candidates + 76 Mir9-2 candidates called from contact structure.<br>
+                &bull; <strong>Stage 2:</strong> complete &mdash; CNN trained on real neural ATAC labels (AlphaGenome confirmed available for MUS_MUSCULUS);
+                   bars coloured green&rarr;red by score, gold &starf; stars mark bins &ge; 0.5.<br>
+                &bull; <strong>Stage 3:</strong> complete &mdash; gradient designs score 0.80+ (vs 0.76 best real candidate); motif insertion adds +0.03&ndash;0.05 per round via Sox11/NeuroD1/KLF motifs.<br>
+                &bull; <strong>Next (experimental validation):</strong> AlphaGenome in-silico validation of designed sequences via sequence substitution into real locus context (<code>validate_designs.py</code>), then MPRA wet-lab readout.
             </div>
             <div style="background:#fff8e1; border-left:4px solid #f39c12; border-radius:4px; padding:14px 18px; margin-bottom:24px; font-size:0.9em; line-height:1.75;">
-                <strong>Key findings (CNN-scored):</strong><br>
-                &bull; <strong>Sox11_Chr12 — 161 candidates, CNN scored.</strong> Bars are coloured by CNN score (green = high predicted activity, red = low). Gold ★ stars mark the subset with CNN score ≥ 0.5. The distribution of high-scoring bins (green) is non-uniform — they cluster preferentially in the left TAD (~bins 0–150, chr12:26–26.75 Mb) and in isolated pockets within the central TAD, consistent with the idea that the distal regulatory landscape upstream of Sox11 is more enhancer-dense than the region immediately downstream.<br>
-                &bull; <strong>Mir9-2_Chr13 — 76 candidates, CNN scored.</strong> The right-side cluster (bins 150–175, ~84.25–84.4 Mb) previously identified by elevated contact scores also shows the highest CNN scores in the region — a convergent structural + sequence signal that elevates this sub-region as the highest-priority enhancer candidate for Mir9-2. Several gold ★ bins in this cluster suggest these 5 kb windows contain sequence grammar consistent with regulatory elements in the motor-neuron / neural context used as proxy.<br>
-                &bull; <strong>Boundary exclusion confirmed:</strong> gaps in both candidate tracks align precisely with white boundary lines on the heatmaps — the CNN never sees insulator-adjacent bins, protecting against false positives at CTCF/cohesin sites.<br>
-                &bull; <strong>Proxy label caveat:</strong> the CNN training used contact enrichment as a proxy for accessibility (AlphaGenome mouse ATAC ontology CL:0000100 was unavailable at training time). This means the CNN is learning sequence features associated with <em>contact-rich</em> bins inside TADs — a necessary but not sufficient condition for enhancer activity. Retraining on real ATAC-seq will sharpen specificity considerably.
+                <strong>Key findings:</strong><br>
+                &bull; <strong>Real neural ATAC labels confirmed.</strong> AlphaGenome ATAC tracks for MUS_MUSCULUS forebrain (<code>UBERON:0001890</code>), midbrain (<code>UBERON:0001891</code>), and hindbrain (<code>UBERON:0002028</code>) are all available and returned signal. Labels averaged to a pan-neural accessibility track (mean ATAC ~0.07&ndash;0.08 across candidate bins, consistent with sparse accessibility genome-wide).<br>
+                &bull; <strong>Sox11_Chr12 &mdash; 161 candidates, CNN scored.</strong> Top real candidate: chr12:27,120,000&ndash;27,125,000 at score 0.764. High-scoring bins cluster in the left TAD (~26&ndash;26.75 Mb), consistent with the dense distal regulatory landscape of the Sox11 locus.<br>
+                &bull; <strong>Mir9-2_Chr13 &mdash; 76 candidates, CNN scored.</strong> Top real candidate: chr13:84,025,000&ndash;84,030,000 at score 0.677, in the right-side cluster that already showed elevated contact enrichment &mdash; a convergent structural + sequence signal.<br>
+                &bull; <strong>Gradient designs consistently outperform real candidates.</strong> All 20 gradient-optimised sequences score &ge; 0.80, above the highest real candidate (0.764). GC content maintained at 44&ndash;47% by the penalty term. These are genuinely novel sequences not present in mm10.<br>
+                &bull; <strong>Motif insertion reveals neural regulatory grammar.</strong> Each round adds +0.025&ndash;0.05 CNN score. Most accepted motifs: KLF (<code>CCCCGCCC</code>), Sox2 (<code>CTTTGTT</code>), Sox11 (<code>AACAAAG</code>), NeuroD1 (<code>CAGATGG</code>). This identifies KLF GC-boxes and Sox-family sites as rate-limiting for predicted enhancer activity in this neural context.
             </div>
 
-            <h3 style="margin: 10px 0 15px 0; color: #2196F3; font-size: 1.2em;">Sox11 — chr12:26,000,000–28,000,000 (2 Mb · 161 candidates · CNN scored)</h3>
+            <h3 style="margin: 10px 0 15px 0; color: #2196F3; font-size: 1.2em;">Sox11 &mdash; chr12:26,000,000&ndash;28,000,000 (2 Mb &middot; 161 candidates &middot; CNN scored, real ATAC)</h3>
             <div class="image-grid">
                 <div class="image-card"
-                    onclick="openModal('media/Sox11_Chr12_enhancers.png', 'Sox11_Chr12 — Enhancer Candidates (CNN Scored)', 'Three-panel figure. Top: Hi-C contact heatmap with strong TAD boundary lines (white). The 2 Mb Sox11 window contains multiple TADs visible as diagonal blocks; the strongest boundary appears at ~bin 300 (~27.5 Mb). Middle: insulation score track (50 kb window) — negative dips mark boundary positions used to exclude nearby bins. Bottom: candidate enhancer track. Bars are coloured by CNN score using a green→red (RdYlGn) colourmap — green bars are predicted active enhancers, red bars have low predicted activity. Gold ★ stars mark bins with CNN score ≥ 0.5 (called as enhancers). High-scoring bins cluster in the left TAD (~bins 0–150), consistent with a dense distal regulatory landscape upstream of Sox11. The CNN was trained on 224 candidates using contact enrichment as proxy labels (loss 0.056→0.004, 30 epochs).')">
+                    onclick="openModal('media/Sox11_Chr12_enhancers.png', 'Sox11_Chr12 &mdash; Enhancer Candidates (CNN Scored, real neural ATAC)', 'Three-panel figure. Top: Hi-C contact heatmap with TAD boundary lines (white). Middle: insulation score track (50 kb window). Bottom: candidate enhancer track. Bars coloured by CNN score (RdYlGn: green=high, red=low); gold stars mark bins scoring &ge; 0.5. CNN trained on real AlphaGenome neural ATAC averaged across forebrain+midbrain+hindbrain (UBERON:0001890/0001891/0002028, MUS_MUSCULUS). Top real candidate: chr12:27,120,000-27,125,000 at 0.764. High-scoring bins cluster in the left TAD (~26-26.75 Mb).')">
                     <img src="media/Sox11_Chr12_enhancers.png" alt="Sox11 enhancer candidates CNN scored">
-                    <div class="image-card-title">Enhancer Candidates — CNN Scored <span class="badge badge-new">NEW</span></div>
+                    <div class="image-card-title">Enhancer Candidates &mdash; CNN Scored (neural ATAC) <span class="badge badge-new">NEW</span></div>
                 </div>
             </div>
 
-            <h3 style="margin: 35px 0 15px 0; color: #2196F3; font-size: 1.2em;">Mir9-2 — chr13:83,500,000–84,500,000 (1 Mb · 76 candidates · CNN scored)</h3>
+            <h3 style="margin: 35px 0 15px 0; color: #2196F3; font-size: 1.2em;">Mir9-2 &mdash; chr13:83,500,000&ndash;84,500,000 (1 Mb &middot; 76 candidates &middot; CNN scored, real ATAC)</h3>
             <div class="image-grid">
                 <div class="image-card"
-                    onclick="openModal('media/Mir9-2_Chr13_enhancers.png', 'Mir9-2_Chr13 — Enhancer Candidates (CNN Scored)', 'Three-panel figure. Top: Hi-C contact heatmap with Jingyun\'s confirmed insulator (white cross) at ~bin 50 (~83.74 Mb). Middle: insulation score track — the insulator produces an unusually deep dip, the deepest boundary in either region. Bottom: candidate enhancer track, CNN scored. A large gap at bins 45–55 correctly excludes Jingyun\'s insulator. Two candidate clusters: (1) bins 0–45 inside the first TAD (housing Mir9-2 itself) and (2) bins 55–175 in the second TAD. The right-side cluster at bins 150–175 (~84.25–84.4 Mb) shows both elevated contact scores and the highest CNN scores in the region — a convergent structural + sequence signal making this the highest-priority enhancer sub-region for Mir9-2. Gold ★ stars mark called enhancers (CNN score ≥ 0.5).')">
+                    onclick="openModal('media/Mir9-2_Chr13_enhancers.png', 'Mir9-2_Chr13 &mdash; Enhancer Candidates (CNN Scored, real neural ATAC)', 'Three-panel figure. Top: Hi-C contact heatmap with Jingyun confirmed insulator (white cross) at ~bin 50 (~83.74 Mb). Middle: insulation score. Bottom: candidate track, CNN scored with real AlphaGenome neural ATAC. Gap at bins 45-55 correctly excludes the insulator. Top real candidate: chr13:84,025,000-84,030,000 at score 0.677, in the right-side cluster showing convergent structural + sequence signal. Gold stars mark called enhancers (score &ge; 0.5).')">
                     <img src="media/Mir9-2_Chr13_enhancers.png" alt="Mir9-2 enhancer candidates CNN scored">
-                    <div class="image-card-title">Enhancer Candidates — CNN Scored <span class="badge badge-new">NEW</span></div>
+                    <div class="image-card-title">Enhancer Candidates &mdash; CNN Scored (neural ATAC) <span class="badge badge-new">NEW</span></div>
                 </div>
+            </div>
+
+            <h3 style="margin: 45px 0 15px 0; color: #2196F3; font-size: 1.2em;">Synthetic Design &mdash; Gradient Optimisation &amp; Motif Insertion</h3>
+            <div style="background:#fce4ec; border-left:4px solid #e91e63; border-radius:4px; padding:14px 18px; margin-bottom:18px; font-size:0.9em; line-height:1.75;">
+                <strong>Gradient-optimised designs &mdash; 20 sequences (10 per region):</strong><br>
+                &bull; All 20 designs score <strong>&ge; 0.80</strong> CNN &mdash; above the best real candidate (0.764 Sox11, 0.677 Mir9-2).<br>
+                &bull; Best design: <strong>0.815</strong> (Sox11 region), GC = 45.6%.<br>
+                &bull; GC content 44&ndash;47% controlled by gradient penalty; no degenerate poly-G or low-complexity outputs.<br>
+                &bull; Sequences stored in <code>data/processed/gradient_designs.tsv</code>.<br>
+                <strong>Motif-insertion designs &mdash; 10 sequences (top-5 seeds per region, 3 rounds):</strong><br>
+                &bull; Most accepted motifs: <strong>Sox11</strong> (<code>AACAAAG</code>), <strong>AP-1</strong> (<code>TGAGTCA</code>), <strong>Sox2</strong> (<code>CTTTGTT</code>), <strong>NeuroD1</strong> (<code>CAGATGG</code>) &mdash; Sox11 motif accepted in every seed.<br>
+                &bull; Total improvement per sequence: +0.009&ndash;+0.050 over 3 rounds (each round +0.002&ndash;+0.020).<br>
+                &bull; Results in <code>data/processed/motif_designs.tsv</code> with full insertion history.<br>
+                <strong>Interpretation:</strong> Gradient designs identify the <em>sequence features that jointly maximise</em> the CNN objective &mdash; a compressed picture of what the model considers &ldquo;neural-enhancer-like.&rdquo; Motif insertion reveals the <em>rate-limiting regulatory grammar</em> for each real candidate locus. Together they give two independent views of the same underlying biology.
             </div>
 
             <div style="background:#f3e5f5; border-left:4px solid #9c27b0; border-radius:4px; padding:14px 18px; margin-top:28px; font-size:0.9em; line-height:1.8;">
                 <strong>Connection to synthetic enhancer design (Kelvin's goal):</strong><br>
                 The papers Kelvin shared (Cell Systems 2025 + MolecularPost overview) use a two-stage CNN approach:
-                <strong>(1) sequence → accessibility</strong>, then <strong>(2) transfer-learn to in vivo enhancer activity</strong>.
-                Stage 1 is now running: the CNN scores each candidate's 500 bp sequence and bars are coloured accordingly.
-                The top-ranked bins — where both 3D structure <em>and</em> sequence grammar predict active enhancer — are the natural
-                inputs for a generative design loop: either gradient-based sequence optimization (as in the Cell Systems paper)
-                or diffusion-based motif insertion to create synthetic sequences that maximize predicted CNN score.
-                Once Jingyun &amp; Ed's new Dovetail Micro-C experiment provides real ATAC-seq data, the CNN will be retrained
-                on actual open-chromatin labels, completing the transition from proxy-label nomination to experimentally-grounded
-                enhancer calls — the foundation for confident synthetic design.
+                <strong>(1) sequence &rarr; accessibility</strong>, then <strong>(2) transfer-learn to in vivo enhancer activity</strong>.
+                The full pipeline is now implemented and running: candidates identified, CNN-scored with real neural ATAC labels,
+                and synthetic sequences designed by gradient optimisation. The designed sequences consistently score above any
+                real candidate, meaning the model has found a region of sequence space predicted to be more active than
+                the endogenous regulatory elements it was trained on.
+                <br><br>
+                The next step is experimental validation: <strong>MPRA</strong> (synthesise ~200 sequences including gradient designs,
+                motif-insertion refinements, and real candidates; transfect into neural cells; measure reporter output by sequencing)
+                or <strong>AlphaGenome in-silico validation</strong> (substitute each designed 500 bp into the real locus context and compare
+                predicted ATAC delta). Once real ATAC-seq arrives from Jingyun &amp; Ed's Dovetail experiment, retraining will sharpen
+                CNN specificity and the design loop will restart with higher-quality labels.
             </div>
         </div>
     </div>

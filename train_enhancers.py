@@ -4,13 +4,15 @@ Train the EnhancerCNN using AlphaGenome ATAC-seq predictions as proxy labels.
 Strategy
 --------
 - Make one AlphaGenome call per 1 Mb window (3 calls total for 2 regions)
-- Extract predicted motor-neuron ATAC signal at each candidate bin's position
+- Extract predicted neural-tissue ATAC signal at each candidate bin's position
+- Average ATAC signal across forebrain + midbrain + hindbrain tracks
 - Train the CNN on (500 bp sequence, ATAC score) pairs
 - Save model to data/processed/enhancer_cnn.pt
 - Re-run visualize_enhancers.py to produce CNN-scored figures
 
-Cell type: CL:0000100 (motor neuron ATAC) — best available proxy for
-           Sox11 (neural TF) and Mir9-2 (neural miRNA) regulatory context.
+Cell types: UBERON:0001890 (forebrain)   \
+            UBERON:0001891 (midbrain)      > averaged for neural context
+            UBERON:0002028 (hindbrain)    /
 Organism:  MUS_MUSCULUS (mm10)
 """
 
@@ -37,8 +39,9 @@ FASTA_PATH = "data/raw/mm10.fa"
 MODEL_PATH = "data/processed/enhancer_cnn.pt"
 RESOLUTION = 5000
 
-# AlphaGenome cell type — motor neuron ATAC is the closest neural proxy available
-ATAC_ONTOLOGY = "CL:0000100"
+# Neural tissue ATAC tracks confirmed available for MUS_MUSCULUS (queried 2026-03-05)
+ATAC_ONTOLOGIES = ["UBERON:0001890", "UBERON:0001891", "UBERON:0002028"]
+# forebrain, midbrain, hindbrain — averaged to give a pan-neural accessibility signal
 
 regions = {
     "Sox11_Chr12_a": "chr12:26,000,000-27,000,000",
@@ -55,6 +58,9 @@ def get_atac_for_region(model, coordinates: str) -> tuple:
     """
     Query AlphaGenome for ATAC predictions across a ~1 Mb region.
 
+    Requests forebrain + midbrain + hindbrain tracks and returns their
+    mean signal as a single pan-neural accessibility track.
+
     Returns (positions_bp, atac_signal) where positions_bp is a numpy
     array of genomic positions (bp) at 128 bp resolution.
     """
@@ -69,15 +75,22 @@ def get_atac_for_region(model, coordinates: str) -> tuple:
     interval = genome.Interval(chrom, center, center).resize(2**20)
 
     print(f"  AlphaGenome ATAC query: {chrom}:{interval.start}-{interval.end}")
+    print(f"  Ontology terms: {ATAC_ONTOLOGIES}")
     output = model.predict_interval(
         interval,
         organism=dna_model.Organism.MUS_MUSCULUS,
         requested_outputs=[dna_output.OutputType.ATAC],
-        ontology_terms=[ATAC_ONTOLOGY],
+        ontology_terms=ATAC_ONTOLOGIES,
     )
 
-    # output.atac is shape (n_positions, 1) at 128 bp resolution
-    atac_values = output.atac.values.squeeze()   # (n_positions,)
+    # output.atac.values is shape (n_positions, n_tracks) at 128 bp resolution
+    # Average across the three neural tissue tracks
+    atac_matrix = output.atac.values  # (n_positions, n_tracks)
+    if atac_matrix.ndim == 2:
+        atac_values = atac_matrix.mean(axis=1).astype(np.float32)
+    else:
+        atac_values = atac_matrix.squeeze().astype(np.float32)
+
     n = len(atac_values)
     positions = np.array([interval.start + i * 128 + 64 for i in range(n)])
 
@@ -119,7 +132,8 @@ def main():
         sys.exit(1)
 
     print("=== Enhancer CNN Training ===")
-    print(f"ATAC proxy cell type: {ATAC_ONTOLOGY} (motor neuron)")
+    print(f"ATAC tracks (averaged): {', '.join(ATAC_ONTOLOGIES)}")
+    print(f"  forebrain + midbrain + hindbrain → pan-neural ATAC proxy")
     print(f"Organism: MUS_MUSCULUS (mm10)")
 
     # Load AlphaGenome
