@@ -389,7 +389,7 @@
                 <div class="label">Phase block N50</div>
             </div>
             <div class="info-stat">
-                <div class="value">18</div>
+                <div class="value">23</div>
                 <div class="label">Output figures</div>
             </div>
         </div>
@@ -668,6 +668,121 @@ python linkprep/run_analysis.py --no-generate</code></pre>
             </div>
         </div>
 
+        <!-- Capture Hi-C Loop Calling -->
+        <div class="section">
+            <h2 class="section-title">Capture Hi-C Loop Calling <span class="badge">CHiCAGO</span></h2>
+            <p class="section-desc">
+                Capture Hi-C targets specific genomic loci (e.g. enhancers, promoters) using biotinylated
+                probes, then sequences proximity-ligated DNA enriched at those <strong>bait fragments (BF)</strong>.
+                Interactions are scored using <strong>CHiCAGO</strong>
+                (Capture Hi-C Analysis of Genomic Organisation), which models two noise sources:
+            </p>
+            <ul style="color:#607D8B; margin: -10px 0 16px 24px; line-height:2;">
+                <li><strong>Brownian noise</strong> — negative-binomial distributed, decays with genomic distance</li>
+                <li><strong>Technical noise</strong> — Poisson distributed, flat across all distances</li>
+            </ul>
+            <p class="section-desc">
+                Interactions with score ≥ 5 (−log₁₀ weighted p-value) are <span style="color:#E53935;font-weight:600;">significant</span>.
+                Scores 3–5 are <span style="color:#1E88E5;font-weight:600;">moderate</span>.
+                Standard post-processing removes trans interactions, interactions &lt;10 kb or &gt;2 Mb,
+                and interactions with fewer than 5 supporting reads.
+            </p>
+
+            <div class="pipeline" style="margin-bottom:20px;">
+                <div class="pipe-step">BAM file</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">bam2chicago.sh<br><small style="opacity:0.7">chinput</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">runChicago.R<br><small style="opacity:0.7">--cutoff 5</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">.ibed output<br><small style="opacity:0.7">10-column</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">Filter<br><small style="opacity:0.7">10 kb–2 Mb</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">WashU / Arc<br><small style="opacity:0.7">visualization</small></div>
+            </div>
+
+            <pre><code># Real data: convert BAM → CHiCAGO input
+bam2chicago.sh sample.bam baits.baitmap genome.rmap sample_chinput
+
+# Run CHiCAGO loop calling (R)
+Rscript runChicago.R \
+    --design-dir /path/to/design_10kb \
+    --cutoff 5 \
+    --export-format interBed,washU_text \
+    sample_chinput/sample.chinput \
+    sample_loops
+
+# Python post-processing + visualisation (this pipeline)
+python linkprep/run_analysis.py --steps capture --no-generate</code></pre>
+
+            <h3 style="color:#455A64; margin: 24px 0 14px 0;">Arc Plots — Bait Interactions</h3>
+            <div class="image-grid two-col">
+                <div class="image-card" onclick="openModal('linkprep/figures/capture_arc_chr12.png', 'Capture Hi-C Arc Plot — chr12', 'Each arc connects a bait fragment (vertical tick) to an interacting Other-End Fragment (OEF). Arc colour encodes CHiCAGO significance tier: red = significant (score ≥ 5), blue = moderate (3–5). Arc height is proportional to genomic span. Taller arcs represent longer-range interactions, which are more likely to represent genuine enhancer–promoter contacts.')">
+                    <img src="linkprep/figures/capture_arc_chr12.png" alt="Arc chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Arc Plot — chr12</div>
+                        <div class="image-card-desc">Bait → OEF interactions; red = significant (score ≥ 5), blue = moderate</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/capture_arc_chr13.png', 'Capture Hi-C Arc Plot — chr13', 'Interaction arcs for chr13 baits. The Mir9-2 region (83–84 Mb) baits show interactions anchored near the microRNA gene cluster. Significant interactions (red) at longer distances may represent enhancers looping to the Mir9-2 promoter.')">
+                    <img src="linkprep/figures/capture_arc_chr13.png" alt="Arc chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Arc Plot — chr13</div>
+                        <div class="image-card-desc">Interactions near the Mir9-2 locus; baits marked as vertical grey ticks</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="color:#455A64; margin: 28px 0 14px 0;">Score &amp; Distance Analysis</h3>
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('linkprep/figures/capture_score_dist.png', 'CHiCAGO Score Distribution', 'Histogram of CHiCAGO scores coloured by tier. Red bars (score ≥ 5) are significant interactions. The distribution shape reflects the noise model: most contacts are low-scoring background, with a tail of genuine interactions at high scores. The dashed lines mark the cutoffs used for calling.')">
+                    <img src="linkprep/figures/capture_score_dist.png" alt="Score distribution">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Score Distribution</div>
+                        <div class="image-card-desc">CHiCAGO −log₁₀ p-value scores coloured by significance tier</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/capture_distance_decay.png', 'Distance Decay Analysis', 'Left: total reads binned by genomic distance — shows the expected distance-decay characteristic of proximity ligation. Right: CHiCAGO score vs distance scatter — significant interactions (red) can span the full 10 kb–2 Mb window, not just short-range contacts, demonstrating that CHiCAGO\'s distance correction correctly recovers long-range enhancer–promoter loops.')">
+                    <img src="linkprep/figures/capture_distance_decay.png" alt="Distance decay">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Distance Decay</div>
+                        <div class="image-card-desc">Read depth and score vs genomic distance — distance correction enables long-range loop recovery</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/capture_summary.png', 'Interactions per Bait', 'Bar chart of significant interactions (score ≥ 5) per bait fragment, sorted by count. Baits with many significant interactions may mark highly connected regulatory hubs (e.g. super-enhancers or bidirectional promoters). Baits with zero interactions may indicate failed capture or transcriptionally silent loci.')">
+                    <img src="linkprep/figures/capture_summary.png" alt="Per-bait summary">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Interactions per Bait</div>
+                        <div class="image-card-desc">Significant interaction count per bait — identifies regulatory hubs</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="color:#455A64; margin: 28px 0 10px 0;">Output file formats (.ibed)</h3>
+            <p class="section-desc" style="margin-bottom:10px;">
+                CHiCAGO outputs a 10-column <code>.ibed</code> file. Each row is one bait–OEF interaction:
+            </p>
+            <table style="width:100%;border-collapse:collapse;font-size:0.88em;margin-bottom:10px;">
+                <thead>
+                    <tr style="background:#ECEFF1;">
+                        <th style="padding:8px 12px;border-bottom:2px solid #CFD8DC;color:#455A64;">Columns 1–4</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid #CFD8DC;color:#455A64;">Columns 5–8</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid #CFD8DC;color:#455A64;">Column 9</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid #CFD8DC;color:#455A64;">Column 10</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:8px 12px;border-bottom:1px solid #ECEFF1;">Bait coordinates<br><small style="color:#90A4AE;">chr, start, end, name</small></td>
+                        <td style="padding:8px 12px;border-bottom:1px solid #ECEFF1;">OEF coordinates<br><small style="color:#90A4AE;">chr, start, end, name</small></td>
+                        <td style="padding:8px 12px;border-bottom:1px solid #ECEFF1;">Read count<br><small style="color:#90A4AE;">n_reads</small></td>
+                        <td style="padding:8px 12px;border-bottom:1px solid #ECEFF1;">CHiCAGO score<br><small style="color:#90A4AE;">−log₁₀ p-value</small></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         <!-- How to use -->
         <div class="section">
             <h2 class="section-title">How to Use With Real Data</h2>
@@ -691,7 +806,7 @@ COVERAGE_BED = "/path/to/my_sample_coverage.bed"
 python linkprep/run_analysis.py --no-generate
 
 # Or run individual steps
-python linkprep/run_analysis.py --steps qc contacts sv cnv phasing --no-generate</code></pre>
+python linkprep/run_analysis.py --steps qc contacts sv cnv phasing capture --no-generate</code></pre>
         </div>
 
     </div><!-- /container -->

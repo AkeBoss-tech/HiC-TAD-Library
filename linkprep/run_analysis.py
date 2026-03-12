@@ -53,8 +53,8 @@ def main():
     parser.add_argument("--no-generate", action="store_true",
                         help="Skip sample data generation (use real data)")
     parser.add_argument("--steps", nargs="+",
-                        choices=["generate", "qc", "contacts", "sv", "cnv", "phasing"],
-                        default=["generate", "qc", "contacts", "sv", "cnv", "phasing"],
+                        choices=["generate", "qc", "contacts", "sv", "cnv", "phasing", "capture"],
+                        default=["generate", "qc", "contacts", "sv", "cnv", "phasing", "capture"],
                         help="Which analysis steps to run")
     args = parser.parse_args()
 
@@ -157,6 +157,13 @@ def main():
     if "phasing" in args.steps:
         from visualization.plot_phasing import run_all as run_phasing
         run_step("Haplotype Phasing", run_phasing)
+
+    # ------------------------------------------------------------------
+    # Step 6: Capture Hi-C loop calling
+    # ------------------------------------------------------------------
+    if "capture" in args.steps:
+        from visualization.plot_capture import run_all as run_capture
+        run_step("Capture Hi-C Loop Calling (CHiCAGO)", run_capture)
 
     # ------------------------------------------------------------------
     # Summary
