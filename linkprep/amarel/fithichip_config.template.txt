@@ -1,0 +1,58 @@
+# =============================================================================
+# FitHiChIP configuration template
+# Generated from Dovetail Analysis documentation
+# https://dovetail-analysis.readthedocs.io/en/latest/hichip/loop_calling.html
+#
+# This file is used by 07_fithichip.slurm — do not edit directly.
+# Variables like __SAMPLE__ are substituted at runtime by the SLURM script.
+# =============================================================================
+
+# Input pairs file (HiC-Pro format, gzipped)
+ValidPairs=__HICPRO_PAIRS__
+
+# ChIP-seq peak file (BED format, 3+ columns)
+PeakFile=__PEAK_FILE__
+
+# Output directory
+OutDir=__OUT_DIR__
+
+# Chromosome sizes reference
+ChrSizeFile=__GENOME_FILE__
+
+# Output file prefix
+PREFIX=__PREFIX__
+
+# ---------------------------------------------------------------------------
+# Interaction type:
+#   1 = peak-to-peak    → use for CTCF, CTCF-binding factors
+#   2 = peak-to-nonpeak → rarely used
+#   3 = peak-to-all     → use for H3K27ac, H3K4me3, PolII
+# ---------------------------------------------------------------------------
+IntType=__INTTYPE__
+
+# Bin size in base pairs
+# Recommended: 2500–5000 for HiChIP
+BINSIZE=__BINSIZE__
+
+# Minimum and maximum interaction distance (bp)
+LowDistThr=__LOW_DIST__
+UppDistThr=__UPP_DIST__
+
+# FDR threshold for loop significance
+QVALUE=__QVALUE__
+
+# Background model:
+#   1 = FitHiChIP(S) — peak-to-peak background (preferred for MNase data)
+#   0 = FitHiChIP(L) — global background
+UseP2PBackgrnd=1
+
+# Bias correction:
+#   1 = coverage regression (recommended for MNase-based HiChIP)
+#   2 = ICE normalisation
+BiasType=1
+
+# Merge nearby significant interactions (recommended: 1)
+MergeInt=1
+
+# Overwrite existing output files
+OverWrite=1

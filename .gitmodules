@@ -11,3 +11,6 @@
 	path = externals/alphagenome
 	url = https://github.com/google-deepmind/alphagenome.git
 	branch = main
+[submodule "externals/Dovetail-Analysis"]
+	path = externals/Dovetail-Analysis
+	url = https://github.com/dovetail-genomics/Dovetail-Analysis.git
