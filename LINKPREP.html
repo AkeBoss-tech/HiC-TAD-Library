@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkPrep Analysis — HiC-TAD Library</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #37474F 0%, #263238 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #546E7A;
+            text-decoration: none;
+            font-size: 0.95em;
+            margin-bottom: 28px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover { color: #263238; }
+
+        h1 {
+            text-align: center;
+            color: #263238;
+            margin-bottom: 8px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #607D8B;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .kit-badge {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #37474F;
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .tag.green  { background: #2E7D32; }
+        .tag.blue   { background: #1565C0; }
+        .tag.orange { background: #E65100; }
+        .tag.purple { background: #4527A0; }
+
+        /* Info banner */
+        .info-banner {
+            background: linear-gradient(135deg, #37474F 0%, #455A64 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 24px 30px;
+            margin-bottom: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .info-stat {
+            text-align: center;
+        }
+
+        .info-stat .value {
+            font-size: 2em;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .info-stat .label {
+            font-size: 0.82em;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* QC table */
+        .qc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 0 0;
+            font-size: 0.95em;
+        }
+
+        .qc-table th {
+            background: #ECEFF1;
+            padding: 10px 14px;
+            text-align: left;
+            color: #455A64;
+            font-weight: 600;
+            border-bottom: 2px solid #CFD8DC;
+        }
+
+        .qc-table td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #ECEFF1;
+            color: #37474F;
+        }
+
+        .qc-table tr:last-child td { border-bottom: none; }
+        .qc-table tr:hover td { background: #F5F5F5; }
+
+        .pass {
+            display: inline-block;
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 56px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #37474F;
+            margin-bottom: 8px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #37474F;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-desc {
+            color: #607D8B;
+            margin-bottom: 22px;
+            line-height: 1.7;
+            font-size: 0.97em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.65em;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            vertical-align: middle;
+        }
+
+        /* Image grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 22px;
+        }
+
+        .image-grid.two-col {
+            grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            cursor: pointer;
+            border: 1px solid #ECEFF1;
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-bottom: 2px solid #ECEFF1;
+            display: block;
+        }
+
+        .image-card-body {
+            padding: 14px 16px;
+        }
+
+        .image-card-title {
+            font-size: 0.92em;
+            color: #263238;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .image-card-desc {
+            font-size: 0.82em;
+            color: #78909C;
+            line-height: 1.5;
+        }
+
+        /* Pipeline diagram */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex-wrap: wrap;
+            margin: 20px 0 30px 0;
+        }
+
+        .pipe-step {
+            background: #37474F;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.88em;
+            font-weight: 600;
+            text-align: center;
+            min-width: 110px;
+        }
+
+        .pipe-arrow {
+            color: #90A4AE;
+            font-size: 1.4em;
+            padding: 0 6px;
+        }
+
+        /* Code block */
+        pre {
+            background: #263238;
+            color: #B0BEC5;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.88em;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        code { font-family: inherit; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.92);
+            animation: fadeIn 0.25s;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-content {
+            position: relative;
+            margin: 0 auto;
+            max-width: 1200px;
+            width: 90%;
+            animation: slideIn 0.25s;
+            padding-bottom: 40px;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .modal-caption {
+            background: white;
+            padding: 20px 28px;
+            margin-top: 14px;
+            border-radius: 8px;
+            color: #333;
+        }
+
+        .modal-caption h2 {
+            color: #37474F;
+            margin-bottom: 8px;
+            font-size: 1.4em;
+        }
+
+        .modal-caption p {
+            color: #555;
+            line-height: 1.7;
+        }
+
+        .close {
+            position: fixed;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.25s;
+            z-index: 1001;
+        }
+
+        .close:hover { color: #FF7043; }
+
+        @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            .pipeline { gap: 4px; }
+            .pipe-step { font-size: 0.78em; padding: 8px 10px; min-width: 80px; }
+            .image-grid.two-col { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <a href="index.html" class="back-link">← Back to Gallery</a>
+
+        <h1>LinkPrep™ Analysis</h1>
+        <p class="subtitle">Dovetail Tn5-based proximity ligation — 3D genome structure, SVs, CNVs &amp; haplotype phasing</p>
+
+        <div class="kit-badge">
+            <span class="tag green">Tn5 Tagmentation</span>
+            <span class="tag blue">mm10 Mouse</span>
+            <span class="tag orange">10 kb resolution</span>
+            <span class="tag purple">502,000 pairs</span>
+            <span class="tag">Sample data</span>
+        </div>
+
+        <!-- Stats banner -->
+        <div class="info-banner">
+            <div class="info-stat">
+                <div class="value">84.6%</div>
+                <div class="label">Cis pair fraction</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">99.5%</div>
+                <div class="label">Long-range cis ≥1 kb</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">12</div>
+                <div class="label">SV candidates</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">19</div>
+                <div class="label">CNV segments</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">120 Mb</div>
+                <div class="label">Phase block N50</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">18</div>
+                <div class="label">Output figures</div>
+            </div>
+        </div>
+
+        <!-- About LinkPrep -->
+        <div class="section">
+            <h2 class="section-title">About LinkPrep™</h2>
+            <p class="section-desc">
+                Dovetail LinkPrep™ uses <strong>Tn5 tagmentation</strong> for sequence-agnostic DNA fragmentation,
+                producing highly uniform coverage across the genome. Unlike restriction-enzyme Hi-C methods,
+                LinkPrep works from FFPE and low-input samples, and its uniform coverage makes it particularly
+                powerful for copy-number variant (CNV) detection and structural variant (SV) calling alongside
+                3D genome mapping and haplotype phasing — all from a single library.
+            </p>
+
+            <div class="pipeline">
+                <div class="pipe-step">FASTQ R1/R2</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">BWA-MEM<br><small style="opacity:0.7">-5SP -T0</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">pairtools<br><small style="opacity:0.7">parse+dedup</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">cooler<br><small style="opacity:0.7">.cool matrix</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">TADs &amp;<br>Compartments</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">SV / CNV /<br>Phasing</div>
+            </div>
+
+            <pre><code># Run full pipeline on real data
+bash linkprep/pipeline/preprocess.sh reference.fa R1.fq.gz R2.fq.gz sample_name 16
+
+# Update paths in config.py, then run all analyses
+python linkprep/run_analysis.py --no-generate</code></pre>
+        </div>
+
+        <!-- QC section -->
+        <div class="section">
+            <h2 class="section-title">Library QC <span class="badge">ALL PASS</span></h2>
+            <p class="section-desc">
+                Key metrics from the pairs file. All three Dovetail QC thresholds pass.
+                The high long-range cis fraction (99.5%) confirms successful proximity ligation.
+            </p>
+
+            <table class="qc-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Threshold</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Valid (UU) pair rate</td>
+                        <td>100.0%</td>
+                        <td>≥ 50%</td>
+                        <td><span class="pass">PASS</span></td>
+                    </tr>
+                    <tr>
+                        <td>Cis pair fraction</td>
+                        <td>84.6%</td>
+                        <td>≥ 60%</td>
+                        <td><span class="pass">PASS</span></td>
+                    </tr>
+                    <tr>
+                        <td>Long-range cis (≥1 kb)</td>
+                        <td>99.5%</td>
+                        <td>≥ 40%</td>
+                        <td><span class="pass">PASS</span></td>
+                    </tr>
+                    <tr>
+                        <td>Total pairs sampled</td>
+                        <td>500,000</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>Trans pairs</td>
+                        <td>77,000 (15.4%)</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="image-grid two-col" style="margin-top:24px;">
+                <div class="image-card" onclick="openModal('linkprep/figures/qc_distance_distribution.png', 'Cis-pair Distance Distribution', 'Left: raw histogram of cis-pair distances on a log scale. Right: contact probability P(s) curve — the characteristic power-law decay confirms successful proximity ligation. Deviations from the expected slope can reveal protocol issues or sample quality problems.')">
+                    <img src="linkprep/figures/qc_distance_distribution.png" alt="Distance distribution">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Cis-pair Distance Distribution</div>
+                        <div class="image-card-desc">P(s) contact probability curve showing distance decay — hallmark of successful proximity ligation</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/qc_pair_types.png', 'Pair-Type Breakdown', 'Stacked bar showing trans pairs (inter-chromosomal), short-range cis (&lt;1 kb), and long-range cis (≥1 kb). Long-range cis pairs are the informative signal for 3D genome analysis. A high trans fraction can indicate ligation artifacts or low-quality chromatin.')">
+                    <img src="linkprep/figures/qc_pair_types.png" alt="Pair types">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Pair-Type Breakdown</div>
+                        <div class="image-card-desc">Trans / short-range cis / long-range cis composition of the library</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact analysis -->
+        <div class="section">
+            <h2 class="section-title">Contact Analysis — TADs &amp; Compartments</h2>
+            <p class="section-desc">
+                ICE-normalised contact matrices binned at 10 kb resolution. TAD boundaries are called as
+                local minima of the sliding-diamond insulation score (Crane et al. 2015). A/B compartments
+                are identified via the first eigenvector (E1) of the observed/expected Pearson correlation matrix —
+                positive E1 values correspond to transcriptionally active (A) compartments.
+            </p>
+
+            <h3 style="color:#455A64; margin: 20px 0 14px 0;">Sox11 — chr12:26–28 Mb</h3>
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('linkprep/figures/contact_heatmap_sox11_chr12.png', 'Contact Heatmap — Sox11', 'Hi-C contact matrix for the Sox11 locus at 10 kb resolution. Warm colours indicate high contact frequency. The insulation score track below shows dips at TAD boundaries (marked with red vertical lines). TADs appear as bright squares along the diagonal.')">
+                    <img src="linkprep/figures/contact_heatmap_sox11_chr12.png" alt="Sox11 heatmap">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Contact Heatmap + Insulation</div>
+                        <div class="image-card-desc">Hi-C matrix with insulation score track; TAD boundaries shown as cyan lines</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/tads_sox11_chr12.png', 'TAD Boundaries — Sox11', 'Contact heatmap overlaid with colored TAD boundary boxes. Each rectangle frames a self-interacting domain. Box colors are for visual separation only. The number of TADs and their sizes reflect the typical 100–500 kb domains seen in mammalian genomes.')">
+                    <img src="linkprep/figures/tads_sox11_chr12.png" alt="Sox11 TADs">
+                    <div class="image-card-body">
+                        <div class="image-card-title">TAD Boundary Overlay</div>
+                        <div class="image-card-desc">Self-interacting domains framed on the contact matrix</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/compartments_sox11_chr12.png', 'A/B Compartments — Sox11', 'Blue contact matrix with E1 eigenvector track below. Red bars indicate A compartment (open, active chromatin); blue bars indicate B compartment (closed, repressed). Compartment switches often coincide with TAD boundaries and changes in gene density.')">
+                    <img src="linkprep/figures/compartments_sox11_chr12.png" alt="Sox11 compartments">
+                    <div class="image-card-body">
+                        <div class="image-card-title">A/B Compartments (E1)</div>
+                        <div class="image-card-desc">First eigenvector: A=active (red), B=inactive (blue)</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="color:#455A64; margin: 30px 0 14px 0;">Mir9-2 — chr13:83.5–84.5 Mb</h3>
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('linkprep/figures/contact_heatmap_mir9-2_chr13.png', 'Contact Heatmap — Mir9-2', 'Contact matrix for the Mir9-2 locus. This region contains a synthetic SV hotspot (simulated translocation breakpoint at 84 Mb) — visible as increased trans-pair enrichment in the SV analysis section.')">
+                    <img src="linkprep/figures/contact_heatmap_mir9-2_chr13.png" alt="Mir9-2 heatmap">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Contact Heatmap + Insulation</div>
+                        <div class="image-card-desc">Hi-C matrix with insulation score and TAD boundary calls</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/tads_mir9-2_chr13.png', 'TAD Boundaries — Mir9-2', 'TAD domains for the Mir9-2 region. Note how TAD sizes and boundary strengths differ from the Sox11 locus, reflecting the distinct chromatin architecture around this microRNA gene cluster.')">
+                    <img src="linkprep/figures/tads_mir9-2_chr13.png" alt="Mir9-2 TADs">
+                    <div class="image-card-body">
+                        <div class="image-card-title">TAD Boundary Overlay</div>
+                        <div class="image-card-desc">Self-interacting domains framed on the contact matrix</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/compartments_mir9-2_chr13.png', 'A/B Compartments — Mir9-2', 'Compartment track for Mir9-2. The transition between A and B compartments can reveal regulatory shifts near the microRNA locus, potentially important for understanding its developmental expression control.')">
+                    <img src="linkprep/figures/compartments_mir9-2_chr13.png" alt="Mir9-2 compartments">
+                    <div class="image-card-body">
+                        <div class="image-card-title">A/B Compartments (E1)</div>
+                        <div class="image-card-desc">First eigenvector: A=active (red), B=inactive (blue)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SV detection -->
+        <div class="section">
+            <h2 class="section-title">Structural Variant Detection</h2>
+            <p class="section-desc">
+                LinkPrep's uniform Tn5 coverage excels at SV detection. Three classes are called directly
+                from the pairs file: <strong>translocations</strong> (inter-chromosomal pair clusters),
+                <strong>inversions</strong> (same-strand ++ or −− cis pairs), and
+                <strong>deletions</strong> (anomalously long-range cis pairs spanning a gap).
+                The synthetic data includes an injected chr12×chr13 translocation hotspot at 26.5 Mb / 84 Mb.
+            </p>
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('linkprep/figures/sv_translocation_heatmap.png', 'Translocation Candidates', 'Each bubble represents a genomic bin-pair with elevated inter-chromosomal contacts. Bubble size is proportional to the number of supporting pairs. The chr12×chr13 hotspot (injected at 26.5 Mb × 84 Mb) is clearly recovered as the dominant translocation signal.')">
+                    <img src="linkprep/figures/sv_translocation_heatmap.png" alt="Translocation heatmap">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Translocation Heatmap</div>
+                        <div class="image-card-desc">Inter-chromosomal pair density — bubble size ∝ supporting pairs. chr12×chr13 hotspot recovered.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/sv_summary.png', 'SV Summary', 'Bar chart of structural variant candidates by type. Inversions are abundant because the synthetic pairs data assigns strands randomly — in real data, inversion candidates are filtered against the background inversion rate. Translocations and deletions are rarer and more specific.')">
+                    <img src="linkprep/figures/sv_summary.png" alt="SV summary">
+                    <div class="image-card-body">
+                        <div class="image-card-title">SV Summary by Type</div>
+                        <div class="image-card-desc">Candidate counts for translocations, inversions, and deletions</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/sv_inversions_chr12.png', 'Inversions — chr12', 'Lollipop plot of putative inversion spans on chr12. Each line spans the two breakpoints inferred from same-strand pair clusters. Line thickness scales with the number of supporting pairs. Clusters near 26–27 Mb coincide with the simulated deletion region.')">
+                    <img src="linkprep/figures/sv_inversions_chr12.png" alt="Inversions chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Inversions — chr12</div>
+                        <div class="image-card-desc">Same-strand pair clusters indicating putative inversion breakpoints</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/sv_inversions_chr13.png', 'Inversions — chr13', 'Inversion candidates on chr13. Enrichment near 83–84 Mb reflects the simulated duplication region where coverage and pair density are elevated, creating apparent orientation anomalies in the synthetic data.')">
+                    <img src="linkprep/figures/sv_inversions_chr13.png" alt="Inversions chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Inversions — chr13</div>
+                        <div class="image-card-desc">Inversion spans on chr13; elevated density near 83–84 Mb duplication</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CNV section -->
+        <div class="section">
+            <h2 class="section-title">Copy-Number Variation</h2>
+            <p class="section-desc">
+                Per-bin read depth (10 kb bins) is median-normalised and segmented using Circular Binary
+                Segmentation (CBS). The synthetic data includes a heterozygous <strong>deletion on chr12
+                (26–27 Mb, ~0.5× coverage)</strong> and a <strong>duplication on chr13 (83–84 Mb, ~2×
+                coverage)</strong> — both are correctly recovered by the CBS segmentation.
+            </p>
+            <div class="image-grid two-col">
+                <div class="image-card" onclick="openModal('linkprep/figures/cnv_genome_wide.png', 'Genome-wide CNV Profile', 'Grey dots show per-bin log2(observed/expected) coverage. Coloured segments are CBS calls: red=deletion, orange=loss, grey=neutral, green=gain, dark green=amplification. The chr12 deletion (26–27 Mb) and chr13 duplication (83–84 Mb) are both recovered with correct copy-number states.')">
+                    <img src="linkprep/figures/cnv_genome_wide.png" alt="CNV genome-wide">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Genome-wide CNV Profile</div>
+                        <div class="image-card-desc">CBS segmentation across all chromosomes — deletion on chr12, gain on chr13 correctly identified</div>
+                    </div>
+                </div>
+            </div>
+            <div class="image-grid" style="margin-top:16px;">
+                <div class="image-card" onclick="openModal('linkprep/figures/cnv_segments_chr12.png', 'CNV Segments — chr12', 'Per-chromosome view of chr12. The heterozygous deletion at 26–27 Mb shows a clear −1 log2 ratio drop (expected ~−1.0 for a single-copy loss from diploid). CBS correctly segments this as a deletion distinct from the neutral background.')">
+                    <img src="linkprep/figures/cnv_segments_chr12.png" alt="CNV chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">CNV Segments — chr12</div>
+                        <div class="image-card-desc">Heterozygous deletion at 26–27 Mb (log2 ratio ≈ −1.0)</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/cnv_segments_chr13.png', 'CNV Segments — chr13', 'Per-chromosome view of chr13. The duplication at 83–84 Mb shows a +1 log2 ratio gain (expected ~+1.0 for a single additional copy). CBS cleanly separates this from flanking neutral regions.')">
+                    <img src="linkprep/figures/cnv_segments_chr13.png" alt="CNV chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">CNV Segments — chr13</div>
+                        <div class="image-card-desc">Duplication at 83–84 Mb (log2 ratio ≈ +1.0)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phasing section -->
+        <div class="section">
+            <h2 class="section-title">Haplotype Phasing</h2>
+            <p class="section-desc">
+                Heterozygous SNPs from the VCF are grouped into haplotype blocks based on genomic proximity
+                (max gap 500 kb). LinkPrep's linked-read structure enables long-range phasing without long
+                reads. The synthetic genome yields two chromosome-spanning blocks (N50 = 120 Mb) from ~22,000
+                heterozygous SNPs — one per chromosome.
+            </p>
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('linkprep/figures/phasing_snp_density.png', 'Heterozygous SNP Density', 'SNPs per 500 kb bin across both chromosomes. Uniform density confirms no strong coverage bias from Tn5 fragmentation. Gaps in SNP density (if any) indicate low-complexity or repeat-rich regions where variant calling is unreliable.')">
+                    <img src="linkprep/figures/phasing_snp_density.png" alt="SNP density">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Heterozygous SNP Density</div>
+                        <div class="image-card-desc">~22,000 het SNPs distributed uniformly — confirms unbiased Tn5 fragmentation</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/phasing_haplotype_blocks.png', 'Haplotype Block Map', 'Each colored bar is one phased haplotype block. With LinkPrep long-range information, two chromosome-spanning blocks are assembled — one per chromosome. In real data with genuine heterozygosity, blocks would be shorter but still substantially longer than SNP-array phasing.')">
+                    <img src="linkprep/figures/phasing_haplotype_blocks.png" alt="Haplotype blocks">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Haplotype Block Map</div>
+                        <div class="image-card-desc">Two chromosome-spanning blocks; N50 = 120 Mb</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('linkprep/figures/phasing_block_lengths.png', 'Block Length Distribution', 'Left: histogram of block lengths with N50 marked. Right: SNPs per block distribution. In real samples, the N50 and SNP-per-block distributions directly reflect phasing quality — longer blocks with more SNPs indicate better-powered phasing.')">
+                    <img src="linkprep/figures/phasing_block_lengths.png" alt="Block lengths">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Block Length Distribution</div>
+                        <div class="image-card-desc">Block length histogram and SNPs-per-block; N50 marked in red</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How to use -->
+        <div class="section">
+            <h2 class="section-title">How to Use With Real Data</h2>
+            <p class="section-desc">
+                All analysis scripts are in <code>linkprep/</code>. To switch from sample to real data:
+            </p>
+            <pre><code># 1. Preprocess your FASTQs → .cool contact matrix
+bash linkprep/pipeline/preprocess.sh \
+    /path/to/reference.fa \
+    /path/to/sample_R1.fastq.gz \
+    /path/to/sample_R2.fastq.gz \
+    my_sample  16
+
+# 2. Update file paths in linkprep/config.py
+COOL_FILE    = "/path/to/my_sample.cool"
+PAIRS_FILE   = "/path/to/my_sample.valid.pairs.gz"
+VCF_FILE     = "/path/to/my_sample.vcf"
+COVERAGE_BED = "/path/to/my_sample_coverage.bed"
+
+# 3. Run full analysis
+python linkprep/run_analysis.py --no-generate
+
+# Or run individual steps
+python linkprep/run_analysis.py --steps qc contacts sv cnv phasing --no-generate</code></pre>
+        </div>
+
+    </div><!-- /container -->
+
+    <!-- Modal -->
+    <div id="imageModal" class="modal" onclick="closeModal(event)">
+        <span class="close" onclick="document.getElementById('imageModal').style.display='none'">&times;</span>
+        <div class="modal-content">
+            <img id="modalImage" class="modal-image" src="" alt="">
+            <div class="modal-caption">
+                <h2 id="modalTitle"></h2>
+                <p id="modalDesc"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(src, title, desc) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalDesc').innerHTML = desc;
+            document.getElementById('imageModal').style.display = 'block';
+        }
+
+        function closeModal(e) {
+            if (e.target === document.getElementById('imageModal')) {
+                document.getElementById('imageModal').style.display = 'none';
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('imageModal').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>

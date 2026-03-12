@@ -1,5 +1,8 @@
 # Data
 data/
+
+# LinkPrep generated sample data (large binary/text files — regenerate with generate_sample_data.py)
+linkprep/sample_data/output/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
