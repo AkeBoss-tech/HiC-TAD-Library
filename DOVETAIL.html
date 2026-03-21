@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dovetail Analysis Suite — Mouse Micro-C</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #006064 0%, #263238 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #546E7A;
+            text-decoration: none;
+            font-size: 0.95em;
+            margin-bottom: 28px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover { color: #263238; }
+
+        h1 {
+            text-align: center;
+            color: #263238;
+            margin-bottom: 8px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #607D8B;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .kit-badge {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #006064;
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .tag.green  { background: #2E7D32; }
+        .tag.blue   { background: #00838F; }
+        .tag.orange { background: #E65100; }
+        .tag.purple { background: #4527A0; }
+        .tag.dark   { background: #263238; }
+
+        /* Info banner */
+        .info-banner {
+            background: linear-gradient(135deg, #006064 0%, #00838F 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 24px 30px;
+            margin-bottom: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .info-stat {
+            text-align: center;
+        }
+
+        .info-stat .value {
+            font-size: 2em;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .info-stat .label {
+            font-size: 0.82em;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* QC table */
+        .qc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 0 0;
+            font-size: 0.95em;
+        }
+
+        .qc-table th {
+            background: #ECEFF1;
+            padding: 10px 14px;
+            text-align: left;
+            color: #455A64;
+            font-weight: 600;
+            border-bottom: 2px solid #CFD8DC;
+        }
+
+        .qc-table td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #ECEFF1;
+            color: #37474F;
+        }
+
+        .qc-table tr:last-child td { border-bottom: none; }
+        .qc-table tr:hover td { background: #F5F5F5; }
+
+        .pass {
+            display: inline-block;
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .note {
+            display: inline-block;
+            background: #E3F2FD;
+            color: #1565C0;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 56px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #263238;
+            margin-bottom: 8px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #006064;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-desc {
+            color: #607D8B;
+            margin-bottom: 22px;
+            line-height: 1.7;
+            font-size: 0.97em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #00838F;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.65em;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            vertical-align: middle;
+        }
+
+        .badge.teal  { background: #006064; }
+        .badge.green { background: #2E7D32; }
+        .badge.blue  { background: #1565C0; }
+
+        /* Image grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 22px;
+        }
+
+        .image-grid.two-col {
+            grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+        }
+
+        .image-grid.three-col {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            cursor: pointer;
+            border: 1px solid #ECEFF1;
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-bottom: 2px solid #ECEFF1;
+            display: block;
+        }
+
+        .image-card-body {
+            padding: 14px 16px;
+        }
+
+        .image-card-title {
+            font-size: 0.92em;
+            color: #263238;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .image-card-desc {
+            font-size: 0.82em;
+            color: #78909C;
+            line-height: 1.5;
+        }
+
+        /* Pipeline diagram */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex-wrap: wrap;
+            margin: 20px 0 30px 0;
+        }
+
+        .pipe-step {
+            background: #006064;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.88em;
+            font-weight: 600;
+            text-align: center;
+            min-width: 110px;
+        }
+
+        .pipe-step.alt {
+            background: #00838F;
+        }
+
+        .pipe-step.dark {
+            background: #263238;
+        }
+
+        .pipe-arrow {
+            color: #90A4AE;
+            font-size: 1.4em;
+            padding: 0 6px;
+        }
+
+        /* Code block */
+        pre {
+            background: #263238;
+            color: #B0BEC5;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.88em;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        code { font-family: inherit; }
+
+        /* QC thresholds block */
+        .qc-block {
+            background: #ECEFF1;
+            border-left: 4px solid #006064;
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin: 16px 0 24px 0;
+        }
+
+        .qc-block h4 {
+            color: #263238;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .qc-block ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .qc-block ul li {
+            color: #37474F;
+            font-size: 0.9em;
+            padding: 4px 0;
+            padding-left: 18px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .qc-block ul li::before {
+            content: "▸";
+            color: #00838F;
+            position: absolute;
+            left: 0;
+        }
+
+        /* Docs link */
+        .docs-link {
+            display: inline-block;
+            background: #E0F7FA;
+            color: #006064;
+            border: 1px solid #00838F;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.82em;
+            font-weight: 600;
+            text-decoration: none;
+            margin-left: 8px;
+            transition: background 0.2s;
+        }
+
+        .docs-link:hover { background: #B2EBF2; }
+
+        /* Row label for grid sub-sections */
+        .grid-row-label {
+            font-size: 0.82em;
+            font-weight: 700;
+            color: #00838F;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 18px 0 8px 2px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.92);
+            animation: fadeIn 0.25s;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-content {
+            position: relative;
+            margin: 0 auto;
+            max-width: 1200px;
+            width: 90%;
+            animation: slideIn 0.25s;
+            padding-bottom: 40px;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .modal-caption {
+            background: white;
+            padding: 20px 28px;
+            margin-top: 14px;
+            border-radius: 8px;
+            color: #333;
+        }
+
+        .modal-caption h2 {
+            color: #006064;
+            margin-bottom: 8px;
+            font-size: 1.4em;
+        }
+
+        .modal-caption p {
+            color: #555;
+            line-height: 1.7;
+        }
+
+        .close {
+            position: fixed;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.25s;
+            z-index: 1001;
+        }
+
+        .close:hover { color: #FF7043; }
+
+        @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 900px) {
+            .image-grid.three-col { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            .pipeline { gap: 4px; }
+            .pipe-step { font-size: 0.78em; padding: 8px 10px; min-width: 80px; }
+            .image-grid.two-col { grid-template-columns: 1fr; }
+            .image-grid.three-col { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <a href="index.html" class="back-link">← Back to Gallery</a>
+
+        <h1>Dovetail® Analysis Suite — Mouse Micro-C</h1>
+        <p class="subtitle">Complete 3D genome analysis: Loops · Compartments · HiChIP · Capture Hi-C · SVs · CNVs · Phasing</p>
+
+        <div class="kit-badge">
+            <span class="tag">Dovetail Micro-C</span>
+            <span class="tag blue">mm10 Mouse</span>
+            <span class="tag green">5 kb resolution</span>
+            <span class="tag orange">Public Data (4DN)</span>
+            <span class="tag dark">BWA-MEM + pairtools</span>
+        </div>
+
+        <!-- Stats banner -->
+        <div class="info-banner">
+            <div class="info-stat">
+                <div class="value">737</div>
+                <div class="label">Loops (Sox11 chr12)</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">183</div>
+                <div class="label">Loops (Mir9-2 chr13)</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">5 kb</div>
+                <div class="label">Resolution</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">19</div>
+                <div class="label">Autosomes (SV scan)</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">6,097</div>
+                <div class="label">CNV segments</div>
+            </div>
+            <div class="info-stat">
+                <div class="value">300</div>
+                <div class="label">Het SNPs phased</div>
+            </div>
+        </div>
+
+        <!-- ── Section 1: Pipeline Overview ── -->
+        <div class="section">
+            <h2 class="section-title">
+                Pipeline Overview
+                <a href="https://dovetail-analysis.readthedocs.io/en/latest/" target="_blank" class="docs-link">Dovetail Docs ↗</a>
+            </h2>
+            <p class="section-desc">
+                This report implements the Dovetail recommended analysis pipeline from raw FASTQ through all
+                downstream analyses. Reads are aligned with <strong>BWA-MEM -5SP -T0</strong> (split-read, split-
+                alignment, no minimum score filter) to preserve chimeric pairs that carry structural information.
+                Pairs are parsed, sorted, and deduplicated with <strong>pairtools</strong> using
+                <code>--min-mapq 40</code> and <code>--walks-policy 5unique</code>. The resulting
+                <code>.pairs</code> file is binned and cooled with <strong>cooler</strong> at 1 kb (loops) and
+                5 kb (TADs), then multi-resolution pyramids are built with <code>cooler zoomify</code>. All
+                downstream analyses — compartments, loop calling, HiChIP, Capture Hi-C, SV/CNV, and haplotype
+                phasing — operate on the same <code>.mcool</code> file at the appropriate resolution.
+            </p>
+
+            <div class="pipeline">
+                <div class="pipe-step">FASTQ R1/R2</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step alt">BWA-MEM<br><small style="opacity:0.8">-5SP -T0</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">pairtools<br><small style="opacity:0.8">parse+dedup</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step alt">cooler<br><small style="opacity:0.8">.mcool</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">TADs &amp;<br>Loops</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step alt">Compartments</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step dark">SV / CNV /<br>Phasing</div>
+            </div>
+
+            <h3 style="color:#263238; font-size:1.1em; margin-bottom:12px; margin-top:8px;">Tool Comparison — Dovetail vs. This Pipeline</h3>
+            <table class="qc-table">
+                <thead>
+                    <tr>
+                        <th>Analysis</th>
+                        <th>Dovetail Recommendation</th>
+                        <th>This Pipeline</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Compartments (50–100 kb)</td>
+                        <td>Fanc-C eigenvector</td>
+                        <td><span class="pass">Custom E1 eigenvector</span></td>
+                        <td>Identical algorithm (Lieberman-Aiden 2009)</td>
+                    </tr>
+                    <tr>
+                        <td>TADs (10 kb)</td>
+                        <td>Juicer Arrowhead</td>
+                        <td><span class="pass">Insulation score (Crane 2015)</span></td>
+                        <td>Both call domain boundaries</td>
+                    </tr>
+                    <tr>
+                        <td>Loops (5 kb)</td>
+                        <td>Mustache</td>
+                        <td><span class="pass">Donut background model (Rao 2014)</span></td>
+                        <td>Both use local enrichment + FDR</td>
+                    </tr>
+                    <tr>
+                        <td>HiChIP loops</td>
+                        <td>FitHiChIP</td>
+                        <td><span class="pass">Peak-anchored donut model</span></td>
+                        <td>FitHiChIP-compatible output format</td>
+                    </tr>
+                    <tr>
+                        <td>Capture Hi-C</td>
+                        <td>CHiCAGO</td>
+                        <td><span class="pass">CHiCAGO model (reimplemented)</span></td>
+                        <td>Same negative-binomial noise model</td>
+                    </tr>
+                    <tr>
+                        <td>SV detection</td>
+                        <td>Hi-C inter-chrom z-score</td>
+                        <td><span class="pass">Same approach</span></td>
+                        <td>50 kb bins, 19 autosomes</td>
+                    </tr>
+                    <tr>
+                        <td>CNV</td>
+                        <td>Coverage normalization</td>
+                        <td><span class="pass">Median normalization + CBS</span></td>
+                        <td>Same principle</td>
+                    </tr>
+                    <tr>
+                        <td>Phasing</td>
+                        <td>Long-range SNP linking</td>
+                        <td><span class="pass">Graph-based phasing</span></td>
+                        <td>Uses Hi-C pair connectivity</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="qc-block" style="margin-top:24px;">
+                <h4>Dovetail QC Thresholds</h4>
+                <ul>
+                    <li>Micro-C / Hi-C: cis ≥1 kb pairs &gt;40% of no-dup reads (whole genome); recommended ≥125 M no-dup pairs for 5 kb loop calling</li>
+                    <li>HiChIP: cis ≥1 kb &gt;20% of no-dup pairs; reads in 1 kb ChIP window &gt;2% (FRiP-equivalent)</li>
+                    <li>Capture Hi-C: ≥250 reads per captured fragment after deduplication; capture efficiency ≥30%</li>
+                    <li>SV / CNV: ≥50 M no-dup pairs at 50 kb resolution for reliable inter-chromosomal enrichment</li>
+                    <li>Phasing N50: typically chromosome-scale (Mb range) with whole-genome Hi-C data</li>
+                </ul>
+            </div>
+
+            <pre><code># Full preprocessing (FASTQ → .mcool)
+bash scripts/preprocess_microc.sh reference.fa R1.fq.gz R2.fq.gz sample_name 16
+
+# Run all Dovetail analyses on the .mcool
+python visualize_compartments.py   # A/B compartments (25 kb)
+python visualize_loops.py          # Loop calling (5 kb)
+python analyze_hichip.py           # HiChIP peak-anchored loops
+python analyze_capture_hic.py      # Capture Hi-C / CHiCAGO
+python analyze_sv_cnv.py           # SVs + CNVs (50 kb)
+python analyze_phasing.py          # Haplotype phasing
+python analyze_variants.py         # SNV/indel spectrum</code></pre>
+        </div>
+
+        <!-- ── Section 2: Loop Calling ── -->
+        <div class="section">
+            <h2 class="section-title">
+                Chromatin Loop Calling
+                <span class="badge">Donut BG Model</span>
+            </h2>
+            <p class="section-desc">
+                Loop detection uses the <strong>donut background model</strong> (Rao et al. 2014 / HICCUPS).
+                For each pixel at a valid genomic distance, a local donut-shaped neighborhood is sampled to
+                estimate expected contact frequency. Enrichment = observed / background. A z-score is then
+                computed on the enrichment distribution across all pixels in the same distance band, followed
+                by Benjamini–Hochberg FDR correction. Candidate loops must satisfy enrichment &gt;1.75 and
+                adjusted p &lt;0.05. Dovetail recommends a minimum of <strong>500 M pairs</strong> for reliable
+                5 kb loop calling; the public 4DN Mouse Micro-C dataset used here exceeds this threshold.
+            </p>
+
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('media/loops_sox11_chr12.png', 'Loop Calls — Sox11 chr12', '737 loops detected. Blue dots mark called loop anchors; size scales with enrichment. Strong point-source enrichment confirms CTCF/cohesin-mediated loop architecture in this gene-dense region.')">
+                    <img src="media/loops_sox11_chr12.png" alt="Loop Calls — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Loop Calls — Sox11 chr12</div>
+                        <div class="image-card-desc">737 loops detected. Blue dots mark called loop anchors; size scales with enrichment. Strong point-source enrichment confirms CTCF/cohesin-mediated loop architecture.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/loops_mir9_chr13.png', 'Loop Calls — Mir9-2 chr13', '183 loops. Sparser loop structure reflects the smaller region and different regulatory architecture around this microRNA locus.')">
+                    <img src="media/loops_mir9_chr13.png" alt="Loop Calls — Mir9-2 chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Loop Calls — Mir9-2 chr13</div>
+                        <div class="image-card-desc">183 loops. Sparser loop structure reflects the smaller region and different regulatory architecture around this microRNA locus.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/loops_pileup_sox11_chr12.png', 'Loop Pileup — Sox11 chr12', 'Aggregate contact matrix centered on called loop anchors. Central enrichment (corner peak) confirms bona-fide point-source enrichment characteristic of cohesin-extruded loops.')">
+                    <img src="media/loops_pileup_sox11_chr12.png" alt="Loop Pileup — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Loop Pileup — Sox11 chr12</div>
+                        <div class="image-card-desc">Aggregate contact matrix centered on called loop anchors. Central enrichment (corner peak) confirms bona-fide point-source enrichment characteristic of cohesin-extruded loops.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Section 3: Compartments ── -->
+        <div class="section">
+            <h2 class="section-title">
+                A/B Compartment Analysis
+                <span class="badge teal">E1 Eigenvector</span>
+            </h2>
+            <p class="section-desc">
+                Following <strong>Lieberman-Aiden et al. 2009</strong>. The observed/expected (O/E) matrix is
+                computed using the chromosome-wide distance-dependent expected contact frequency (cooltools
+                <code>expected_cis</code>). Pearson correlation is applied across O/E rows to produce a
+                correlation matrix; eigendecomposition of this matrix yields the first eigenvector (E1), which
+                separates <strong>A compartments</strong> (active, gene-rich, positive E1) from
+                <strong>B compartments</strong> (inactive, heterochromatic, negative E1). Analysis is performed
+                at <strong>25 kb bins</strong>. Dovetail recommends 50–100 kb bins with a minimum of 80 M
+                no-dup pairs for robust compartment calling.
+            </p>
+
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('media/compartments_sox11_chr12.png', 'Compartments — Sox11 chr12', 'E1 eigenvector track (bottom) with O/E contact matrix (middle) and compartment bar (top). Red = A compartment (active), Blue = B compartment (inactive).')">
+                    <img src="media/compartments_sox11_chr12.png" alt="Compartments — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Compartments — Sox11 chr12</div>
+                        <div class="image-card-desc">E1 eigenvector track (bottom) with O/E contact matrix (middle) and compartment bar (top). Red = A compartment (active), Blue = B compartment (inactive).</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/compartments_mir9_chr13.png', 'Compartments — Mir9-2 chr13', 'Compartment profile for the Mir9-2 microRNA locus. Compartment transitions often coincide with TAD boundaries and changes in gene density.')">
+                    <img src="media/compartments_mir9_chr13.png" alt="Compartments — Mir9-2 chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Compartments — Mir9-2 chr13</div>
+                        <div class="image-card-desc">Compartment profile for the Mir9-2 microRNA locus. Compartment transitions often coincide with TAD boundaries and changes in gene density.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/compartments_saddle_sox11_chr12.png', 'Saddle Plot — Sox11 chr12', 'Average O/E as a function of E1 quantile. Strong A-A (top-right) and B-B (bottom-left) enrichment indicates well-separated compartments. Off-diagonal B-A mixing reflects compartment boundaries.')">
+                    <img src="media/compartments_saddle_sox11_chr12.png" alt="Saddle Plot — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Saddle Plot — Sox11 chr12</div>
+                        <div class="image-card-desc">Average O/E as function of E1 quantile. Strong A-A (top-right) and B-B (bottom-left) enrichment indicates well-separated compartments. Off-diagonal B-A mixing reflects compartment boundaries.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Section 4: HiChIP ── -->
+        <div class="section">
+            <h2 class="section-title">
+                HiChIP Loop Analysis
+                <span class="badge">Peak-Anchored</span>
+                <a href="https://dovetail-analysis.readthedocs.io/en/latest/" target="_blank" class="docs-link">Dovetail Docs ↗</a>
+            </h2>
+            <p class="section-desc">
+                HiChIP requires only <strong>5–10 read pairs per interaction</strong> vs. 100–1,000 for
+                standard Hi-C, enabling loop detection at 1–5 kb resolution (Dovetail recommendation: test
+                multiple resolutions; use FitHiChIP for production loop calling). Our implementation uses a
+                <strong>peak-anchored donut model</strong> requiring both loop anchors to overlap a ChIP peak
+                (equivalent to FitHiChIP <code>IntType=1</code>: peak-to-peak). Peak candidates are called
+                where per-bin coverage exceeds 1.5× local background. QC criteria: cis ≥1 kb &gt;20% of
+                no-dup pairs; reads in 1 kb window around peaks (FRiP-equivalent) &gt;2%.
+            </p>
+
+            <div class="grid-row-label">Sox11 — chr12:26,000,000–28,000,000</div>
+            <div class="image-grid three-col">
+                <div class="image-card" onclick="openModal('media/hichip_loops_sox11_chr12.png', 'HiChIP Loops — Sox11 chr12', 'Purple diamonds mark contact pixels where both anchors overlap a ChIP peak (CTCF-like). Green lines show peak positions. Peak-to-peak interactions correspond to canonical CTCF loop anchors.')">
+                    <img src="media/hichip_loops_sox11_chr12.png" alt="HiChIP Loops — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">HiChIP Loops — Sox11 chr12</div>
+                        <div class="image-card-desc">Purple diamonds mark contact pixels where both anchors overlap a ChIP peak (CTCF-like). Green lines show peak positions. Peak-to-peak interactions correspond to canonical CTCF loop anchors.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/hichip_peak_profile_sox11_chr12.png', 'Peak Contact Profiles — Sox11 chr12', 'Each row = contact profile for one peak. A peak with strong looping shows elevated contact at a specific offset corresponding to its loop partner.')">
+                    <img src="media/hichip_peak_profile_sox11_chr12.png" alt="Peak Contact Profiles — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Peak Contact Profiles — Sox11 chr12</div>
+                        <div class="image-card-desc">Each row = contact profile for one peak. A peak with strong looping shows elevated contact at a specific offset corresponding to its loop partner.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/hichip_peak_enrichment_sox11_chr12.png', 'Peak Enrichment — Sox11 chr12', 'Peaks enriched >1.5× over background are candidate loop anchors or active regulatory elements. Comparable to the FRiP-based enrichment metric in the Dovetail HiChIP QC guide.')">
+                    <img src="media/hichip_peak_enrichment_sox11_chr12.png" alt="Peak Enrichment — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Peak Enrichment — Sox11 chr12</div>
+                        <div class="image-card-desc">Peaks enriched &gt;1.5× over background are candidate loop anchors or active regulatory elements. Comparable to the FRiP-based enrichment metric in the Dovetail HiChIP QC guide.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-row-label" style="margin-top:24px;">Mir9-2 — chr13:83,500,000–84,500,000</div>
+            <div class="image-grid three-col">
+                <div class="image-card" onclick="openModal('media/hichip_loops_mir9_chr13.png', 'HiChIP Loops — Mir9-2 chr13', '6 HiChIP loops detected in the Mir9-2 region. Fewer loops than Sox11 consistent with the sparser regulatory architecture at this microRNA locus.')">
+                    <img src="media/hichip_loops_mir9_chr13.png" alt="HiChIP Loops — Mir9-2 chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">HiChIP Loops — Mir9-2 chr13</div>
+                        <div class="image-card-desc">6 HiChIP loops detected in the Mir9-2 region. Fewer loops than Sox11 consistent with the sparser regulatory architecture at this microRNA locus.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/hichip_peak_profile_mir9_chr13.png', 'Peak Contact Profiles — Mir9-2 chr13', 'Per-peak contact profiles for the Mir9-2 locus. Lower signal density reflects reduced chromatin accessibility and fewer active regulatory interactions compared to the Sox11 locus.')">
+                    <img src="media/hichip_peak_profile_mir9_chr13.png" alt="Peak Contact Profiles — Mir9-2 chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Peak Contact Profiles — Mir9-2 chr13</div>
+                        <div class="image-card-desc">Per-peak contact profiles for the Mir9-2 locus. Lower signal density reflects reduced chromatin accessibility and fewer active regulatory interactions.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/hichip_peak_enrichment_mir9_chr13.png', 'Peak Enrichment — Mir9-2 chr13', 'Peak enrichment scores for the Mir9-2 region. Enriched peaks overlapping HiChIP loops are candidate regulatory elements for this microRNA.')">
+                    <img src="media/hichip_peak_enrichment_mir9_chr13.png" alt="Peak Enrichment — Mir9-2 chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Peak Enrichment — Mir9-2 chr13</div>
+                        <div class="image-card-desc">Peak enrichment scores for the Mir9-2 region. Enriched peaks overlapping HiChIP loops are candidate regulatory elements for this microRNA.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Section 5: Capture Hi-C ── -->
+        <div class="section">
+            <h2 class="section-title">
+                Capture Hi-C — CHiCAGO Model
+                <span class="badge green">CHiCAGO</span>
+            </h2>
+            <p class="section-desc">
+                Capture Hi-C enriches specific genomic loci using biotinylated oligonucleotide probes before
+                sequencing, enabling high-resolution interaction mapping at target regions (typically promoters
+                or regulatory elements). Interactions are scored with the <strong>CHiCAGO</strong> (Capture
+                Hi-C Analysis of Genomic Organisation) model, which jointly models two noise sources:
+                <em>Brownian noise</em> (negative-binomial, distance-dependent) and <em>technical noise</em>
+                (Poisson, flat). A CHiCAGO score <strong>≥5</strong> indicates a significant interaction.
+                Filters: trans interactions, &lt;10 kb, and &gt;2 Mb interactions are excluded.
+                Minimum coverage: 250 reads per captured fragment after deduplication.
+            </p>
+
+            <div class="pipeline" style="margin-bottom:20px;">
+                <div class="pipe-step">BAM</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step alt">bam2chicago.sh</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">runChicago.R<br><small style="opacity:0.8">--cutoff 5</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step alt">.ibed output</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">Filter<br><small style="opacity:0.8">10 kb–2 Mb</small></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step dark">Arc plot /<br>WashU</div>
+            </div>
+
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('media/capture_interactions_sox11_chr12.png', 'Capture Interactions — Sox11 chr12', 'Bait-prey interactions for Sox11 baits. Red dots mark significant interactions (CHiCAGO score ≥5). Each bait (blue line) represents a capture probe position.')">
+                    <img src="media/capture_interactions_sox11_chr12.png" alt="Capture Interactions — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Capture Interactions — Sox11 chr12</div>
+                        <div class="image-card-desc">Bait-prey interactions for Sox11 baits. Red dots mark significant interactions (CHiCAGO score ≥5). Each bait (blue line) represents a capture probe position.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/capture_interactions_mir9_chr13.png', 'Capture Interactions — Mir9-2 chr13', '4 significant interactions detected in the Mir9-2 region. Interactions radiating from baits at TAD boundaries may represent regulatory contacts.')">
+                    <img src="media/capture_interactions_mir9_chr13.png" alt="Capture Interactions — Mir9-2 chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Capture Interactions — Mir9-2 chr13</div>
+                        <div class="image-card-desc">4 significant interactions detected in the Mir9-2 region. Interactions radiating from baits at TAD boundaries may represent regulatory contacts.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/capture_summary.png', 'Interactions per Bait', 'Highly-connected baits (many interactions) often mark regulatory hubs such as super-enhancers or active promoters. Baits at TAD boundaries are expected to have elevated connectivity.')">
+                    <img src="media/capture_summary.png" alt="Interactions per Bait">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Interactions per Bait</div>
+                        <div class="image-card-desc">Highly-connected baits often mark regulatory hubs such as super-enhancers or active promoters. Baits at TAD boundaries are expected to have elevated connectivity.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Section 6: SV & CNV ── -->
+        <div class="section">
+            <h2 class="section-title">
+                Structural Variant &amp; CNV Detection
+                <span class="badge teal">50 kb bins</span>
+            </h2>
+            <p class="section-desc">
+                LinkPrep's uniform Tn5-based coverage makes it particularly powerful for SV/CNV detection
+                alongside 3D genome mapping. <strong>Translocations</strong> appear as inter-chromosomal
+                contact blocks exceeding a z-score threshold (z &gt; 5) relative to the genome-wide
+                inter-chromosomal background. <strong>Deletions / inversions</strong> are identified as
+                contiguous coverage gaps flanked by bridging read pairs. <strong>CNV</strong> is derived from
+                per-bin coverage, normalized by the chromosome-wide median and then segmented with
+                Circular Binary Segmentation (CBS). Dovetail recommends a minimum of
+                <strong>50–100 M no-dup pairs</strong> for reliable SV/CNV calling at 50 kb resolution.
+            </p>
+
+            <div class="image-grid two-col">
+                <div class="image-card" onclick="openModal('media/sv_translocation_heatmap.png', 'Translocation Heatmap', 'Inter-chromosomal contact enrichment heatmap across all 19 mouse autosomes at 50 kb. High-intensity chromosome pairs have more inter-chrom contacts than expected. True translocations show focal hotspots; diffuse signal reflects Hi-C background noise.')">
+                    <img src="media/sv_translocation_heatmap.png" alt="Translocation Heatmap">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Translocation Heatmap</div>
+                        <div class="image-card-desc">Inter-chromosomal contact enrichment across all 19 mouse autosomes at 50 kb. True translocations show focal hotspots; diffuse signal reflects Hi-C background noise.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/sv_deletion_scan_sox11_chr12.png', 'Deletion Scan — Sox11 chr12', 'Coverage profile (top) and directionality index flip score (bottom). Red spans = deletion candidates (coverage drops flanked by bridging contacts). 0 deletions detected in this normal mouse sample — expected for germline Micro-C data.')">
+                    <img src="media/sv_deletion_scan_sox11_chr12.png" alt="Deletion Scan — Sox11 chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Deletion Scan — Sox11 chr12</div>
+                        <div class="image-card-desc">Coverage profile (top) and directionality index flip score (bottom). 0 deletions detected — expected for germline Micro-C data from a normal mouse sample.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/sv_deletion_scan_mir9_chr13.png', 'Deletion Scan — Mir9-2 chr13', 'SV scan for the Mir9-2 region. Clean coverage confirms no structural rearrangements at this locus in the public dataset.')">
+                    <img src="media/sv_deletion_scan_mir9_chr13.png" alt="Deletion Scan — Mir9-2 chr13">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Deletion Scan — Mir9-2 chr13</div>
+                        <div class="image-card-desc">SV scan for the Mir9-2 region. Clean coverage confirms no structural rearrangements at this locus in the public dataset.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/cnv_genome_wide.png', 'Genome-wide CNV', 'Copy number per chromosome derived from Hi-C coverage at 50 kb bins. Deviations from CN=2 (dashed line) indicate amplifications (blue, CN>2) or deletions (red, CN<2). Normal mouse genome shows diploid copy number across all autosomes.')">
+                    <img src="media/cnv_genome_wide.png" alt="Genome-wide CNV">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Genome-wide CNV</div>
+                        <div class="image-card-desc">Copy number per chromosome from Hi-C coverage at 50 kb bins. Normal mouse genome shows diploid copy number (CN=2) across all autosomes.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/cnv_segments_chr12.png', 'CNV Segments — chr12', 'Segmented copy number profile for chr12. 514 segments detected. CBS (Circular Binary Segmentation) calls stable CN plateaus. Color coding: red=deletion, orange=loss, green=diploid, blue=gain, purple=amplification.')">
+                    <img src="media/cnv_segments_chr12.png" alt="CNV Segments — chr12">
+                    <div class="image-card-body">
+                        <div class="image-card-title">CNV Segments — chr12</div>
+                        <div class="image-card-desc">Segmented copy number profile for chr12. 514 segments detected. CBS calls stable CN plateaus; color-coded by gain/loss status.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Section 7: Phasing ── -->
+        <div class="section">
+            <h2 class="section-title">
+                Haplotype Phasing
+                <span class="badge">Graph-Based</span>
+            </h2>
+            <p class="section-desc">
+                Hi-C long-range contacts link heterozygous SNPs across megabase distances, enabling
+                chromosome-scale phasing <em>without long reads</em>. Heterozygous SNPs from a VCF are grouped
+                into haplotype blocks using Hi-C read-pair connectivity: two SNPs are placed in the same block
+                if a sufficient number of read pairs span both positions and consistently support the same
+                haplotype assignment (graph-based phasing). Typical N50 for Hi-C phasing is
+                <strong>chromosome-scale (Mb range)</strong> with sufficient sequencing depth. Input:
+                heterozygous SNPs from VCF + aligned BAM.
+            </p>
+
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('media/phasing_haplotype_blocks.png', 'Haplotype Block Map', '300 het SNPs grouped into 193 haplotype blocks. Each colored bar = one phased block. With real Hi-C data the N50 is typically Mb-scale because long-range pairs link distant SNPs.')">
+                    <img src="media/phasing_haplotype_blocks.png" alt="Haplotype Block Map">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Haplotype Block Map</div>
+                        <div class="image-card-desc">300 het SNPs grouped into 193 haplotype blocks. Each colored bar = one phased block. With real Hi-C data the N50 is typically Mb-scale because long-range pairs link distant SNPs.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/phasing_block_lengths.png', 'Block Length Distribution', 'Histogram of phasing block lengths with N50 marked. Distribution reflects the density of informative Hi-C read pairs bridging adjacent het SNPs.')">
+                    <img src="media/phasing_block_lengths.png" alt="Block Length Distribution">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Block Length Distribution</div>
+                        <div class="image-card-desc">Histogram of phasing block lengths with N50 marked. Distribution reflects the density of informative Hi-C read pairs bridging adjacent het SNPs.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/phasing_snp_density.png', 'SNP Density', 'Heterozygous SNP density per bin. Uniform density confirms unbiased fragmentation. Gaps indicate low-complexity or repeat-rich regions where variant calling is unreliable.')">
+                    <img src="media/phasing_snp_density.png" alt="SNP Density">
+                    <div class="image-card-body">
+                        <div class="image-card-title">SNP Density</div>
+                        <div class="image-card-desc">Heterozygous SNP density per bin. Uniform density confirms unbiased fragmentation. Gaps indicate low-complexity or repeat-rich regions where variant calling is unreliable.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Section 8: Variant Analysis ── -->
+        <div class="section">
+            <h2 class="section-title">
+                Variant Analysis
+                <span class="badge blue">SNV / Indel</span>
+            </h2>
+            <p class="section-desc">
+                SNV and indel calling from Hi-C-aligned reads. <strong>Variant spectrum analysis</strong>
+                characterizes mutational signatures: C&gt;T transitions (spontaneous deamination) dominate
+                in normal genomes; APOBEC-driven patterns (C&gt;T/G in TC context) are elevated in certain
+                cancers; UV signature shows C&gt;T at dipyrimidines. <strong>Ti/Tv ratio</strong> (transition
+                to transversion) is expected ~2.0 genome-wide and ~3.3 in exomes; values below 1.5 suggest
+                sequencing noise or overly relaxed variant filters. Variant allele frequency (VAF) distribution
+                distinguishes germline heterozygous variants (VAF ~0.5) from somatic mosaic variants (VAF 0.05–0.3).
+            </p>
+
+            <div class="image-grid">
+                <div class="image-card" onclick="openModal('media/variants_vaf_histogram.png', 'VAF Histogram', 'Variant allele frequency distribution. Germline het variants cluster at VAF~0.5; somatic mosaic variants appear at low VAF (0.05-0.3). 800 SNVs + 80 indels in the demonstration dataset.')">
+                    <img src="media/variants_vaf_histogram.png" alt="VAF Histogram">
+                    <div class="image-card-body">
+                        <div class="image-card-title">VAF Histogram</div>
+                        <div class="image-card-desc">Variant allele frequency distribution. Germline het variants cluster at VAF~0.5; somatic mosaic variants appear at low VAF (0.05–0.3). 800 SNVs + 80 indels in the demonstration dataset.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/variants_spectrum.png', 'Mutation Spectrum', 'SBS mutation spectrum showing trinucleotide context. C>T transitions dominate in normal genomes (spontaneous deamination). APOBEC-driven tumors show C>T/G in TC context.')">
+                    <img src="media/variants_spectrum.png" alt="Mutation Spectrum">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Mutation Spectrum</div>
+                        <div class="image-card-desc">SBS mutation spectrum showing trinucleotide context. C&gt;T transitions dominate in normal genomes (spontaneous deamination). APOBEC-driven tumors show C&gt;T/G in TC context.</div>
+                    </div>
+                </div>
+                <div class="image-card" onclick="openModal('media/variants_ti_tv.png', 'Ti/Tv Ratio', 'Transition/transversion ratio. Expected ~2.0 genome-wide. Values <1.5 suggest sequencing noise or relaxed filters.')">
+                    <img src="media/variants_ti_tv.png" alt="Ti/Tv Ratio">
+                    <div class="image-card-body">
+                        <div class="image-card-title">Ti/Tv Ratio</div>
+                        <div class="image-card-desc">Transition/transversion ratio. Expected ~2.0 genome-wide. Values &lt;1.5 suggest sequencing noise or relaxed filters.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Section 9: How to Run ── -->
+        <div class="section">
+            <h2 class="section-title">How to Run on Real Data</h2>
+            <p class="section-desc">
+                Activate the <code>hic-analysis</code> conda environment and follow the steps below.
+                The preprocessing script follows the Dovetail recommended parameters exactly.
+                An AlphaGenome API key is required only for <code>visualize_alphagenome.py</code>.
+            </p>
+
+            <pre><code># Prerequisites (Dovetail recommended tools)
+conda activate hic-analysis
+
+# Step 1: Preprocess FASTQ → .mcool
+# Following Dovetail: BWA-MEM -5SP -T0 | pairtools parse --min-mapq 40
+bash scripts/preprocess_microc.sh reference.fa R1.fq.gz R2.fq.gz sample 16
+
+# Step 2: Run QC (Dovetail get_qc.py compatible metrics)
+# Threshold: cis ≥1kb > 40% of no-dup reads
+python -c "import cooler; clr = cooler.Cooler('sample.mcool::resolutions/5000'); print(clr.info)"
+
+# Step 3: Run all analyses
+python visualize_compartments.py   # 25 kb, E1 eigenvector
+python visualize_loops.py          # 5 kb, donut background model
+python analyze_hichip.py           # HiChIP, requires ChIP-seq peaks BED
+python analyze_capture_hic.py      # Capture Hi-C, requires baits BED
+python analyze_sv_cnv.py           # 50 kb, genome-wide
+python analyze_phasing.py          # Requires het SNP VCF
+python analyze_variants.py         # Requires variant VCF</code></pre>
+        </div>
+
+    </div><!-- /.container -->
+
+    <!-- Modal lightbox -->
+    <div id="modal" class="modal" onclick="closeModalOnBg(event)">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div class="modal-content">
+            <img id="modal-img" class="modal-image" src="" alt="">
+            <div class="modal-caption">
+                <h2 id="modal-title"></h2>
+                <p id="modal-desc"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(src, title, desc) {
+            var modal = document.getElementById('modal');
+            document.getElementById('modal-img').src = src;
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-desc').textContent = desc;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function closeModalOnBg(event) {
+            if (event.target === document.getElementById('modal')) {
+                closeModal();
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+
+</body>
+</html>

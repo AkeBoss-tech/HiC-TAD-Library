@@ -340,9 +340,15 @@
                 interpretation. Open in a new tab for the complete analysis.
             </p>
             <div class="interactive-grid">
+                <a href="DOVETAIL.html" class="interactive-card report-card" target="_blank" style="background: linear-gradient(135deg, #006064 0%, #004D40 100%);">
+                    <div class="icon">🧬</div>
+                    <h3>Dovetail® Analysis Suite <span class="badge badge-new">NEW</span></h3>
+                    <p>Full pipeline: Loops · Compartments</p>
+                    <p style="font-size:0.85em;margin-top:10px;">HiChIP · Capture · SVs · CNVs · Phasing</p>
+                </a>
                 <a href="LINKPREP.html" class="interactive-card report-card" target="_blank" style="background: linear-gradient(135deg, #37474F 0%, #263238 100%);">
                     <div class="icon">🔗</div>
-                    <h3>LinkPrep™ Analysis <span class="badge badge-new">NEW</span></h3>
+                    <h3>LinkPrep™ Analysis</h3>
                     <p>Dovetail Tn5 proximity ligation</p>
                     <p style="font-size:0.85em;margin-top:10px;">TADs · SVs · CNVs · Phasing</p>
                 </a>
@@ -566,6 +572,129 @@
                     onclick="openModal('media/tal1_variant_positions.png', 'TAL1 Variant Positions', 'Genomic positions of oncogenic T-ALL variants that dysregulate TAL1 expression. The variants cluster in three regions near the TAL1 gene.')">
                     <img src="media/tal1_variant_positions.png" alt="Variant Positions">
                     <div class="image-card-title">TAL1 Variant Positions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dovetail Analysis Suite Gallery -->
+        <div class="section">
+            <h2 class="section-title" style="border-color:#006064; color:#006064;">Dovetail® Analysis Suite <span class="badge badge-new">NEW</span></h2>
+            <p style="color:#555; margin-bottom:6px; line-height:1.7;">
+                Full Dovetail-aligned pipeline run on the public mouse Micro-C dataset (4DN, mm10, 5 kb).
+                Implements all recommended Dovetail analysis branches: loops, compartments, HiChIP, Capture Hi-C, SVs, CNVs, and phasing.
+                <a href="DOVETAIL.html" target="_blank" style="color:#006064; font-weight:600; text-decoration:none; margin-left:8px;">→ Full Report</a>
+            </p>
+            <h3 style="margin: 22px 0 14px 0; color: #555; font-size: 1.2em;">Chromatin Loops (Donut Background Model)</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/loops_sox11_chr12.png', 'Loop Calls — Sox11 chr12', '737 loops detected using a donut background model (Rao et al. 2014 / HICCUPS-style). Blue dots mark called loop anchors; size scales with enrichment z-score. Strong point-source enrichment confirms CTCF/cohesin-mediated loop architecture.')">
+                    <img src="media/loops_sox11_chr12.png" alt="Loops Sox11">
+                    <div class="image-card-title">Loops — Sox11 chr12 (737 loops)</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/loops_mir9_chr13.png', 'Loop Calls — Mir9-2 chr13', '183 loops detected in the Mir9-2 region. Sparser loop structure reflects the different regulatory architecture around this microRNA locus compared to the gene-dense Sox11 region.')">
+                    <img src="media/loops_mir9_chr13.png" alt="Loops Mir9-2">
+                    <div class="image-card-title">Loops — Mir9-2 chr13 (183 loops)</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/loops_pileup_sox11_chr12.png', 'Loop Pileup — Sox11 chr12', 'Aggregate contact matrix centered on all called loop anchors. Central enrichment (corner peak) confirms bona-fide point-source enrichment characteristic of cohesin-extruded CTCF loops.')">
+                    <img src="media/loops_pileup_sox11_chr12.png" alt="Loop pileup">
+                    <div class="image-card-title">Loop Pileup — Sox11 chr12</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 30px 0 14px 0; color: #555; font-size: 1.2em;">A/B Compartments (E1 Eigenvector)</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/compartments_sox11_chr12.png', 'A/B Compartments — Sox11 chr12', 'E1 eigenvector track (bottom) with O/E contact matrix (middle) and compartment bar (top). Computed at 25 kb using cooltools expected_cis on the full chromosome. Red = A compartment (active chromatin), Blue = B compartment (inactive).')">
+                    <img src="media/compartments_sox11_chr12.png" alt="Compartments Sox11">
+                    <div class="image-card-title">Compartments — Sox11 chr12</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/compartments_mir9_chr13.png', 'A/B Compartments — Mir9-2 chr13', 'Compartment profile for the Mir9-2 microRNA locus at 25 kb. Compartment transitions often coincide with TAD boundaries. Sign of E1 oriented by gene density — positive = A (active).')">
+                    <img src="media/compartments_mir9_chr13.png" alt="Compartments Mir9-2">
+                    <div class="image-card-title">Compartments — Mir9-2 chr13</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/compartments_saddle_sox11_chr12.png', 'Compartment Saddle Plot — Sox11 chr12', 'Average O/E contact frequency as a function of E1 quantile. Strong A-A enrichment (top-right) and B-B enrichment (bottom-left) indicate well-separated compartments. Off-diagonal mixing reflects compartment boundaries or transitions.')">
+                    <img src="media/compartments_saddle_sox11_chr12.png" alt="Saddle plot">
+                    <div class="image-card-title">Compartment Saddle Plot — Sox11</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 30px 0 14px 0; color: #555; font-size: 1.2em;">HiChIP — Peak-Anchored Loops</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/hichip_loops_sox11_chr12.png', 'HiChIP Loops — Sox11 chr12', 'Purple diamonds mark contact pixels where both anchors overlap a CTCF-like ChIP peak. Green lines show peak positions. Peak-to-peak interactions correspond to canonical CTCF loop anchors (FitHiChIP IntType=1 equivalent).')">
+                    <img src="media/hichip_loops_sox11_chr12.png" alt="HiChIP loops Sox11">
+                    <div class="image-card-title">HiChIP Loops — Sox11 chr12</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/hichip_loops_mir9_chr13.png', 'HiChIP Loops — Mir9-2 chr13', '6 HiChIP loops detected in the Mir9-2 region using peak-anchored donut model. Fewer loops than Sox11 consistent with sparser regulatory architecture.')">
+                    <img src="media/hichip_loops_mir9_chr13.png" alt="HiChIP loops Mir9-2">
+                    <div class="image-card-title">HiChIP Loops — Mir9-2 chr13</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/hichip_peak_enrichment_sox11_chr12.png', 'HiChIP Peak Enrichment — Sox11 chr12', 'Peaks enriched >1.5× over background are candidate loop anchors or active regulatory elements. Comparable to the FRiP-based enrichment metric in the Dovetail HiChIP QC guide (threshold: >2% of reads in 1 kb around peak centers).')">
+                    <img src="media/hichip_peak_enrichment_sox11_chr12.png" alt="HiChIP enrichment">
+                    <div class="image-card-title">HiChIP Peak Enrichment — Sox11</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 30px 0 14px 0; color: #555; font-size: 1.2em;">Capture Hi-C — CHiCAGO Model</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/capture_interactions_sox11_chr12.png', 'Capture Hi-C — Sox11 chr12', '1 significant interaction detected for Sox11 chr12 baits (CHiCAGO score ≥5). Baits placed at TAD boundaries. Red dots mark significant interactions; arcs connect bait to prey (Other-End Fragment).')">
+                    <img src="media/capture_interactions_sox11_chr12.png" alt="Capture Sox11">
+                    <div class="image-card-title">Capture Interactions — Sox11 chr12</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/capture_interactions_mir9_chr13.png', 'Capture Hi-C — Mir9-2 chr13', '4 significant interactions detected for Mir9-2 chr13 baits. Interactions at TAD boundaries may represent regulatory contacts linking enhancers to the microRNA locus promoter.')">
+                    <img src="media/capture_interactions_mir9_chr13.png" alt="Capture Mir9-2">
+                    <div class="image-card-title">Capture Interactions — Mir9-2 chr13</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/capture_summary.png', 'Capture Hi-C Summary', 'Interactions per bait fragment. Highly connected baits often mark regulatory hubs (super-enhancers or bidirectional promoters). CHiCAGO minimum: 250 reads/fragment; distance filter: 10 kb–2 Mb.')">
+                    <img src="media/capture_summary.png" alt="Capture summary">
+                    <div class="image-card-title">Capture Hi-C Summary</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 30px 0 14px 0; color: #555; font-size: 1.2em;">Structural Variants &amp; CNV</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/sv_translocation_heatmap.png', 'Translocation Heatmap', 'Inter-chromosomal contact enrichment across all 19 mouse autosomes at 50 kb resolution. High-intensity chromosome pairs have more inter-chrom contacts than expected — candidate translocation hotspots. Diffuse signal reflects Hi-C background noise rather than true rearrangements in this normal mouse sample.')">
+                    <img src="media/sv_translocation_heatmap.png" alt="Translocation heatmap">
+                    <div class="image-card-title">Translocation Heatmap (19 autosomes)</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/cnv_genome_wide.png', 'Genome-wide CNV', 'Copy number per chromosome derived from Hi-C read coverage at 50 kb bins. Deviations from CN=2 (dashed line) indicate amplifications (blue) or deletions (red). Normal diploid mouse genome — no major CNVs in this public dataset.')">
+                    <img src="media/cnv_genome_wide.png" alt="CNV genome-wide">
+                    <div class="image-card-title">Genome-wide CNV Profile</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/cnv_segments_chr12.png', 'CNV Segments — chr1', 'Segmented copy number profile for chr1 (514 CBS segments). Color coding: red=deletion, orange=loss, green=diploid, blue=gain, purple=amplification. Circular Binary Segmentation (CBS) calls stable CN plateaus.')">
+                    <img src="media/cnv_segments_chr12.png" alt="CNV segments">
+                    <div class="image-card-title">CNV Segments — chr1</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 30px 0 14px 0; color: #555; font-size: 1.2em;">Haplotype Phasing &amp; Variants</h3>
+            <div class="image-grid">
+                <div class="image-card"
+                    onclick="openModal('media/phasing_haplotype_blocks.png', 'Haplotype Block Map', '300 het SNPs grouped into 193 haplotype blocks using Hi-C long-range pair connectivity. Each colored bar = one phased block. In real data, Hi-C phasing achieves Mb-scale N50 because long-range contacts link distant het SNPs across megabases.')">
+                    <img src="media/phasing_haplotype_blocks.png" alt="Haplotype blocks">
+                    <div class="image-card-title">Haplotype Block Map (193 blocks)</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/variants_spectrum.png', 'Mutation Spectrum', 'SBS trinucleotide mutation spectrum. C>T transitions dominate in normal genomes (spontaneous deamination). APOBEC-driven samples show C>T/G in TC context; UV damage shows CC>TT. Ti/Tv ratio: expected ~2.0 genome-wide.')">
+                    <img src="media/variants_spectrum.png" alt="Mutation spectrum">
+                    <div class="image-card-title">Mutation Spectrum</div>
+                </div>
+                <div class="image-card"
+                    onclick="openModal('media/variants_vaf_histogram.png', 'VAF Histogram', 'Variant allele frequency distribution. Germline het variants cluster at VAF~0.5; somatic mosaic variants appear at low VAF (0.05–0.3). Demonstration dataset: 800 SNVs + 80 indels.')">
+                    <img src="media/variants_vaf_histogram.png" alt="VAF histogram">
+                    <div class="image-card-title">Variant Allele Frequency</div>
                 </div>
             </div>
         </div>

@@ -114,15 +114,16 @@ def call_loops(
     bg_vals = bg[valid_mask]
     enr_vals = obs_vals / bg_vals
 
-    # z-score against local background distribution
-    bg_std = np.std(bg_vals)
-    bg_mean = np.mean(bg_vals)
-    if bg_std > 0:
-        z_vals = (obs_vals - bg_mean) / bg_std
+    # z-score on enrichment values — tells us which pixels are unusually
+    # enriched relative to the global enrichment distribution at this region
+    enr_mean = np.mean(enr_vals)
+    enr_std = np.std(enr_vals)
+    if enr_std > 0:
+        z_vals = (enr_vals - enr_mean) / enr_std
     else:
-        z_vals = np.zeros_like(obs_vals)
+        z_vals = np.zeros_like(enr_vals)
 
-    # Two-tailed normal p-values on z-scores
+    # One-tailed normal p-values (we only care about enrichment, not depletion)
     pvals = stats.norm.sf(z_vals)
 
     # ---- BH FDR correction ----

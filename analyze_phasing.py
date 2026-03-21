@@ -61,7 +61,10 @@ def generate_synthetic_phasing(region=REGION, n_snps=300, seed=42):
     for _ in range(n_snps * 5):  # generate many constraints
         i = rng_local.integers(0, n_snps)
         # Pair with a nearby SNP (Hi-C links proximal loci)
-        j = i + rng_local.integers(1, min(30, n_snps - i))
+        max_j = n_snps - i
+        if max_j <= 1:
+            continue
+        j = i + rng_local.integers(1, min(30, max_j))
         if j >= n_snps:
             continue
         # 90% accuracy (10% error rate simulating noise)
