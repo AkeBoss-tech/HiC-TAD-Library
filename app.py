@@ -4,7 +4,11 @@ import os
 import tempfile
 import matplotlib.pyplot as plt
 import pandas as pd
+from typing import Optional
 from PIL import Image
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Import pipeline modules
 from src.hg_dt.viz.tracks_plotter import plot_tracks, plot_multi_tracks
@@ -16,6 +20,8 @@ from src.hg_dt.analyze.deltas import (
     accessibility_delta, expression_delta, contact_delta,
     find_silenced_elements, find_distal_loops,
 )
+from src.hg_dt.models.alphagenome import CELL_TYPES
+from src.hg_dt.models.evo2 import Evo2Client
 
 st.set_page_config(page_title="HG-DT Causal Dashboard", layout="wide")
 
@@ -33,8 +39,16 @@ with st.sidebar:
         fasta_path = st.text_input("FASTA dir / file", value="data/reference/hg38/")
         gtf_path   = st.text_input("GENCODE GTF",      value="data/reference/hg38/gencode.v49.annotation.gtf.gz")
         bed_path   = st.text_input("ENCODE cCREs BED", value="data/reference/hg38/GRCh38-cCREs.bed.gz")
+        st.caption("Cell type (optional):")
+        cell_type_options = ["None (all cell types)"] + sorted(CELL_TYPES.keys())
+        cell_type_sel = st.selectbox("Cell Type", cell_type_options, index=0)
+        cell_type = None if cell_type_sel.startswith("None") else cell_type_sel
     else:
         fasta_path = gtf_path = bed_path = ""
+        cell_type = None
+
+    st.divider()
+    st.caption(f"Evo 2 backend: **{Evo2Client().backend}**")
 
 
 # ---------------------------------------------------------------------------
@@ -119,11 +133,14 @@ def _extract_1d(track_data, index: int = 0) -> np.ndarray:
 @st.cache_data(show_spinner="Running AlphaGenome predictions…")
 def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
                       edit_type: str, gene: str,
-                      fasta_path: str, gtf_path: str, bed_path: str):
+                      fasta_path: str, gtf_path: str, bed_path: str,
+                      cell_type: Optional[str] = None):
     """
     Orchestrate the full HG-DT pipeline:
-      ReferenceContextBuilder → AlphaGenomeConnector → deltas → translation → ProteinFolder
-    Returns the same shape as generate_mock_data so all tabs work unchanged.
+      ReferenceContextBuilder → AlphaGenomeConnector → deltas
+      → splice-aware transcript prediction → translation → ProteinFolder
+    Returns the same shape as generate_mock_data so all tabs work unchanged,
+    plus an 'extras' dict with Evo2 scores and splice info.
     """
     from src.hg_dt.data.builder import ReferenceContextBuilder
     from src.hg_dt.models.alphagenome import AlphaGenomeConnector
@@ -134,17 +151,20 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
     # 1. Reference context
     builder = ReferenceContextBuilder(fasta_path, gtf_path, bed_path)
     context = builder.get_context(chrom, edit_start, edit_end, edit_type)
-    ref_seq  = context['ref_seq']
-    mut_seq  = context['mut_seq']
+    ref_seq   = context['ref_seq']
+    mut_seq   = context['mut_seq']
     win_start, _ = context['window']
-    genes_df = context['annotations']['genes']
+    genes_df  = context['annotations']['genes']
 
-    # 2. AlphaGenome predictions
+    # 2. AlphaGenome predictions (cell-type-specific if requested)
     connector = AlphaGenomeConnector()
+    outputs_requested = ['ATAC', 'CAGE', 'CHIP_TF', 'CONTACT_MAPS', 'SPLICE_SITES']
     ref_out = connector.predict_sequence(ref_seq, organism="HUMAN",
-                                         requested_outputs=['ATAC', 'CAGE', 'CHIP_TF', 'CONTACT_MAPS'])
+                                         requested_outputs=outputs_requested,
+                                         cell_type=cell_type)
     mut_out = connector.predict_sequence(mut_seq, organism="HUMAN",
-                                         requested_outputs=['ATAC', 'CAGE', 'CHIP_TF', 'CONTACT_MAPS'])
+                                         requested_outputs=outputs_requested,
+                                         cell_type=cell_type)
 
     # 3. Extract tracks
     ref_atac = _extract_1d(ref_out.atac)
@@ -156,33 +176,36 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
     ref_hic  = np.array(ref_out.contact_maps.values[:, :, 0])
     mut_hic  = np.array(mut_out.contact_maps.values[:, :, 0])
 
-    ref_track = ref_atac
-    mut_track = mut_atac
+    # Splice tracks (may be None if not available)
+    ref_splice = _extract_1d(ref_out.splice_sites) if ref_out.splice_sites is not None else None
+    mut_splice = _extract_1d(mut_out.splice_sites) if mut_out.splice_sites is not None else None
+
     multi_tracks = {
         'ATAC':  (ref_atac, mut_atac),
         'CAGE':  (ref_cage, mut_cage),
         'CTCF':  (ref_ctcf, mut_ctcf),
     }
 
-    # 4. Compute delta_stats (positive = loss in mutant, per spec log2(Ref/Mut))
-    a_delta = accessibility_delta(ref_atac, mut_atac)
-    e_delta = expression_delta(ref_cage, mut_cage)
+    # 4. Delta stats
+    a_delta  = accessibility_delta(ref_atac, mut_atac)
+    e_delta  = expression_delta(ref_cage, mut_cage)
     silenced = find_silenced_elements(ref_atac, mut_atac)
     loops_ref = find_distal_loops(ref_hic)
     loops_mut = find_distal_loops(mut_hic)
-    loop_weakened = len(loops_mut) < len(loops_ref) * 0.8
+    loop_weakened    = len(loops_mut) < len(loops_ref) * 0.8
+    loop_strengthened = len(loops_mut) > len(loops_ref) * 1.2
 
     acc_drop = float(np.mean(a_delta[silenced])) if silenced else float(np.mean(a_delta[a_delta > 0]) or 0)
     exp_drop = float(np.mean(e_delta[e_delta > 0]) or 0)
 
     delta_stats = {
         "loop_weakened": loop_weakened,
-        "loop_strengthened": len(loops_mut) > len(loops_ref) * 1.2,
+        "loop_strengthened": loop_strengthened,
         "accessibility_drop": acc_drop,
         "expression_drop": exp_drop,
     }
 
-    # 5. Build annotation DataFrame for genome scroller
+    # 5. Annotation display df
     if genes_df.empty:
         display_genes = pd.DataFrame([
             {'Name': gene, 'Start': edit_start, 'End': edit_end, 'Type': 'Gene'}
@@ -192,12 +215,17 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
         display_genes['Name'] = genes_df.get('gene_name', genes_df.index.astype(str))
         display_genes['Type'] = genes_df.get('Feature', 'Gene')
 
-    # 6. Protein structure (first isoform)
+    # 6. Splice-aware protein prediction
     ref_pdb = mut_pdb = ""
+    splice_info: dict = {}
     if not genes_df.empty:
         mut_shift = -(edit_end - edit_start) if edit_type == 'deletion' else 0
-        isoforms = predict_isoforms(genes_df, ref_seq, mut_seq, win_start,
-                                    edit_start, edit_end, mut_shift)
+        isoforms = predict_isoforms(
+            genes_df, ref_seq, mut_seq, win_start,
+            edit_start, edit_end, mut_shift,
+            ref_splice_track=ref_splice,
+            mut_splice_track=mut_splice,
+        )
         folder = ProteinFolder()
         for tid, iso in isoforms.items():
             trans = compare_translation(iso['ref_mrna'], iso['mut_mrna'])
@@ -205,10 +233,27 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
                 ref_pdb = folder.predict_structure(trans['ref_aa'])['pdb']
             if trans['mut_aa']:
                 mut_pdb = folder.predict_structure(trans['mut_aa'])['pdb']
-            break  # use first isoform only
+            splice_info = {
+                'transcript_id': tid,
+                'frameshift': iso['frameshift'],
+                'splice_disrupted': iso['splice_disrupted'],
+                'skipped_exons': iso['skipped_exons'],
+            }
+            break
 
-    return (ref_track, mut_track, ref_hic, mut_hic,
-            ref_pdb, mut_pdb, display_genes, multi_tracks, delta_stats)
+    # 7. Evo 2 variant scoring on a local window
+    window_size = min(2048, len(ref_seq))
+    center = len(ref_seq) // 2
+    ref_window = ref_seq[center - window_size//2 : center + window_size//2]
+    mut_window = mut_seq[center - window_size//2 : center + window_size//2]
+    evo2 = Evo2Client()
+    evo2_result = evo2.score_variant(ref_window, mut_window)
+    evo2_scan   = evo2.scan_sequence(ref_window, window=256)
+
+    return (ref_atac, mut_atac, ref_hic, mut_hic,
+            ref_pdb, mut_pdb, display_genes, multi_tracks, delta_stats,
+            {"evo2": evo2_result, "evo2_scan": evo2_scan, "splice": splice_info,
+             "cell_type": cell_type})
 
 
 # ---------------------------------------------------------------------------
@@ -238,10 +283,10 @@ for key, default in [("mod_type", "None"), ("gene", "TAL1"),
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
-tab1, tab2, tab2b, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab2b, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Specification", "Genome Tracks", "Genome Scroller",
     "3D Organization", "Protein Structure", "Trajectory Animation",
-    "Mechanistic Attribution",
+    "Mechanistic Attribution", "Evo 2 Analysis",
 ])
 
 with tab1:
@@ -272,15 +317,18 @@ if st.session_state.analyzed:
         edit_start, edit_end = 47200000, 47250000
 
     # Dispatch to real or mock pipeline
+    extras: dict = {}
     if use_real_pipeline:
         try:
-            (ref_track, mut_track, ref_hic, mut_hic,
-             ref_pdb, mut_pdb, genes_df, multi_tracks, delta_stats) = run_real_pipeline(
+            result = run_real_pipeline(
                 chrom, edit_start, edit_end,
                 st.session_state.mod_type.lower(),
                 st.session_state.gene,
                 fasta_path, gtf_path, bed_path,
+                cell_type=cell_type,
             )
+            (ref_track, mut_track, ref_hic, mut_hic,
+             ref_pdb, mut_pdb, genes_df, multi_tracks, delta_stats, extras) = result
         except Exception as exc:
             st.error(f"Real pipeline failed: {exc}. Falling back to mock data.")
             (ref_track, mut_track, ref_hic, mut_hic,
@@ -292,6 +340,16 @@ if st.session_state.analyzed:
          ref_pdb, mut_pdb, genes_df, multi_tracks, delta_stats) = generate_mock_data(
             st.session_state.mod_type, st.session_state.gene
         )
+        # Run Evo 2 analysis on mock sequence even in demo mode
+        evo2 = Evo2Client()
+        mock_ref = "ATCGATCGCCGCGAGGTGGCAG" * 20
+        mock_alt = mock_ref[:200] + "TTTTTTTTTT" + mock_ref[210:]
+        extras = {
+            "evo2": evo2.score_variant(mock_ref, mock_alt),
+            "evo2_scan": evo2.scan_sequence(mock_ref, window=44),
+            "splice": {},
+            "cell_type": None,
+        }
 
     with tab2:
         st.header("AlphaGenome Multi-Scalar Predictions")
@@ -415,12 +473,93 @@ if st.session_state.analyzed:
 
         st.info("### Mechanistic Summary")
         st.success(insight)
+
+        # Show splice disruption info if available
+        splice = extras.get("splice", {})
+        if splice.get("splice_disrupted"):
+            st.warning(f"⚠️ Splice disruption detected — transcript `{splice.get('transcript_id','')}` "
+                       f"has {len(splice.get('skipped_exons',[]))} potentially skipped exon(s). "
+                       f"Frameshift: {splice.get('frameshift', False)}")
+
+        ct = extras.get("cell_type")
+        if ct:
+            st.caption(f"Predictions filtered to cell type: **{ct}**")
+
         with st.expander("🔬 Model & Methodology"):
             st.write("**Model:** Rule-based mechanistic attribution from computed track deltas")
-            st.write("**Process:** Accessibility and expression deltas are computed via "
-                     "`log2(Ref/Mut)` from AlphaGenome predictions. Loop counts are derived "
-                     "from the contact map. These numeric signals are then formatted into a "
-                     "human-readable causal chain.")
+            st.write("**Process:** Accessibility and expression deltas computed via `log2(Ref/Mut)` "
+                     "from AlphaGenome. Loop counts from contact map. Splice disruptions from "
+                     "AlphaGenome SPLICE_SITES track. Signals formatted into a causal chain.")
+
+    with tab7:
+        st.header("Evo 2 — Sequence Analysis")
+        evo2_result = extras.get("evo2", {})
+        evo2_scan   = extras.get("evo2_scan", {})
+        backend = evo2_result.get("backend", "unknown")
+
+        st.caption(f"Backend: **{backend}**")
+        if "kmer" in backend:
+            st.info("Evo 2 NIM endpoint not reachable. Showing k-mer log-odds + TF motif analysis "
+                    "(scientifically meaningful proxy for sequence disruption).")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            score = evo2_result.get("score", float("nan"))
+            delta_ll = evo2_result.get("delta_ll", float("nan"))
+            st.metric("Variant Score", f"{score:.4f}" if score == score else "N/A",
+                      help="Higher = alt sequence more likely under model. "
+                           "Negative = alt diverges from reference composition.")
+            if delta_ll == delta_ll:  # not nan
+                st.metric("Δ Log-Likelihood", f"{delta_ll:.4f}")
+
+        with col2:
+            motif_diff = evo2_result.get("motif_diff", {})
+            if motif_diff:
+                st.subheader("TF Motif Changes (Alt − Ref)")
+                motif_df = pd.DataFrame([
+                    {"TF": tf, "Count Change": diff, "Direction": "Gained" if diff > 0 else ("Lost" if diff < 0 else "Unchanged")}
+                    for tf, diff in motif_diff.items()
+                ])
+                st.dataframe(motif_df, use_container_width=True)
+
+        # Motif density scan plot
+        windows = evo2_scan.get("windows", [])
+        if windows:
+            st.subheader("TF Motif Density Scan (Reference Sequence)")
+            scan_df = pd.DataFrame(windows)
+            fig, axes = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
+
+            axes[0].bar(scan_df["start"], scan_df["gc_content"], width=scan_df["end"] - scan_df["start"],
+                        color="steelblue", alpha=0.7)
+            axes[0].set_ylabel("GC Content")
+            axes[0].set_title("GC Content & TF Motif Density Along Sequence")
+
+            axes[1].bar(scan_df["start"], scan_df["total_motifs"], width=scan_df["end"] - scan_df["start"],
+                        color="darkorange", alpha=0.7)
+            axes[1].set_ylabel("Total TF Motif Hits")
+            axes[1].set_xlabel("Position in Window (bp)")
+
+            plt.tight_layout()
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                fig.savefig(tmp.name, dpi=150)
+                plt.close(fig)
+                st.image(Image.open(tmp.name), use_container_width=True)
+
+        with st.expander("🔬 Model & Methodology"):
+            st.markdown(f"""
+**Model:** Evo 2 (Arc Institute / NVIDIA, 2026) — {backend}
+
+**Evo 2 capabilities:**
+- 40B parameter DNA foundation model, trained on 9.3 trillion nucleotides
+- 1M token context, single-nucleotide resolution
+- Zero-shot variant effect scoring via log-likelihood ratio
+
+**Current backend: `{backend}`**
+- `nvidia_evo2`: Full log-likelihood delta from NVIDIA NIM
+- `huggingface_evo2`: Log-likelihood from HuggingFace inference
+- `kmer_fallback`: K-mer frequency shift + TF binding motif scan
+  (proxy metric when no Evo 2 endpoint is reachable; CTCF, SP1, GATA1, NF-κB, E-box, TATA motifs scanned)
+""")
 
 elif st.session_state.analyzed:
     st.warning("Please select a valid modification from the Specification tab.")

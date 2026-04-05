@@ -16,54 +16,79 @@ def _parse_bfactor(pdb_text: str) -> List[float]:
 
 
 def _mock_structure(aa_seq: str) -> Dict:
-    """Fallback mock when the real folding API is unavailable."""
+    """Fallback mock when all folding APIs are unavailable."""
     n_res = len(aa_seq)
-    if n_res > 50:
-        plddt = [90.0 + (i % 5) for i in range(n_res)]
-    else:
-        plddt = [40.0 + (i % 10) for i in range(n_res)]
-    pdb_mock = f"HEADER    MOCK PDB FOR {n_res} RESIDUES\n"
-    return {'pdb': pdb_mock, 'plddt': plddt}
+    plddt = [90.0 + (i % 5) for i in range(n_res)] if n_res > 50 else [40.0 + (i % 10) for i in range(n_res)]
+    return {'pdb': f"HEADER    MOCK PDB FOR {n_res} RESIDUES\n", 'plddt': plddt, 'source': 'mock'}
 
 
 class ProteinFolder:
-    """Wrapper for protein structure prediction via ESMFold or BioNeMo."""
+    """
+    Protein structure prediction via NVIDIA ESMFold NIM (primary) or Meta public
+    ESMFold endpoint (secondary), with mock fallback.
 
-    # Maximum sequence length accepted by the public ESMFold endpoint
-    _ESMFOLD_MAX_LEN = 400
+    Priority:
+      1. NVIDIA ESMFold NIM  — fastest, reliable, uses NVIDIA_ESM_FOLD_API_KEY
+      2. Meta public ESMFold — free, up to 400 AA, no key needed
+      3. Mock                — synthetic pLDDT based on length
+    """
+
+    _NVIDIA_ENDPOINT = "https://health.api.nvidia.com/v1/biology/nvidia/esmfold"
+    _META_ENDPOINT   = "https://api.esmatlas.com/foldSequence/v1/pdb/"
+    _META_MAX_LEN    = 400
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.environ.get("BIONEMO_API_KEY")
+        self.api_key = (
+            api_key
+            or os.environ.get("NVIDIA_ESM_FOLD_API_KEY")
+            or os.environ.get("NVIDIA_ESM_API_KEY")
+            or os.environ.get("NVIDIA_API_KEY")
+        )
 
     def predict_structure(self, aa_seq: str) -> Dict:
         """
         Predict the 3D structure of an amino acid sequence.
 
-        Tries Meta's public ESMFold endpoint first. Falls back to a mock
-        if the API is unreachable or the sequence exceeds the length limit.
-
-        Args:
-            aa_seq: The amino acid sequence to fold.
-
-        Returns:
-            Dict with 'pdb' (str) and 'plddt' (List[float]).
+        Returns dict with:
+          'pdb'    : PDB file string
+          'plddt'  : list of per-residue confidence scores (0-100)
+          'source' : which backend was used
         """
         if not aa_seq:
-            return {'pdb': '', 'plddt': []}
+            return {'pdb': '', 'plddt': [], 'source': 'none'}
 
-        if len(aa_seq) <= self._ESMFOLD_MAX_LEN:
+        # 1. Try NVIDIA ESMFold NIM
+        if self.api_key:
             try:
                 resp = requests.post(
-                    "https://api.esmatlas.com/foldSequence/v1/pdb/",
+                    self._NVIDIA_ENDPOINT,
+                    json={"sequence": aa_seq},
+                    headers={"Authorization": f"Bearer {self.api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=120,
+                )
+                if resp.ok:
+                    data = resp.json()
+                    pdb = data["pdbs"][0] if data.get("pdbs") else ""
+                    if pdb:
+                        return {'pdb': pdb, 'plddt': _parse_bfactor(pdb), 'source': 'nvidia_esmfold'}
+            except Exception:
+                pass
+
+        # 2. Try Meta public ESMFold
+        if len(aa_seq) <= self._META_MAX_LEN:
+            try:
+                resp = requests.post(
+                    self._META_ENDPOINT,
                     data=aa_seq,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                     timeout=60,
                 )
-                if resp.ok and resp.text.strip().startswith(("ATOM", "HEADER", "MODEL")):
+                if resp.ok and resp.text.strip().startswith(("ATOM", "HEADER", "MODEL", "PARENT")):
                     pdb = resp.text
-                    plddt = _parse_bfactor(pdb)
-                    return {'pdb': pdb, 'plddt': plddt}
+                    return {'pdb': pdb, 'plddt': _parse_bfactor(pdb), 'source': 'meta_esmfold'}
             except Exception:
                 pass
 
+        # 3. Mock fallback
         return _mock_structure(aa_seq)
