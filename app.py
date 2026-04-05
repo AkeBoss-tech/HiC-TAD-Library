@@ -11,9 +11,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import pipeline modules
+import plotly.express as px
+import plotly.graph_objects as go
+
 from src.hg_dt.viz.tracks_plotter import plot_tracks, plot_multi_tracks
 from src.hg_dt.viz.hic_plotter import plot_hic_triangle
-from src.hg_dt.viz.protein_viz import render_protein_comparison
+from src.hg_dt.viz.protein_viz import render_protein_overlay
+from src.hg_dt.viz.chromatin_3d import render_chromatin_animation
 from src.hg_dt.viz.browser import render_genome_scroller
 from src.hg_dt.analyze.attribution import generate_mechanistic_insight
 from src.hg_dt.analyze.deltas import (
@@ -456,6 +460,100 @@ def _render_trajectory(result: dict):
 
 
 # ---------------------------------------------------------------------------
+# Helper: per-regulatory-element accessibility bubble chart
+# ---------------------------------------------------------------------------
+def _render_accessibility_elements(multi_tracks: dict, genes_df: pd.DataFrame,
+                                    edit_start: int, edit_end: int):
+    """
+    Plot per-element accessibility change as an interactive Plotly bubble chart.
+    X = genomic position, Y = Δ log₂(Ref/Mut), size = element width, color = type.
+    """
+    atac_ref, atac_mut = multi_tracks.get('ATAC', (None, None))
+    if atac_ref is None or genes_df is None or genes_df.empty:
+        st.caption("No per-element data available.")
+        return
+
+    n = len(atac_ref)
+    window_span = max(edit_end - edit_start, 1)
+
+    rows = []
+    for _, row in genes_df.iterrows():
+        mid = (row['Start'] + row['End']) / 2
+        size = max(row['End'] - row['Start'], 1)
+
+        # Map genomic coordinate to track index (proportional within window)
+        idx = int((mid - edit_start) / window_span * n)
+        idx = max(0, min(n - 1, idx))
+
+        # Sample a window of ±2 bins for robustness
+        i0 = max(0, idx - 2)
+        i1 = min(n, idx + 3)
+        ref_sig = float(np.mean(atac_ref[i0:i1]))
+        mut_sig = float(np.mean(atac_mut[i0:i1]))
+        delta   = float(np.log2((ref_sig + 1e-6) / (mut_sig + 1e-6)))
+
+        rows.append({
+            'Element':          row['Name'],
+            'Type':             row['Type'],
+            'Position':         int(mid),
+            'Element size (bp)': int(size),
+            'Ref ATAC':         round(ref_sig, 3),
+            'Mut ATAC':         round(mut_sig, 3),
+            'Δ log₂(Ref/Mut)':  round(delta, 3),
+        })
+
+    if not rows:
+        return
+
+    df = pd.DataFrame(rows)
+
+    color_map = {'Gene': '#4a9eff', 'Enhancer': '#ff9a3c', 'CTCF': '#2ecc71'}
+
+    fig = px.scatter(
+        df,
+        x='Position',
+        y='Δ log₂(Ref/Mut)',
+        size='Element size (bp)',
+        color='Type',
+        text='Element',
+        hover_data=['Ref ATAC', 'Mut ATAC'],
+        color_discrete_map=color_map,
+        size_max=45,
+    )
+    fig.add_hline(y=0, line_dash='dash', line_color='rgba(180,180,180,0.5)',
+                  annotation_text='No change', annotation_position='right')
+    fig.add_vrect(
+        x0=edit_start, x1=edit_end,
+        fillcolor='rgba(255,80,80,0.08)', line_color='rgba(255,80,80,0.4)',
+        annotation_text='Edit', annotation_position='top left',
+    )
+    fig.update_traces(textposition='top center', textfont_size=10)
+    fig.update_layout(
+        height=320,
+        xaxis=dict(tickformat=',.0s', title='Genomic position (hg38)'),
+        yaxis=dict(title='Accessibility Δ log₂ (Ref / Mut)',
+                   zeroline=False),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        margin=dict(t=30, b=40, l=60, r=20),
+    )
+    # Shade gain vs loss
+    fig.add_hrect(y0=0, y1=df['Δ log₂(Ref/Mut)'].max() + 0.5,
+                  fillcolor='rgba(255,80,80,0.04)', line_width=0,
+                  annotation_text='Accessibility lost in mutant',
+                  annotation_position='top right',
+                  annotation_font_color='rgba(200,50,50,0.7)')
+    fig.add_hrect(y0=df['Δ log₂(Ref/Mut)'].min() - 0.5, y1=0,
+                  fillcolor='rgba(50,180,100,0.04)', line_width=0,
+                  annotation_text='Accessibility gained in mutant',
+                  annotation_position='bottom right',
+                  annotation_font_color='rgba(50,150,80,0.7)')
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ---------------------------------------------------------------------------
 # Step progress indicator
 # ---------------------------------------------------------------------------
 st.title("HG-DT: Human Genome Digital Twin")
@@ -615,6 +713,7 @@ elif st.session_state.step == 3:
         st.session_state.pipeline_result = _run_pipeline()
 
     result = st.session_state.pipeline_result
+    genes_df = _build_preview_genes_df()   # cheap — no API call
 
     # ── Two-column layout ──────────────────────────────────────────────────
     col_sys1, col_sys2 = st.columns(2, gap="large")
@@ -623,7 +722,8 @@ elif st.session_state.step == 3:
         st.subheader("System 1 — Protein Path")
         st.caption("DNA → mRNA isoforms → Amino acid translation → 3D structure")
 
-        render_protein_comparison(result['ref_pdb'], result['mut_pdb'], animate=True)
+        # Overlaid ref + mut protein in one viewer
+        render_protein_overlay(result['ref_pdb'], result['mut_pdb'])
 
         splice = result['extras'].get('splice', {})
         if splice.get('splice_disrupted'):
@@ -638,9 +738,10 @@ elif st.session_state.step == 3:
 
         with st.expander("Model & Methodology"):
             st.markdown("""
-**Structure:** NVIDIA ESMFold NIM (primary) → Meta public ESMFold → mock fallback
+**Structure:** NVIDIA ESMFold NIM → Meta public ESMFold → mock fallback
+**Overlay:** Both structures loaded into one py3Dmol scene.
+Blue = Reference · Orange = Mutant
 **Splicing:** AlphaGenome SPLICE_SITES track → donor/acceptor score per exon
-**Translation:** GENCODE exon extraction → mRNA assembly → Biopython translate
 **Confidence:** B-factor column = pLDDT (0–100). Regions <50 = unreliably folded.
 """)
 
@@ -655,46 +756,86 @@ elif st.session_state.step == 3:
             )
             st.image(Image.open(tmp.name), use_container_width=True)
 
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            plot_hic_triangle(
-                result['ref_hic'], result['mut_hic'], tmp.name,
-                title="3D Contact Map Delta",
-            )
-            st.image(Image.open(tmp.name), use_container_width=True)
-
         evo2_data = result['extras'].get('evo2', {})
         if evo2_data:
             score = evo2_data.get("score", float("nan"))
-            backend = evo2_data.get("backend", "")
             score_str = f"{score:.4f}" if score == score else "N/A"
-            st.metric(
-                "Evo 2 Variant Score",
-                score_str,
-                help="K-mer log-odds (negative = alt sequence diverges from reference composition).",
-            )
             motif_diff = evo2_data.get("motif_diff", {})
             disrupted_tfs = [tf for tf, d in motif_diff.items() if d < 0]
             gained_tfs    = [tf for tf, d in motif_diff.items() if d > 0]
-            if disrupted_tfs:
-                st.caption(f"TF motifs lost: **{', '.join(disrupted_tfs)}**")
-            if gained_tfs:
-                st.caption(f"TF motifs gained: **{', '.join(gained_tfs)}**")
+
+            ev_col1, ev_col2 = st.columns(2)
+            with ev_col1:
+                st.metric("Evo 2 Score", score_str,
+                          help="K-mer log-odds. Negative = diverges from ref.")
+            with ev_col2:
+                if disrupted_tfs:
+                    st.metric("TF Motifs Lost", len(disrupted_tfs),
+                              delta=f"{', '.join(disrupted_tfs[:2])}", delta_color="inverse")
+                elif gained_tfs:
+                    st.metric("TF Motifs Gained", len(gained_tfs),
+                              delta=f"{', '.join(gained_tfs[:2])}", delta_color="normal")
 
         with st.expander("Model & Methodology"):
             st.markdown(f"""
-**Tracks:** AlphaGenome (DeepMind) — ATAC, CAGE, CTCF, H3K27ac (Ref vs Mut)
-**Hi-C:** Triangular heatmap (45° rotation). Delta = Mut − Ref. Red = gained, blue = lost contacts.
-**Evo 2:** Backend: `{evo2_data.get('backend', 'kmer_fallback')}`.
-K-mer log-odds + CTCF/SP1/GATA1/NF-κB/E-box/TATA motif scan.
+**Tracks:** AlphaGenome — ATAC, CAGE, CTCF, H3K27ac (Ref vs Mut)
+**Evo 2:** `{evo2_data.get('backend', 'kmer_fallback')}` — k-mer log-odds + TF motif scan
 **Sign convention:** accessibility_delta = log₂(Ref/Mut) — positive = loss in mutant.
 """)
+
+    # ── Accessibility at Regulatory Elements ───────────────────────────────
+    st.divider()
+    st.subheader("Accessibility at Regulatory Elements")
+    st.caption(
+        "Per-element accessibility change. Bubble size = element width. "
+        "Positive Y = accessibility **lost** in mutant; negative = gained."
+    )
+    _render_accessibility_elements(
+        result['multi_tracks'], genes_df,
+        st.session_state.edit_start, st.session_state.edit_end,
+    )
+
+    # ── 3D Chromatin Contact Map + Animation side-by-side ─────────────────
+    st.divider()
+    hic_col, _ = st.columns([1, 1])
+    with hic_col:
+        st.subheader("Hi-C Contact Map")
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            plot_hic_triangle(
+                result['ref_hic'], result['mut_hic'], tmp.name,
+                title="Contact Map Delta (Mut − Ref)",
+            )
+            st.image(Image.open(tmp.name), use_container_width=True)
+        st.caption("Red = gained contacts · Blue = lost contacts · 45° triangular view")
+
+    st.subheader("3D Chromatin Conformation — Reference → Mutant")
+    st.caption(
+        "Polymer simulation (Langevin dynamics) run independently on Ref and Mut "
+        "contact matrices. Animation interpolates between the two equilibrium structures. "
+        "Beads colored by genomic position (5′ blue → 3′ red). "
+        "**Bright red beads** = edit region."
+    )
+
+    # Genomic window: extend ±200 kb around edit for the bead axis labels
+    window_pad = 200_000
+    g_start = max(0, st.session_state.edit_start - window_pad)
+    g_end   = st.session_state.edit_end + window_pad
+
+    render_chromatin_animation(
+        result['ref_hic'], result['mut_hic'],
+        edit_start=st.session_state.edit_start,
+        edit_end=st.session_state.edit_end,
+        genomic_start=g_start,
+        genomic_end=g_end,
+    )
 
     # ── Differentiation Trajectory ──────────────────────────────────────────
     st.divider()
     st.subheader("Differentiation Trajectory")
     st.caption(
-        "How does the edit affect 3D genome organization along the developmental axis? "
-        "Showing AlphaGenome contact maps at embryonic (H1-hESC) and committed (K562) stages."
+        "AlphaGenome contact maps at embryonic (H1-hESC) and committed myeloid (K562) "
+        "stages — both Ref and Mut — showing how the edit reshapes 3D organization "
+        "across the developmental axis."
     )
     _render_trajectory(result)
 
@@ -708,7 +849,6 @@ K-mer log-odds + CTCF/SP1/GATA1/NF-κB/E-box/TATA motif scan.
     insight = generate_mechanistic_insight(mod_details, result['delta_stats'])
     st.success(insight)
 
-    # Delta breakdown
     ds = result['delta_stats']
     metric_cols = st.columns(3)
     with metric_cols[0]:
