@@ -28,7 +28,8 @@ LARGE_SIZES ?= 10 40 80
         run-all analysis \
         test test-unit test-integration test-coverage test-verbose \
         clean clean-html clean-all \
-        setup docs
+        setup docs \
+        automate-hg-dt
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 help:
@@ -39,6 +40,7 @@ help:
 	@echo "Setup"
 	@echo "  make install              Install all Python dependencies"
 	@echo "  make setup                Install + run core visualizations"
+	@echo "  make automate-hg-dt       Run automated HG-DT work order execution"
 	@echo ""
 	@echo "Core visualizations  (use real Mouse Micro-C data)"
 	@echo "  make run-tads             visualize_tads.py"
@@ -295,3 +297,6 @@ clean-all: clean clean-html
 
 # ── Setup (install + first run) ───────────────────────────────────────────────
 setup: install run
+
+automate-hg-dt:
+	$(PYTHON) scripts/automate_hg_dt.py
