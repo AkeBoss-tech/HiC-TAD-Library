@@ -16,25 +16,24 @@ except ImportError:
 # Add more from https://www.ebi.ac.uk/ols/ontologies/clo
 # ---------------------------------------------------------------------------
 CELL_TYPES = {
-    # Cell lines (CLO)
-    "K562":     "CLO:0007050",   # K562 CML cell line
-    "GM12878":  "CLO:0002037",   # GM12878 lymphoblastoid
-    "HEK293":   "CLO:0001230",   # HEK293 embryonic kidney
-    "HeLa":     "CLO:0003684",   # HeLa cervical cancer
-    "MCF7":     "CLO:0002756",   # MCF-7 breast cancer
-    "Jurkat":   "CLO:0006852",   # Jurkat T-cell leukemia
-    "A549":     "CLO:0000149",   # A549 lung carcinoma
-    "H1-hESC":  "CLO:0037111",   # H1 human embryonic stem cells
-    # Tissues (UBERON)
+    # Cell lines (EFO) — validated against AlphaGenome output_metadata
+    "K562":     "EFO:0002067",   # K562 CML cell line
+    "GM12878":  "EFO:0002784",   # GM12878 lymphoblastoid
+    "HEK293":   "EFO:0001182",   # HEK293 embryonic kidney
+    "HeLa":     "EFO:0002791",   # HeLa-S3 cervical cancer
+    "Jurkat":   "EFO:0002796",   # Jurkat T-cell leukemia
+    "A549":     "EFO:0001086",   # A549 lung carcinoma
+    "H1":       "EFO:0003042",   # H1 human embryonic stem cells
+    # Tissues (UBERON) — validated
     "liver":    "UBERON:0002107",
     "brain":    "UBERON:0000955",
     "heart":    "UBERON:0000948",
     "lung":     "UBERON:0002048",
     "kidney":   "UBERON:0002113",
-    # Cell types (CL)
-    "T-cell":   "CL:0000084",
-    "B-cell":   "CL:0000236",
-    "neuron":   "CL:0000540",
+    # Primary cell types (CL) — validated
+    "T-cell":     "CL:0000084",
+    "B-cell":     "CL:0000236",
+    "neuron":     "CL:0000540",
     "hepatocyte": "CL:0000182",
 }
 

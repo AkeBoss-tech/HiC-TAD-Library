@@ -34,11 +34,10 @@ def fetch_hg38_sequence(chrom: str, start: int, end: int) -> str:
     ------
     RuntimeError if the API call fails.
     """
-    # AlphaGenome requires power-of-2 lengths; max supported is 1,048,576 (2^20)
-    if end - start > 1_100_000:
+    # AlphaGenome max window is 1,048,576 (2^20); allow extra for deletion compensation
+    if end - start > 2_000_000:
         raise ValueError(
-            f"Requested region too large: {end - start:,} bp. "
-            "Use 1,048,576 bp (AlphaGenome max window)."
+            f"Requested region too large: {end - start:,} bp. Max 2,000,000 bp."
         )
 
     url = (
@@ -148,6 +147,55 @@ def fetch_regulatory_elements(chrom: str, start: int, end: int) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame(columns=["Name", "Type", "Start", "End"])
     return pd.DataFrame(rows)
+
+
+@lru_cache(maxsize=64)
+def fetch_gene_models(chrom: str, start: int, end: int) -> list:
+    """
+    Fetch detailed gene models (with exon coordinates) from UCSC ncbiRefSeq.
+
+    Returns a list of dicts, each with:
+      name, name2, strand, txStart, txEnd, cdsStart, cdsEnd,
+      exon_starts (list[int]), exon_ends (list[int])
+    """
+    url = (
+        f"{_UCSC_BASE}/getData/track"
+        f"?genome=hg38&track=ncbiRefSeq&chrom={chrom}&start={start}&end={end}"
+    )
+    try:
+        resp = requests.get(url, timeout=_TIMEOUT)
+        if not resp.ok:
+            return []
+        records = resp.json().get("ncbiRefSeq", [])
+    except Exception:
+        return []
+
+    models = []
+    seen = set()
+    for r in records:
+        gene  = r.get("name2") or r.get("name", "")
+        tx_id = r.get("name", "")
+        key   = (tx_id, r.get("txStart"), r.get("txEnd"))
+        if key in seen:
+            continue
+        seen.add(key)
+
+        # Parse comma-separated exon lists
+        def _parse_list(s):
+            return [int(x) for x in str(s).split(",") if x.strip()]
+
+        models.append({
+            "name":        tx_id,
+            "name2":       gene,
+            "strand":      r.get("strand", "+"),
+            "txStart":     int(r.get("txStart", 0)),
+            "txEnd":       int(r.get("txEnd",   0)),
+            "cdsStart":    int(r.get("cdsStart", r.get("txStart", 0))),
+            "cdsEnd":      int(r.get("cdsEnd",   r.get("txEnd",   0))),
+            "exon_starts": _parse_list(r.get("exonStarts", "")),
+            "exon_ends":   _parse_list(r.get("exonEnds",   "")),
+        })
+    return models
 
 
 def build_locus_annotations(chrom: str, edit_start: int, edit_end: int,

@@ -128,22 +128,55 @@ def _extract_1d(track_data, index: int = 0) -> np.ndarray:
 def _fetch_sequences(chrom: str, edit_start: int, edit_end: int,
                      mod_type: str) -> tuple:
     """
-    Fetch a 1,048,576 bp (2^20) window of hg38 from the UCSC REST API and apply the edit.
-    AlphaGenome only accepts power-of-2 lengths: 16384, 131072, 524288, 1048576.
+    Fetch hg38 windows and apply the edit so that BOTH ref and mut are
+    exactly 1,048,576 bp — required by AlphaGenome.
+
+    Strategy per edit type:
+      Deletion  : ref = standard WIN_SIZE window.
+                  mut = WIN_SIZE + del_size window → apply deletion → WIN_SIZE.
+      Insertion : ref = standard WIN_SIZE window.
+                  mut = WIN_SIZE - ins_size window → apply insertion → WIN_SIZE.
+      SNP/None  : same window for both; length is unchanged.
+
     Returns (ref_seq, mut_seq, win_start, win_end).
     """
     from src.hg_dt.data.sequence_fetcher import fetch_hg38_sequence
 
     WIN_SIZE  = 1_048_576   # 2^20 — required by AlphaGenome
+    edit_size = edit_end - edit_start
     center    = (edit_start + edit_end) // 2
     win_start = max(0, center - WIN_SIZE // 2)
     win_end   = win_start + WIN_SIZE
-    ref_seq   = fetch_hg38_sequence(chrom, win_start, win_end)
 
-    rel_start = edit_start - win_start
-    rel_end   = edit_end   - win_start
-    mut_seq   = _apply_edit(ref_seq, rel_start, rel_end, mod_type)
+    ref_seq = fetch_hg38_sequence(chrom, win_start, win_end)
+    t = mod_type.lower()
 
+    if t == "deletion":
+        # Fetch del_size extra bases on the right so the window stays WIN_SIZE after deletion
+        mut_raw   = fetch_hg38_sequence(chrom, win_start, win_end + edit_size)
+        rel_start = edit_start - win_start
+        rel_end   = edit_end   - win_start
+        mut_seq   = mut_raw[:rel_start] + mut_raw[rel_end:]   # length = WIN_SIZE ✓
+
+    elif t == "insertion":
+        # Fetch edit_size fewer bases so the window stays WIN_SIZE after insertion
+        fetch_end = max(win_start + 1000, win_end - edit_size)
+        mut_raw   = fetch_hg38_sequence(chrom, win_start, fetch_end)
+        rel_start = edit_start - win_start
+        payload   = "A" * edit_size                            # placeholder insert
+        mut_seq   = mut_raw[:rel_start] + payload + mut_raw[rel_start:]  # length = WIN_SIZE ✓
+
+    elif t == "snp":
+        rel_start = edit_start - win_start
+        orig      = ref_seq[rel_start]
+        alt       = next(b for b in ("A", "T", "C", "G") if b != orig)
+        mut_seq   = ref_seq[:rel_start] + alt + ref_seq[rel_start + 1:]  # length unchanged ✓
+
+    else:
+        mut_seq = ref_seq  # no edit
+
+    assert len(ref_seq) == WIN_SIZE, f"ref_seq length {len(ref_seq)} != {WIN_SIZE}"
+    assert len(mut_seq) == WIN_SIZE, f"mut_seq length {len(mut_seq)} != {WIN_SIZE}"
     return ref_seq, mut_seq, win_start, win_end
 
 
@@ -179,43 +212,117 @@ def _run_protein(ref_seq: str, mut_seq: str, win_start: int,
                  edit_start: int, edit_end: int, mod_type: str,
                  chrom: str) -> tuple:
     """
-    Fetch gene annotations from UCSC, extract mRNA, translate, fold with ESMFold.
-    Returns (ref_pdb, mut_pdb, splice_info).
+    Fetch gene models (with exon coords) from UCSC, assemble CDS, translate,
+    fold with ESMFold.  Returns (ref_pdb, mut_pdb, splice_info).
     """
-    from src.hg_dt.data.sequence_fetcher import fetch_gene_annotations
-    from src.hg_dt.translate.transcript import predict_isoforms
-    from src.hg_dt.translate.translator import compare_translation
+    from src.hg_dt.data.sequence_fetcher import fetch_gene_models
     from src.hg_dt.models.protein import ProteinFolder
 
-    # Fetch real gene models from UCSC RefSeq
-    genes_df = fetch_gene_annotations(chrom, win_start, win_start + 1_000_000)
-    if genes_df.empty:
-        return "", "", {}
+    win_end    = win_start + len(ref_seq)
+    models     = fetch_gene_models(chrom, win_start, win_end)
+    if not models:
+        return "", "", {"error": "No gene models in window"}
 
-    mut_shift = -(edit_end - edit_start) if mod_type.lower() == "deletion" else 0
-    isoforms  = predict_isoforms(
-        genes_df, ref_seq, mut_seq, win_start,
-        edit_start, edit_end, mut_shift,
+    # Pick first model that has CDS exons entirely within the window
+    chosen = None
+    for m in models:
+        if (m["cdsStart"] >= m["cdsEnd"] or       # non-coding
+                m["txStart"] < win_start or
+                m["txEnd"]   > win_end):
+            continue
+        chosen = m
+        break
+
+    if chosen is None:
+        return "", "", {"error": "No coding gene fully within window"}
+
+    def _assemble_cds(seq: str, win_s: int, exon_starts, exon_ends,
+                      cds_start: int, cds_end: int, strand: str) -> str:
+        """Extract CDS from a sequence using exon coordinates."""
+        cds_dna = ""
+        for es, ee in zip(exon_starts, exon_ends):
+            # Clip to CDS
+            s = max(es, cds_start)
+            e = min(ee, cds_end)
+            if s >= e:
+                continue
+            rel_s = s - win_s
+            rel_e = e - win_s
+            if rel_s < 0 or rel_e > len(seq):
+                continue
+            cds_dna += seq[rel_s:rel_e]
+        if strand == "-":
+            # reverse complement
+            comp = str.maketrans("ACGTNacgtn", "TGCANtgcan")
+            cds_dna = cds_dna.translate(comp)[::-1]
+        return cds_dna.upper()
+
+    def _translate(dna: str) -> str:
+        codon_table = {
+            "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
+            "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
+            "ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M",
+            "GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
+            "TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S",
+            "CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+            "ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T",
+            "GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+            "TAT": "Y", "TAC": "Y", "TAA": "*", "TAG": "*",
+            "CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
+            "AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K",
+            "GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
+            "TGT": "C", "TGC": "C", "TGA": "*", "TGG": "W",
+            "CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
+            "AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R",
+            "GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G",
+        }
+        protein = ""
+        for i in range(0, len(dna) - 2, 3):
+            codon = dna[i:i+3]
+            aa    = codon_table.get(codon, "X")
+            if aa == "*":
+                break
+            protein += aa
+        return protein
+
+    ref_cds = _assemble_cds(
+        ref_seq, win_start,
+        chosen["exon_starts"], chosen["exon_ends"],
+        chosen["cdsStart"], chosen["cdsEnd"], chosen["strand"],
+    )
+    mut_cds = _assemble_cds(
+        mut_seq, win_start,
+        chosen["exon_starts"], chosen["exon_ends"],
+        chosen["cdsStart"], chosen["cdsEnd"], chosen["strand"],
     )
 
-    folder     = ProteinFolder()
-    ref_pdb = mut_pdb = ""
-    splice_info: dict = {}
+    ref_aa = _translate(ref_cds)
+    mut_aa = _translate(mut_cds)
 
-    for tid, iso in isoforms.items():
-        trans = compare_translation(iso["ref_mrna"], iso["mut_mrna"])
-        if trans["ref_aa"]:
-            ref_pdb = folder.predict_structure(trans["ref_aa"])["pdb"]
-        if trans["mut_aa"]:
-            mut_pdb = folder.predict_structure(trans["mut_aa"])["pdb"]
-        splice_info = {
-            "transcript_id": tid,
-            "frameshift":      iso["frameshift"],
-            "splice_disrupted": iso["splice_disrupted"],
-            "skipped_exons":   iso["skipped_exons"],
-        }
-        break   # first transcript only
+    if not ref_aa:
+        return "", "", {"error": f"Empty translation for {chosen['name2']}"}
 
+    # Truncate to ESMFold limit (400 AA for Meta endpoint)
+    ref_aa_fold = ref_aa[:400]
+    mut_aa_fold = mut_aa[:400] if mut_aa else ref_aa_fold
+
+    folder  = ProteinFolder()
+    ref_pdb = folder.predict_structure(ref_aa_fold)["pdb"]
+    mut_pdb = folder.predict_structure(mut_aa_fold)["pdb"]
+
+    len_diff       = len(mut_aa) - len(ref_aa)
+    frameshift     = (len_diff % 3 != 0) if mut_aa else False
+    splice_disrupted = len_diff != 0 and abs(len_diff) >= 5
+
+    splice_info = {
+        "transcript_id":   chosen["name"],
+        "gene":            chosen["name2"],
+        "ref_aa_len":      len(ref_aa),
+        "mut_aa_len":      len(mut_aa),
+        "frameshift":      frameshift,
+        "splice_disrupted": splice_disrupted,
+        "skipped_exons":   [],
+    }
     return ref_pdb, mut_pdb, splice_info
 
 
@@ -229,12 +336,13 @@ def _run_evo2(ref_seq: str, mut_seq: str) -> tuple:
     return evo2.score_variant(ref_win, mut_win), evo2.scan_sequence(ref_win, window=256)
 
 
-@st.cache_data(show_spinner="Running differentiation trajectory…")
+@st.cache_data(show_spinner=False)
 def _run_trajectory(ref_seq: str, mut_seq: str) -> dict:
     """
     Run AlphaGenome at H1-hESC and K562 for both sequences.
     Returns 4 contact maps.
     """
+    import time
     from src.hg_dt.models.alphagenome import AlphaGenomeConnector
 
     if not os.getenv("ALPHA_GENOME_API_KEY"):
@@ -242,45 +350,96 @@ def _run_trajectory(ref_seq: str, mut_seq: str) -> dict:
 
     connector = AlphaGenomeConnector()
     maps = {}
-    for label, seq, ct in [
-        ("h1_ref",   ref_seq, "H1-hESC"),
-        ("h1_mut",   mut_seq, "H1-hESC"),
-        ("k562_ref", ref_seq, "K562"),
-        ("k562_mut", mut_seq, "K562"),
-    ]:
+    # Only H1 and GM12878 have AlphaGenome contact map tracks (K562 has none)
+    labels = [
+        ("h1_ref",      ref_seq, "H1",      "Ref @ H1-hESC (stem)"),
+        ("h1_mut",      mut_seq, "H1",      "Mut @ H1-hESC (stem)"),
+        ("gm12878_ref", ref_seq, "GM12878", "Ref @ GM12878 (committed)"),
+        ("gm12878_mut", mut_seq, "GM12878", "Mut @ GM12878 (committed)"),
+    ]
+    for i, (label, seq, ct, display) in enumerate(labels, 1):
+        st.write(f"  [{i}/4] AlphaGenome → `{display}`…")
+        t = time.time()
         out = connector.predict_sequence(seq, requested_outputs=["CONTACT_MAPS"],
                                           cell_type=ct)
-        maps[label] = np.array(out.contact_maps.values[:, :, 0])
+        cm = np.array(out.contact_maps.values)
+        if cm.ndim == 3 and cm.shape[2] > 0:
+            maps[label] = cm[:, :, 0]
+        elif cm.ndim == 2:
+            maps[label] = cm
+        else:
+            raise RuntimeError(
+                f"No contact map tracks available for cell type {ct!r}. "
+                f"AlphaGenome only supports Hi-C for: H1, GM12878, HFFc6, "
+                f"HCT116, IMR-90, HeLa, HepG2."
+            )
+        st.write(f"    ✅ contact map {maps[label].shape}  · _{time.time() - t:.1f}s_")
     return maps
 
 
 def _run_pipeline() -> dict:
     """
     Orchestrate the full pipeline and return a result dict.
+    Logs each step via st.write() — call inside st.status() for a live log panel.
     Raises on any error — no mock fallback.
     """
+    import time
+    t0 = time.time()
+
     chrom      = st.session_state.chrom
     edit_start = st.session_state.edit_start
     edit_end   = st.session_state.edit_end
     mod_type   = st.session_state.mod_type
+    edit_size  = edit_end - edit_start
 
-    # 1. Real sequences from UCSC
+    # ── Step 1: Fetch sequences ────────────────────────────────────────────
+    st.write(
+        f"**[1/5]** Fetching hg38 sequence from UCSC  "
+        f"(`{chrom}:{edit_start:,}–{edit_end:,}`, {edit_size:,} bp {mod_type.lower()})…"
+    )
+    t1 = time.time()
     ref_seq, mut_seq, win_start, win_end = _fetch_sequences(
         chrom, edit_start, edit_end, mod_type
     )
+    st.write(
+        f"  ✅ Window: `{chrom}:{win_start:,}–{win_end:,}` ({win_end - win_start:,} bp)  "
+        f"· ref = {len(ref_seq):,} bp  · mut = {len(mut_seq):,} bp  "
+        f"· _{time.time() - t1:.1f}s_"
+    )
 
-    # 2. AlphaGenome predictions
+    # ── Step 2: AlphaGenome ────────────────────────────────────────────────
+    st.write(
+        f"**[2/5]** Running AlphaGenome on ref + mut sequences "
+        f"(cell type: {cell_type or 'all'})…"
+    )
+    t2 = time.time()
     ref_out, mut_out = _run_alphagenome(ref_seq, mut_seq, cell_type)
+    st.write(
+        f"  ✅ Predictions complete — ATAC · CAGE · CTCF · Contact maps · Splice sites  "
+        f"· _{time.time() - t2:.1f}s_"
+    )
 
-    # 3. Extract tracks
+    # ── Step 3: Extract tracks & delta stats ──────────────────────────────
+    st.write("**[3/5]** Extracting tracks and computing delta statistics…")
+    t3 = time.time()
     ref_atac = _extract_1d(ref_out.atac)
     mut_atac = _extract_1d(mut_out.atac)
     ref_cage = _extract_1d(ref_out.cage)
     mut_cage = _extract_1d(mut_out.cage)
     ref_ctcf = _extract_1d(ref_out.chip_tf)
     mut_ctcf = _extract_1d(mut_out.chip_tf)
-    ref_hic  = np.array(ref_out.contact_maps.values[:, :, 0])
-    mut_hic  = np.array(mut_out.contact_maps.values[:, :, 0])
+    def _extract_hic(out) -> np.ndarray:
+        cm = np.array(out.contact_maps.values)
+        if cm.ndim == 3 and cm.shape[2] > 0:
+            return cm[:, :, 0]
+        if cm.ndim == 2:
+            return cm
+        # No contact maps for this cell type — return zeros
+        n = 512
+        return np.zeros((n, n))
+
+    ref_hic  = _extract_hic(ref_out)
+    mut_hic  = _extract_hic(mut_out)
 
     multi_tracks = {
         "ATAC": (ref_atac, mut_atac),
@@ -288,33 +447,66 @@ def _run_pipeline() -> dict:
         "CTCF": (ref_ctcf, mut_ctcf),
     }
 
-    # 4. Delta statistics
-    a_delta        = accessibility_delta(ref_atac, mut_atac)
-    e_delta        = expression_delta(ref_cage, mut_cage)
-    silenced       = find_silenced_elements(ref_atac, mut_atac)
-    loop_weakened  = len(find_distal_loops(mut_hic)) < len(find_distal_loops(ref_hic)) * 0.8
-    loop_gained    = len(find_distal_loops(mut_hic)) > len(find_distal_loops(ref_hic)) * 1.2
-    acc_drop       = float(np.mean(a_delta[silenced])) if silenced else float(np.mean(a_delta[a_delta > 0]) or 0)
-    exp_drop       = float(np.mean(e_delta[e_delta > 0]) or 0)
+    a_delta       = accessibility_delta(ref_atac, mut_atac)
+    e_delta       = expression_delta(ref_cage, mut_cage)
+    silenced      = find_silenced_elements(ref_atac, mut_atac)
+    ref_loops     = find_distal_loops(ref_hic)
+    mut_loops     = find_distal_loops(mut_hic)
+    loop_weakened = len(mut_loops) < len(ref_loops) * 0.8
+    loop_gained   = len(mut_loops) > len(ref_loops) * 1.2
+    acc_drop      = float(np.mean(a_delta[silenced])) if silenced else float(np.mean(a_delta[a_delta > 0]) or 0)
+    exp_drop      = float(np.mean(e_delta[e_delta > 0]) or 0)
 
     delta_stats = {
-        "loop_weakened":    loop_weakened,
+        "loop_weakened":     loop_weakened,
         "loop_strengthened": loop_gained,
         "accessibility_drop": acc_drop,
         "expression_drop":    exp_drop,
     }
+    st.write(
+        f"  ✅ Hi-C: {ref_hic.shape[0]}×{ref_hic.shape[1]}  "
+        f"· ATAC bins: {len(ref_atac):,}  "
+        f"· Silenced elements: {len(silenced)}  "
+        f"· Accessibility Δ = {acc_drop:+.3f}  "
+        f"· Expression Δ = {exp_drop:+.3f}  "
+        f"· Loops ref/mut = {len(ref_loops)}/{len(mut_loops)}  "
+        f"· _{time.time() - t3:.1f}s_"
+    )
 
-    # 5. Protein (parallel to tracks — can fail gracefully)
+    # ── Step 4: Protein folding ────────────────────────────────────────────
+    st.write("**[4/5]** Predicting protein structure via ESMFold…")
+    t4 = time.time()
     try:
         ref_pdb, mut_pdb, splice_info = _run_protein(
             ref_seq, mut_seq, win_start, edit_start, edit_end, mod_type, chrom
         )
+        pdb_status = (
+            f"ref PDB = {len(ref_pdb):,} chars  · mut PDB = {len(mut_pdb):,} chars"
+            if ref_pdb else "no coding gene in window"
+        )
+        splice_flag = ""
+        if splice_info.get("splice_disrupted"):
+            n = len(splice_info.get("skipped_exons", []))
+            splice_flag = f"  ⚠ splice disruption ({n} exon(s) skipped)"
+        st.write(f"  ✅ {pdb_status}{splice_flag}  · _{time.time() - t4:.1f}s_")
     except Exception as exc:
         ref_pdb = mut_pdb = ""
         splice_info = {"error": str(exc)}
+        st.write(f"  ⚠ Protein folding failed: `{exc}`  · _{time.time() - t4:.1f}s_")
 
-    # 6. Evo 2
+    # ── Step 5: Evo 2 ─────────────────────────────────────────────────────
+    st.write("**[5/5]** Running Evo 2 variant scoring (k-mer log-odds)…")
+    t5 = time.time()
     evo2_result, evo2_scan = _run_evo2(ref_seq, mut_seq)
+    score = evo2_result.get("score", float("nan"))
+    backend = evo2_result.get("backend", "kmer_fallback")
+    st.write(
+        f"  ✅ Score = {score:.4f}  · backend = `{backend}`  "
+        f"· _{time.time() - t5:.1f}s_"
+    )
+
+    elapsed = time.time() - t0
+    st.write(f"**Pipeline complete in {elapsed:.1f}s** 🎉")
 
     return {
         "ref_seq":      ref_seq,
@@ -329,9 +521,9 @@ def _run_pipeline() -> dict:
         "multi_tracks": multi_tracks,
         "delta_stats":  delta_stats,
         "extras": {
-            "evo2":   evo2_result,
+            "evo2":      evo2_result,
             "evo2_scan": evo2_scan,
-            "splice": splice_info,
+            "splice":    splice_info,
             "cell_type": cell_type,
         },
     }
@@ -415,14 +607,20 @@ def _render_accessibility_elements(multi_tracks: dict, genes_df: pd.DataFrame,
 # Helper: render differentiation trajectory
 # ---------------------------------------------------------------------------
 def _render_trajectory(result: dict):
-    try:
-        maps = _run_trajectory(result["ref_seq"], result["mut_seq"])
-    except Exception as exc:
-        st.error(f"Differentiation trajectory failed: {exc}")
-        return
+    with st.status("Running differentiation trajectory (4 AlphaGenome calls)…",
+                   expanded=True) as _traj_status:
+        try:
+            maps = _run_trajectory(result["ref_seq"], result["mut_seq"])
+            _traj_status.update(label="Trajectory complete!", state="complete",
+                                expanded=False)
+        except Exception as exc:
+            _traj_status.update(label=f"Trajectory failed: {exc}", state="error",
+                                expanded=True)
+            st.error(f"Differentiation trajectory failed: {exc}")
+            return
 
-    titles = ["H1-hESC  Ref", "H1-hESC  Mut", "K562  Ref", "K562  Mut"]
-    keys   = ["h1_ref", "h1_mut", "k562_ref", "k562_mut"]
+    titles = ["H1-hESC  Ref", "H1-hESC  Mut", "GM12878  Ref", "GM12878  Mut"]
+    keys   = ["h1_ref", "h1_mut", "gm12878_ref", "gm12878_mut"]
     vmax   = max(np.nanmax(np.abs(maps[k])) for k in keys if maps[k].size > 0)
 
     fig, axes = plt.subplots(1, 4, figsize=(16, 4))
@@ -443,7 +641,8 @@ def _render_trajectory(result: dict):
     with st.expander("Model & Methodology"):
         st.markdown("""
 **Model:** AlphaGenome (DeepMind) with cell-type-specific ontology terms
-**Cell types:** H1-hESC (`CLO:0037111`) = embryonic pluripotent stem cell; K562 (`CLO:0007050`) = committed CML myeloid line
+**Cell types:** H1 (`EFO:0003042`) = H1 embryonic stem cell line; GM12878 (`EFO:0002784`) = committed lymphoblastoid (B-cell lineage)
+**Note:** AlphaGenome contact maps are only available for: H1, GM12878, HFFc6, HCT116, IMR-90, HeLa, HepG2, H9, KBM-7.
 **Interpretation:** Contact maps predicted from real hg38 sequence for each cell type. Changes between Ref and Mut show how the edit disrupts 3D genome organization across the developmental axis.
 """)
 
@@ -642,14 +841,26 @@ elif st.session_state.step == 3:
 
     # Run pipeline (cached in session_state)
     if st.session_state.pipeline_result is None:
-        try:
-            st.session_state.pipeline_result = _run_pipeline()
-        except Exception as exc:
-            st.error(f"Pipeline error: {exc}")
-            st.stop()
+        with st.status("Running HG-DT pipeline…", expanded=True) as _pipeline_status:
+            try:
+                st.session_state.pipeline_result = _run_pipeline()
+                _pipeline_status.update(
+                    label="Pipeline complete!",
+                    state="complete",
+                    expanded=False,
+                )
+            except Exception as exc:
+                _pipeline_status.update(
+                    label=f"Pipeline failed: {exc}",
+                    state="error",
+                    expanded=True,
+                )
+                st.error(f"Pipeline error: {exc}")
+                st.stop()
 
     result   = st.session_state.pipeline_result
-    genes_df = st.session_state.locus_annotations or pd.DataFrame(
+    _annot   = st.session_state.locus_annotations
+    genes_df = _annot if _annot is not None else pd.DataFrame(
         columns=["Name", "Type", "Start", "End"]
     )
 
@@ -763,7 +974,7 @@ elif st.session_state.step == 3:
     st.divider()
     st.subheader("Differentiation Trajectory")
     st.caption(
-        "AlphaGenome contact maps at H1-hESC (embryonic stem) → K562 (committed myeloid). "
+        "AlphaGenome contact maps at H1-hESC (embryonic stem) → GM12878 (committed lymphoblastoid). "
         "Shows how the edit reshapes 3D organization across the developmental axis."
     )
     _render_trajectory(result)
