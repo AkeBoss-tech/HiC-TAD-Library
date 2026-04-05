@@ -84,3 +84,40 @@ def find_distal_loops(contact_map: np.ndarray, min_dist: int = 5, min_freq: floa
             if contact_map[i, j] > min_freq:
                 loops.append((i, j))
     return loops
+
+def compute_structure_impact(ref_plddt: List[float], mut_plddt: List[float]) -> Dict[str, float]:
+    """
+    Computes structural impact metrics between reference and mutant pLDDT scores.
+    Identifies fold collapse or large destabilization.
+
+    Args:
+        ref_plddt: List of pLDDT scores for the reference sequence.
+        mut_plddt: List of pLDDT scores for the mutant sequence.
+
+    Returns:
+        Dictionary of metrics, including average pLDDT drop and whether structural collapse occurred.
+    """
+    if not ref_plddt and not mut_plddt:
+        return {'avg_drop': 0.0, 'collapse': False}
+
+    avg_ref = np.mean(ref_plddt) if ref_plddt else 0.0
+    avg_mut = np.mean(mut_plddt) if mut_plddt else 0.0
+
+    avg_drop = avg_ref - avg_mut
+
+    # We define collapse as a large drop in average pLDDT, or if the mutant
+    # has an unreliably folded structure overall (e.g. average pLDDT < 50)
+    # when the wild-type was folded well (e.g. average pLDDT > 70).
+
+    collapse = False
+    if avg_ref > 70.0 and avg_mut < 50.0:
+        collapse = True
+    elif avg_drop > 30.0:
+        collapse = True
+
+    return {
+        'avg_ref_plddt': float(avg_ref),
+        'avg_mut_plddt': float(avg_mut),
+        'avg_drop': float(avg_drop),
+        'collapse': collapse
+    }
