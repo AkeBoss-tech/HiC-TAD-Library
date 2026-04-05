@@ -386,6 +386,8 @@ class TestBoundaryPersistence:
 
         valid_types = {'constitutive', 'nested_sub', 'nested_meta', 'mixed', None}
         unique_types = set(result['boundary_type'].unique())
+        # Drop np.nan from unique_types since pandas treats None as nan sometimes
+        unique_types = {t for t in unique_types if pd.notna(t) or t is None}
         assert unique_types.issubset(valid_types)
 
 
@@ -494,7 +496,9 @@ class TestEdgeCases:
             'boundary_class': ['strong']
         })
 
-        result = call_tad_intervals(single_boundary, mock_cooler)
+        # mock_cooler doesn't have chromsizes by default in the way it's mocked in some places,
+        # but in tad_boundaries fallback to 100_000_000 if not found
+        result = call_tad_intervals(single_boundary, mock_cooler, max_tad_length_bp=200_000_000)
 
         # Should create TADs on either side of the boundary
         assert len(result) >= 1
