@@ -45,6 +45,26 @@ def show_protein_3d(pdb_data: str, width: int = 400, height: int = 400, animate=
     showmol(view, height=height, width=width)
 
 
+def _extract_first_model(pdb_text: str) -> str:
+    """Return only the first MODEL block from a multi-model PDB string."""
+    if "MODEL" not in pdb_text:
+        return pdb_text
+    lines = []
+    in_model = False
+    for line in pdb_text.splitlines():
+        if line.startswith("MODEL"):
+            if not in_model:
+                in_model = True
+                lines.append(line)
+            else:
+                break  # stop at second MODEL
+        elif in_model:
+            lines.append(line)
+            if line.startswith("ENDMDL"):
+                break
+    return "\n".join(lines) if lines else pdb_text
+
+
 def render_protein_overlay(ref_pdb: str, mut_pdb: str, width: int = 660, height: int = 440):
     """
     Render reference (blue) and mutant (orange) proteins overlaid in one viewer.
@@ -61,7 +81,8 @@ def render_protein_overlay(ref_pdb: str, mut_pdb: str, width: int = 660, height:
     model_idx = 0
 
     if ref_pdb:
-        view.addModel(ref_pdb, 'pdb')
+        # Extract only the first MODEL frame so py3Dmol gets exactly one model
+        view.addModel(_extract_first_model(ref_pdb), 'pdb')
         if _has_full_backbone(ref_pdb):
             view.setStyle(
                 {'model': model_idx},
@@ -76,7 +97,7 @@ def render_protein_overlay(ref_pdb: str, mut_pdb: str, width: int = 660, height:
         model_idx += 1
 
     if mut_pdb:
-        view.addModel(mut_pdb, 'pdb')
+        view.addModel(_extract_first_model(mut_pdb), 'pdb')
         if _has_full_backbone(mut_pdb):
             view.setStyle(
                 {'model': model_idx},

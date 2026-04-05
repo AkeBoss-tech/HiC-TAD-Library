@@ -5,14 +5,21 @@ from scipy.ndimage import rotate
 
 def _to_triangle(matrix: np.ndarray) -> np.ndarray:
     """
-    Rotate an upper-triangle contact matrix 45° to produce the standard
-    triangular Hi-C view (diagonal becomes the base).
+    Rotate an upper-triangle contact matrix 45° CCW to produce the standard
+    triangular Hi-C view (diagonal at the bottom, long-range contacts at top).
+
+    After a 45° CCW rotation, the upper-triangle data lands in the TOP half of
+    the rotated image. Taking [:h//2] gives us the triangle with the diagonal
+    at the bottom row and long-range contacts ascending toward the top.
     """
     tri = np.triu(matrix).astype(float)
-    tri[tri == 0] = np.nan
+    # Only mask the strict lower triangle (below diagonal) — zeros are valid data
+    rows, cols = np.tril_indices(tri.shape[0], k=-1)
+    tri[rows, cols] = np.nan
     rotated = rotate(tri, angle=45, reshape=True, cval=np.nan, order=1)
     h = rotated.shape[0]
-    return rotated[h // 2:, :]
+    # TOP half contains the upper-triangle data after 45° CCW rotation
+    return rotated[:h // 2, :]
 
 
 def plot_hic_triangle(ref_map: np.ndarray, mut_map: np.ndarray, output_path: str,
@@ -33,19 +40,22 @@ def plot_hic_triangle(ref_map: np.ndarray, mut_map: np.ndarray, output_path: str
     mut_tri = _to_triangle(mut_map)
 
     delta_raw = np.triu(mut_map - ref_map).astype(float)
-    delta_raw[np.triu(ref_map) == 0] = np.nan
+    # Mask strict lower triangle only (not zeros)
+    rows, cols = np.tril_indices(delta_raw.shape[0], k=-1)
+    delta_raw[rows, cols] = np.nan
     delta_tri = rotate(delta_raw, angle=45, reshape=True, cval=np.nan, order=1)
     h = delta_tri.shape[0]
-    delta_tri = delta_tri[h // 2:, :]
+    delta_tri = delta_tri[:h // 2, :]   # top half contains upper-triangle data
 
     fig, axes = plt.subplots(3, 1, figsize=(10, 9))
 
-    cmap_hic = "Reds"
-    cmap_delta = "coolwarm"
+    cmap_hic   = "YlOrRd"   # yellow-orange-red, perceptually uniform for contacts
+    cmap_delta = "RdBu_r"   # red=gained contacts, blue=lost (intuitive for delta)
 
     for ax, mat, label in zip(axes[:2], [ref_tri, mut_tri], ["Reference", "Mutant"]):
-        im = ax.imshow(mat, cmap=cmap_hic, interpolation="nearest", aspect="auto",
-                       origin="upper")
+        vmax_hic = np.nanmax(mat) if not np.all(np.isnan(mat)) else 1.0
+        im = ax.imshow(mat, cmap=cmap_hic, vmin=0, vmax=vmax_hic,
+                       interpolation="nearest", aspect="auto", origin="upper")
         ax.set_title(label)
         ax.set_yticks([])
         plt.colorbar(im, ax=ax, fraction=0.02, pad=0.02)
@@ -53,7 +63,7 @@ def plot_hic_triangle(ref_map: np.ndarray, mut_map: np.ndarray, output_path: str
     vmax = np.nanmax(np.abs(delta_tri)) if not np.all(np.isnan(delta_tri)) else 1.0
     im2 = axes[2].imshow(delta_tri, cmap=cmap_delta, vmin=-vmax, vmax=vmax,
                          interpolation="nearest", aspect="auto", origin="upper")
-    axes[2].set_title("Delta (Mut − Ref)")
+    axes[2].set_title("Delta (Mut − Ref)  ·  Red = gained contacts  ·  Blue = lost")
     axes[2].set_yticks([])
     plt.colorbar(im2, ax=axes[2], fraction=0.02, pad=0.02)
 
