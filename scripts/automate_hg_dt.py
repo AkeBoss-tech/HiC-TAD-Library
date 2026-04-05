@@ -14,7 +14,7 @@ if not API_KEY:
     exit(1)
 
 API_URL = "https://jules.googleapis.com/v1alpha"
-SOURCE = "AkeBoss-tech/HiC-TAD-Library"
+SOURCE = "sources/github/AkeBoss-tech/HiC-TAD-Library"
 WORK_ORDERS_DIR = "spec/work_orders"
 
 def get_pr_branch(pr_url):

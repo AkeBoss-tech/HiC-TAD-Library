@@ -1,5 +1,5 @@
 from Bio.Seq import Seq
-from typing import Dict
+from typing import Any, Dict
 
 def find_longest_orf(mrna_seq: str) -> str:
     """
@@ -36,7 +36,7 @@ def translate(mrna_seq: str) -> str:
     # to_stop=True ensures we stop translating at the first stop codon
     return str(seq_obj.translate(to_stop=True))
 
-def compare_translation(ref_mrna: str, mut_mrna: str) -> Dict[str, any]:
+def compare_translation(ref_mrna: str, mut_mrna: str) -> Dict[str, Any]:
     """
     Compares the translation of reference and mutant mRNA sequences.
     Detects frameshifts or truncation events.

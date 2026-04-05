@@ -12,8 +12,7 @@ and scans for disruption of TF binding motifs (CTCF, SP1, GATA1, etc.).
 """
 
 import os
-import math
-import hashlib
+import re
 import requests
 from typing import Dict, List, Optional, Tuple
 
@@ -51,7 +50,6 @@ def _motif_hits(seq: str, motifs: Dict[str, List[str]]) -> Dict[str, int]:
         for pat in patterns:
             # Replace IUPAC ambiguity codes with simple checks
             pat = pat.replace("N", ".").replace("R", "[AG]").replace("Y", "[CT]")
-            import re
             count += len(re.findall(pat, seq))
         hits[tf] = count
     return hits
@@ -96,7 +94,7 @@ class Evo2Client:
                 resp = requests.head(self._NIM_SCORE_EP,
                                      headers={"Authorization": f"Bearer {self.nvidia_key}"},
                                      timeout=5)
-                if resp.status_code not in (404, 000):
+                if resp.status_code not in (404, 400, 501):
                     return "nvidia"
             except Exception:
                 pass

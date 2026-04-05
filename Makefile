@@ -5,9 +5,10 @@
 #   conda activate hic-analysis   (or ensure the right python is on PATH)
 #   ALPHA_GENOME_API_KEY=...      set in .env for AlphaGenome targets
 
-PYTHON  ?= python
-PYTEST  ?= pytest
-PIP     ?= pip
+PYTHON  ?= /opt/homebrew/Caskroom/miniconda/base/envs/hic-analysis/bin/python
+STREAMLIT ?= /opt/homebrew/Caskroom/miniconda/base/envs/hic-analysis/bin/streamlit
+PYTEST  ?= $(PYTHON) -m pytest
+PIP     ?= $(PYTHON) -m pip
 
 # Deletion sizes used for the large-deletion scans
 LARGE_SIZES ?= 10 40 80
@@ -194,7 +195,7 @@ synthesis-report:
 run-synthesis: run-synthesis-exp1 run-synthesis-exp2 run-synthesis-exp3 synthesis-report
 
 synthesis-ui:
-	streamlit run synthesis/app.py
+	$(STREAMLIT) run synthesis/app.py
 
 # ── Drug Discovery Pipeline ────────────────────────────────────────────────────
 run-pipeline-stage0:
@@ -225,7 +226,10 @@ run-pipeline-force:
 	$(PYTHON) pipeline/pipeline_runner.py --force
 
 pipeline-ui:
-	streamlit run pipeline/app.py
+	$(STREAMLIT) run pipeline/app.py
+
+hg-dt-ui:
+	$(STREAMLIT) run app.py
 
 # ── Dovetail analysis suite ───────────────────────────────────────────────────
 run-compartments:

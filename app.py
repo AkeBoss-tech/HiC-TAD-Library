@@ -23,9 +23,27 @@ from src.hg_dt.analyze.deltas import (
 from src.hg_dt.models.alphagenome import CELL_TYPES
 from src.hg_dt.models.evo2 import Evo2Client
 
-st.set_page_config(page_title="HG-DT Causal Dashboard", layout="wide")
+st.set_page_config(page_title="HG-DT: Human Genome Digital Twin", layout="wide")
 
-st.title("HG-DT: Visual Interpretation & Causal Dashboard")
+# ---------------------------------------------------------------------------
+# Gene coordinate registry (hg38)
+# ---------------------------------------------------------------------------
+GENE_COORDS = {
+    "TAL1":  ("chr1",  47210000, 47260000),
+    "MYC":   ("chr8",  127735000, 127742000),
+    "BRCA1": ("chr17", 43044000,  43126000),
+    "GATA1": ("chrX",  48786000,  48812000),
+    "OCT4":  ("chr6",  31132000,  31147000),
+    "NANOG": ("chr12", 7794000,   7802000),
+    "SOX2":  ("chr3",  181429000, 181435000),
+    "TP53":  ("chr17", 7668000,   7688000),
+    "CTCF":  ("chr16", 67562000,  67600000),
+    "RUNX1": ("chr21", 34787000,  36004000),
+    "PAX5":  ("chr9",  36838000,  37035000),
+    "EZH2":  ("chr7",  148504000, 148581000),
+    "MYB":   ("chr6",  135502000, 135540000),
+    "MEF2C": ("chr5",  88101000,  88203000),
+}
 
 # ---------------------------------------------------------------------------
 # Sidebar — pipeline settings
@@ -49,6 +67,30 @@ with st.sidebar:
 
     st.divider()
     st.caption(f"Evo 2 backend: **{Evo2Client().backend}**")
+
+    st.divider()
+    if st.button("Start Over"):
+        for key in ["step", "chrom", "gene", "edit_start", "edit_end",
+                    "mod_type", "pipeline_result"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Session state defaults
+# ---------------------------------------------------------------------------
+for key, default in [
+    ("step",            1),
+    ("chrom",           "chr1"),
+    ("gene",            "TAL1"),
+    ("edit_start",      47200000),
+    ("edit_end",        47250000),
+    ("mod_type",        "Deletion"),
+    ("pipeline_result", None),
+]:
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 
 # ---------------------------------------------------------------------------
@@ -93,14 +135,6 @@ def generate_mock_data(mod_type: str, gene: str):
     ref_pdb = make_jittery_pdb()
     mut_pdb = make_jittery_pdb() if mod_type != "None" else ""
 
-    genes_df = pd.DataFrame([
-        {'Name': gene,          'Start': 47210000, 'End': 47250000, 'Type': 'Gene'},
-        {'Name': 'Enhancer_1',  'Start': 47200000, 'End': 47205000, 'Type': 'Enhancer'},
-        {'Name': 'CTCF_Site',   'Start': 47230000, 'End': 47232000, 'Type': 'CTCF'},
-        {'Name': 'H3K27ac_Peak','Start': 47208000, 'End': 47210000, 'Type': 'Enhancer'},
-    ])
-
-    # Hardcoded mock delta_stats (sign convention: positive = loss)
     if mod_type == "Deletion":
         delta_stats = {
             "loop_weakened": True,
@@ -116,7 +150,7 @@ def generate_mock_data(mod_type: str, gene: str):
     else:
         delta_stats = {"loop_weakened": False, "accessibility_drop": 0.0, "expression_drop": 0.0}
 
-    return ref_track, mut_track, ref_hic, mut_hic, ref_pdb, mut_pdb, genes_df, multi_tracks, delta_stats
+    return ref_track, mut_track, ref_hic, mut_hic, ref_pdb, mut_pdb, multi_tracks, delta_stats
 
 
 # ---------------------------------------------------------------------------
@@ -139,8 +173,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
     Orchestrate the full HG-DT pipeline:
       ReferenceContextBuilder → AlphaGenomeConnector → deltas
       → splice-aware transcript prediction → translation → ProteinFolder
-    Returns the same shape as generate_mock_data so all tabs work unchanged,
-    plus an 'extras' dict with Evo2 scores and splice info.
     """
     from src.hg_dt.data.builder import ReferenceContextBuilder
     from src.hg_dt.models.alphagenome import AlphaGenomeConnector
@@ -148,7 +180,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
     from src.hg_dt.translate.translator import compare_translation
     from src.hg_dt.models.protein import ProteinFolder
 
-    # 1. Reference context
     builder = ReferenceContextBuilder(fasta_path, gtf_path, bed_path)
     context = builder.get_context(chrom, edit_start, edit_end, edit_type)
     ref_seq   = context['ref_seq']
@@ -156,7 +187,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
     win_start, _ = context['window']
     genes_df  = context['annotations']['genes']
 
-    # 2. AlphaGenome predictions (cell-type-specific if requested)
     connector = AlphaGenomeConnector()
     outputs_requested = ['ATAC', 'CAGE', 'CHIP_TF', 'CONTACT_MAPS', 'SPLICE_SITES']
     ref_out = connector.predict_sequence(ref_seq, organism="HUMAN",
@@ -166,7 +196,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
                                          requested_outputs=outputs_requested,
                                          cell_type=cell_type)
 
-    # 3. Extract tracks
     ref_atac = _extract_1d(ref_out.atac)
     mut_atac = _extract_1d(mut_out.atac)
     ref_cage = _extract_1d(ref_out.cage)
@@ -176,7 +205,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
     ref_hic  = np.array(ref_out.contact_maps.values[:, :, 0])
     mut_hic  = np.array(mut_out.contact_maps.values[:, :, 0])
 
-    # Splice tracks (may be None if not available)
     ref_splice = _extract_1d(ref_out.splice_sites) if ref_out.splice_sites is not None else None
     mut_splice = _extract_1d(mut_out.splice_sites) if mut_out.splice_sites is not None else None
 
@@ -186,7 +214,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
         'CTCF':  (ref_ctcf, mut_ctcf),
     }
 
-    # 4. Delta stats
     a_delta  = accessibility_delta(ref_atac, mut_atac)
     e_delta  = expression_delta(ref_cage, mut_cage)
     silenced = find_silenced_elements(ref_atac, mut_atac)
@@ -205,17 +232,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
         "expression_drop": exp_drop,
     }
 
-    # 5. Annotation display df
-    if genes_df.empty:
-        display_genes = pd.DataFrame([
-            {'Name': gene, 'Start': edit_start, 'End': edit_end, 'Type': 'Gene'}
-        ])
-    else:
-        display_genes = genes_df[['Start', 'End']].copy()
-        display_genes['Name'] = genes_df.get('gene_name', genes_df.index.astype(str))
-        display_genes['Type'] = genes_df.get('Feature', 'Gene')
-
-    # 6. Splice-aware protein prediction
     ref_pdb = mut_pdb = ""
     splice_info: dict = {}
     if not genes_df.empty:
@@ -241,7 +257,6 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
             }
             break
 
-    # 7. Evo 2 variant scoring on a local window
     window_size = min(2048, len(ref_seq))
     center = len(ref_seq) // 2
     ref_window = ref_seq[center - window_size//2 : center + window_size//2]
@@ -251,315 +266,469 @@ def run_real_pipeline(chrom: str, edit_start: int, edit_end: int,
     evo2_scan   = evo2.scan_sequence(ref_window, window=256)
 
     return (ref_atac, mut_atac, ref_hic, mut_hic,
-            ref_pdb, mut_pdb, display_genes, multi_tracks, delta_stats,
+            ref_pdb, mut_pdb, multi_tracks, delta_stats,
             {"evo2": evo2_result, "evo2_scan": evo2_scan, "splice": splice_info,
              "cell_type": cell_type})
 
 
-# ---------------------------------------------------------------------------
-# Accessibility-over-time simulation (unchanged)
-# ---------------------------------------------------------------------------
-@st.cache_data
-def generate_accessibility_over_time(gene: str, mod_type: str, time_steps: int = 50):
-    t = np.linspace(0, 10, time_steps)
-    base = 100.0
+@st.cache_data(show_spinner="Running differentiation trajectory…")
+def run_differentiation_trajectory(chrom: str, edit_start: int, edit_end: int,
+                                    mod_type: str, fasta_path: str,
+                                    gtf_path: str, bed_path: str):
+    """
+    Run AlphaGenome predict_sequence at H1-hESC and K562 for ref and mut.
+    Returns dict with 4 contact maps keyed by h1_ref, h1_mut, k562_ref, k562_mut.
+    """
+    from src.hg_dt.data.builder import ReferenceContextBuilder
+    from src.hg_dt.models.alphagenome import AlphaGenomeConnector
+
+    builder = ReferenceContextBuilder(fasta_path, gtf_path, bed_path)
+    context = builder.get_context(chrom, edit_start, edit_end, mod_type.lower())
+    ref_seq = context['ref_seq']
+    mut_seq = context['mut_seq']
+
+    connector = AlphaGenomeConnector()
+    results = {}
+    for label, seq, ct in [
+        ('h1_ref',   ref_seq, 'H1-hESC'),
+        ('h1_mut',   mut_seq, 'H1-hESC'),
+        ('k562_ref', ref_seq, 'K562'),
+        ('k562_mut', mut_seq, 'K562'),
+    ]:
+        out = connector.predict_sequence(seq, requested_outputs=['CONTACT_MAPS'],
+                                          cell_type=ct)
+        results[label] = np.array(out.contact_maps.values[:, :, 0])
+    return results
+
+
+def _mock_trajectory(mod_type: str):
+    """Generate 4 mock contact maps for H1-hESC and K562 in demo mode."""
+    base = np.random.rand(30, 30)
+    base = (base + base.T) / 2
+    np.fill_diagonal(base, 1.0)
+    h1_ref = base.copy()
+    k562_ref = base * 0.8 + np.random.rand(30, 30) * 0.1
+    k562_ref = (k562_ref + k562_ref.T) / 2
+    h1_mut = h1_ref.copy()
+    k562_mut = k562_ref.copy()
     if mod_type == "Deletion":
-        acc = base - 60 * (1 / (1 + np.exp(-t + 5))) + np.random.normal(0, 2, time_steps)
-    elif mod_type == "Insertion":
-        acc = base + 80 * (1 / (1 + np.exp(-t + 5))) + np.random.normal(0, 2, time_steps)
+        h1_mut[8:15, 18:25] *= 0.3
+        h1_mut[18:25, 8:15] = h1_mut[8:15, 18:25]
+        k562_mut[8:15, 18:25] *= 0.4
+        k562_mut[18:25, 8:15] = k562_mut[8:15, 18:25]
+    return {'h1_ref': h1_ref, 'h1_mut': h1_mut,
+            'k562_ref': k562_ref, 'k562_mut': k562_mut}
+
+
+# ---------------------------------------------------------------------------
+# Helper: build preview genes_df for Step 2 (no API call)
+# ---------------------------------------------------------------------------
+def _build_preview_genes_df() -> pd.DataFrame:
+    """Build a simple annotation DataFrame centered on the current gene."""
+    gene = st.session_state.gene
+    chrom = st.session_state.chrom
+    edit_start = st.session_state.edit_start
+    edit_end   = st.session_state.edit_end
+
+    # Get gene body coordinates
+    if gene in GENE_COORDS:
+        _, gs, ge = GENE_COORDS[gene]
     else:
-        acc = np.full(time_steps, base) + np.random.normal(0, 2, time_steps)
-    return t, acc
+        gs, ge = edit_start - 10000, edit_end + 10000
+
+    mid = (gs + ge) // 2
+    rows = [
+        {'Name': gene,             'Start': gs,         'End': ge,         'Type': 'Gene'},
+        {'Name': f'{gene}_ENH1',   'Start': mid - 25000,'End': mid - 20000,'Type': 'Enhancer'},
+        {'Name': f'{gene}_ENH2',   'Start': mid + 15000,'End': mid + 20000,'Type': 'Enhancer'},
+        {'Name': f'CTCF_L',        'Start': gs - 5000,  'End': gs - 3000,  'Type': 'CTCF'},
+        {'Name': f'CTCF_R',        'Start': ge + 3000,  'End': ge + 5000,  'Type': 'CTCF'},
+        {'Name': f'{gene}_H3K27ac','Start': mid - 5000, 'End': mid - 2000, 'Type': 'Enhancer'},
+    ]
+    return pd.DataFrame(rows)
 
 
 # ---------------------------------------------------------------------------
-# Session state defaults
+# Helper: run pipeline and package result as dict
 # ---------------------------------------------------------------------------
-for key, default in [("mod_type", "None"), ("gene", "TAL1"),
-                     ("analyzed", False), ("browser_pos", 47200000)]:
-    if key not in st.session_state:
-        st.session_state[key] = default
+def _run_pipeline() -> dict:
+    gene      = st.session_state.gene
+    chrom     = st.session_state.chrom
+    edit_start = st.session_state.edit_start
+    edit_end   = st.session_state.edit_end
+    mod_type  = st.session_state.mod_type
 
-# ---------------------------------------------------------------------------
-# Tabs
-# ---------------------------------------------------------------------------
-tab1, tab2, tab2b, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "Specification", "Genome Tracks", "Genome Scroller",
-    "3D Organization", "Protein Structure", "Trajectory Animation",
-    "Mechanistic Attribution", "Evo 2 Analysis",
-])
-
-with tab1:
-    st.header("Input DNA Modification")
-    col1, col2 = st.columns(2)
-    with col1:
-        gene = st.selectbox("Select Target Gene:", ["TAL1", "OCT4", "NANOG", "SOX2", "Mef2c"])
-    with col2:
-        mod_type = st.selectbox("Select Modification Type:",
-                                ["None", "Deletion", "Insertion", "Duplication"])
-
-    chrom = st.text_input("Chromosome", "chr1")
-    locus = st.text_input("Locus", "47200000-47250000")
-
-    if st.button("Run Analysis"):
-        st.session_state.gene = gene
-        st.session_state.mod_type = mod_type
-        st.session_state.analyzed = True
-        st.success(f"Analysis triggered for {gene} ({mod_type}) at {chrom}:{locus}")
-
-if st.session_state.analyzed:
-    # Parse locus
-    try:
-        locus_parts = locus.replace(",", "").split("-")
-        edit_start = int(locus_parts[0])
-        edit_end   = int(locus_parts[1])
-    except Exception:
-        edit_start, edit_end = 47200000, 47250000
-
-    # Dispatch to real or mock pipeline
-    extras: dict = {}
     if use_real_pipeline:
         try:
-            result = run_real_pipeline(
+            result_tuple = run_real_pipeline(
                 chrom, edit_start, edit_end,
-                st.session_state.mod_type.lower(),
-                st.session_state.gene,
+                mod_type.lower(), gene,
                 fasta_path, gtf_path, bed_path,
                 cell_type=cell_type,
             )
-            (ref_track, mut_track, ref_hic, mut_hic,
-             ref_pdb, mut_pdb, genes_df, multi_tracks, delta_stats, extras) = result
+            (ref_atac, mut_atac, ref_hic, mut_hic,
+             ref_pdb, mut_pdb, multi_tracks, delta_stats, extras) = result_tuple
         except Exception as exc:
             st.error(f"Real pipeline failed: {exc}. Falling back to mock data.")
-            (ref_track, mut_track, ref_hic, mut_hic,
-             ref_pdb, mut_pdb, genes_df, multi_tracks, delta_stats) = generate_mock_data(
-                st.session_state.mod_type, st.session_state.gene
-            )
+            use_mock = True
+        else:
+            use_mock = False
     else:
-        (ref_track, mut_track, ref_hic, mut_hic,
-         ref_pdb, mut_pdb, genes_df, multi_tracks, delta_stats) = generate_mock_data(
-            st.session_state.mod_type, st.session_state.gene
-        )
-        # Run Evo 2 analysis on mock sequence even in demo mode
-        evo2 = Evo2Client()
+        use_mock = True
+
+    if use_mock:
+        (ref_atac, mut_atac, ref_hic, mut_hic,
+         ref_pdb, mut_pdb, multi_tracks, delta_stats) = generate_mock_data(mod_type, gene)
+        evo2_client = Evo2Client()
         mock_ref = "ATCGATCGCCGCGAGGTGGCAG" * 20
         mock_alt = mock_ref[:200] + "TTTTTTTTTT" + mock_ref[210:]
         extras = {
-            "evo2": evo2.score_variant(mock_ref, mock_alt),
-            "evo2_scan": evo2.scan_sequence(mock_ref, window=44),
+            "evo2": evo2_client.score_variant(mock_ref, mock_alt),
+            "evo2_scan": evo2_client.scan_sequence(mock_ref, window=44),
             "splice": {},
             "cell_type": None,
         }
 
-    with tab2:
-        st.header("AlphaGenome Multi-Scalar Predictions")
-        st.write("Predicted biological tracks from the DNA sequence (Ref vs. Mut):")
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            multi_track_path = plot_multi_tracks(
-                multi_tracks, tmp.name,
-                title=f"Regulatory Landscape: {st.session_state.gene}"
+    return {
+        "ref_atac":    ref_atac,
+        "mut_atac":    mut_atac,
+        "ref_hic":     ref_hic,
+        "mut_hic":     mut_hic,
+        "ref_pdb":     ref_pdb,
+        "mut_pdb":     mut_pdb,
+        "multi_tracks": multi_tracks,
+        "delta_stats": delta_stats,
+        "extras":      extras,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Helper: render differentiation trajectory panel
+# ---------------------------------------------------------------------------
+def _render_trajectory(result: dict):
+    """Render 4-panel contact map trajectory (H1-hESC → K562, Ref vs Mut)."""
+    if use_real_pipeline and fasta_path and gtf_path and bed_path:
+        try:
+            maps = run_differentiation_trajectory(
+                st.session_state.chrom,
+                st.session_state.edit_start,
+                st.session_state.edit_end,
+                st.session_state.mod_type,
+                fasta_path, gtf_path, bed_path,
             )
-            st.image(Image.open(multi_track_path), use_container_width=True)
-        with st.expander("🔬 Model & Methodology"):
-            st.markdown("""
-**Model:** AlphaGenome (DeepMind, 2026)
-**Method:** Sequence-to-function transformer predicting thousands of genomic tracks from a 1 Mb DNA window.
-**Tracks shown:** ATAC (chromatin accessibility), CAGE (transcription initiation), CTCF (insulator binding), H3K27ac (active enhancer mark).
+        except Exception as exc:
+            st.warning(f"Trajectory prediction failed: {exc}. Showing mock.")
+            maps = _mock_trajectory(st.session_state.mod_type)
+    else:
+        maps = _mock_trajectory(st.session_state.mod_type)
+
+    titles = ["H1-hESC  Ref", "H1-hESC  Mut", "K562  Ref", "K562  Mut"]
+    keys   = ["h1_ref", "h1_mut", "k562_ref", "k562_mut"]
+    vmax   = max(np.nanmax(np.abs(maps[k])) for k in keys if maps[k].size > 0)
+
+    fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+    for ax, key, title in zip(axes, keys, titles):
+        im = ax.imshow(maps[key], cmap='YlOrRd', vmin=0, vmax=vmax, aspect='auto')
+        ax.set_title(title, fontsize=11)
+        ax.axis('off')
+
+    # Shared colorbar
+    fig.colorbar(im, ax=axes.tolist(), shrink=0.6, label="Contact frequency")
+
+    # Stage arrow annotation
+    fig.text(0.5, -0.02,
+             "← Embryonic stem cell (H1-hESC)   ·   Committed myeloid (K562) →",
+             ha='center', fontsize=10, color='#444')
+
+    plt.tight_layout()
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        fig.savefig(tmp.name, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+        st.image(Image.open(tmp.name), use_container_width=True)
+
+    with st.expander("Model & Methodology"):
+        st.markdown("""
+**Model:** AlphaGenome (DeepMind) with cell-type-specific ontology terms
+**Cell types:** H1-hESC (`CLO:0037111`) = embryonic pluripotent stem cell; K562 (`CLO:0007050`) = committed CML myeloid line
+**Interpretation:** Contact maps are predicted independently for each cell type. Changes between Ref and Mut show how the edit disrupts 3D genome organization across the developmental axis.
+**Progenitor interpolation:** Intermediate stages (e.g. progenitor) would fall between these two extremes.
 """)
 
-    with tab2b:
-        st.header("Interactive Modification Planner")
-        search_col1, search_col2 = st.columns([3, 1])
-        with search_col1:
-            search_gene = st.text_input("Genome Search (Gene Symbol or Coordinates)",
-                                        value=st.session_state.gene)
-        with search_col2:
-            if st.button("Jump to Locus"):
-                lookup = {"TAL1": 47210000, "MYC": 127735434, "BRCA1": 43044295,
-                          "GATA1": 48786554, "OCT4": 31132048}
-                if search_gene.upper() in lookup:
-                    st.session_state.browser_pos = lookup[search_gene.upper()]
-                    st.session_state.gene = search_gene.upper()
-                elif ":" in search_gene:
-                    try:
-                        pos = int(search_gene.split(":")[-1].replace(",", "").split("-")[0])
-                        st.session_state.browser_pos = pos
-                    except Exception:
-                        pass
 
-        with st.expander("🛠️ Deletion / Insertion Tool", expanded=True):
-            plan_col1, plan_col2, plan_col3 = st.columns(3)
-            with plan_col1:
-                del_start = st.number_input("Deletion Start",
-                                            value=st.session_state.browser_pos - 5000, step=100)
-            with plan_col2:
-                del_end = st.number_input("Deletion End",
-                                          value=st.session_state.browser_pos + 5000, step=100)
-            with plan_col3:
-                if st.button("Apply Modification to Pipeline"):
-                    st.session_state.mod_type = "Deletion"
-                    st.session_state.analyzed = True
-                    st.info(f"Model re-calculated for deletion at {del_start}-{del_end}")
+# ---------------------------------------------------------------------------
+# Step progress indicator
+# ---------------------------------------------------------------------------
+st.title("HG-DT: Human Genome Digital Twin")
 
-        browser_pos = st.slider(
-            "Coordinate Scroller (hg38)",
-            min_value=st.session_state.browser_pos - 2000000,
-            max_value=st.session_state.browser_pos + 2000000,
-            value=st.session_state.browser_pos, step=1000,
+steps = ["1 · Find Locus", "2 · What's Here?", "3 · Results"]
+prog_cols = st.columns(3)
+for i, (col, label) in enumerate(zip(prog_cols, steps)):
+    active = (i + 1 == st.session_state.step)
+    col.markdown(
+        f"**:blue[{label}]**" if active else f"<span style='color:#aaa'>{label}</span>",
+        unsafe_allow_html=True,
+    )
+
+st.divider()
+
+# ===========================================================================
+# STEP 1 — Find Your Locus
+# ===========================================================================
+if st.session_state.step == 1:
+    st.header("Step 1 — Find Your Locus")
+    st.caption("Search for a gene or enter genomic coordinates, then define your edit.")
+
+    col_search, col_jump = st.columns([3, 1])
+    with col_search:
+        search_input = st.text_input(
+            "Gene symbol or chr:start-end",
+            value=st.session_state.gene,
+            placeholder="e.g. TAL1  or  chr1:47200000-47260000",
         )
-        st.session_state.browser_pos = browser_pos
-        render_genome_scroller(genes_df, browser_pos, window_size=500000,
-                               deletion_region=(del_start, del_end))
-        st.caption("Tip: Use the slider to navigate to distal enhancers. "
-                   "Red region = planned modification.")
+    with col_jump:
+        st.write("")  # vertical align
+        if st.button("Look up", use_container_width=True):
+            gene_upper = search_input.upper().strip()
+            if gene_upper in GENE_COORDS:
+                c, s, e = GENE_COORDS[gene_upper]
+                st.session_state.chrom      = c
+                st.session_state.edit_start = s
+                st.session_state.edit_end   = e
+                st.session_state.gene       = gene_upper
+                st.rerun()
+            elif ":" in search_input and "-" in search_input:
+                try:
+                    parts = search_input.replace(",", "").split(":")
+                    chrom_part = parts[0].strip()
+                    range_part = parts[1].strip().split("-")
+                    st.session_state.chrom      = chrom_part
+                    st.session_state.edit_start = int(range_part[0])
+                    st.session_state.edit_end   = int(range_part[1])
+                    st.rerun()
+                except Exception:
+                    st.error("Could not parse coordinates. Use format chr1:47200000-47250000")
+            else:
+                st.warning(f"Gene '{search_input}' not in registry. Enter coordinates manually.")
 
-    with tab3:
-        st.header("3D Organization (Hi-C Heatmaps)")
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            hic_img_path = plot_hic_triangle(
-                ref_hic, mut_hic, tmp.name,
-                title=f"3D Contact Map Delta: {st.session_state.gene}"
+    st.write("")
+    col_mod, col_chrom = st.columns([1, 1])
+    with col_mod:
+        mod_type = st.selectbox(
+            "Modification type",
+            ["Deletion", "Insertion", "SNP", "None"],
+            index=["Deletion", "Insertion", "SNP", "None"].index(st.session_state.mod_type)
+                  if st.session_state.mod_type in ["Deletion", "Insertion", "SNP", "None"] else 0,
+        )
+    with col_chrom:
+        chrom = st.text_input("Chromosome", value=st.session_state.chrom)
+
+    col_s, col_e = st.columns(2)
+    with col_s:
+        edit_start = st.number_input("Edit start (bp)", value=st.session_state.edit_start, step=1000)
+    with col_e:
+        edit_end = st.number_input("Edit end (bp)", value=st.session_state.edit_end, step=1000)
+
+    edit_size = int(edit_end) - int(edit_start)
+    if edit_size > 0:
+        st.caption(f"Edit size: **{edit_size:,} bp**")
+    elif edit_size <= 0:
+        st.error("Edit end must be greater than edit start.")
+
+    st.write("")
+    if st.button("Preview Locus →", type="primary", use_container_width=False,
+                 disabled=(edit_size <= 0)):
+        st.session_state.chrom      = chrom
+        st.session_state.edit_start = int(edit_start)
+        st.session_state.edit_end   = int(edit_end)
+        st.session_state.mod_type   = mod_type
+        st.session_state.step       = 2
+        st.rerun()
+
+
+# ===========================================================================
+# STEP 2 — What's Here?
+# ===========================================================================
+elif st.session_state.step == 2:
+    edit_start = st.session_state.edit_start
+    edit_end   = st.session_state.edit_end
+    mid_pos    = (edit_start + edit_end) // 2
+
+    if st.button("← Back to Locus"):
+        st.session_state.step = 1
+        st.rerun()
+
+    st.header("Step 2 — What's Here?")
+    st.caption(
+        f"Reviewing **{st.session_state.chrom}:{edit_start:,}–{edit_end:,}** "
+        f"({edit_end - edit_start:,} bp {st.session_state.mod_type.lower()}) "
+        f"· Gene: **{st.session_state.gene}**"
+    )
+
+    genes_df = _build_preview_genes_df()
+
+    render_genome_scroller(
+        genes_df,
+        current_pos=mid_pos,
+        window_size=500000,
+        deletion_region=(edit_start, edit_end),
+    )
+
+    # Annotation overlap table
+    overlapping = genes_df[
+        (genes_df['Start'] <= edit_end) & (genes_df['End'] >= edit_start)
+    ][['Name', 'Type', 'Start', 'End']].copy()
+
+    if not overlapping.empty:
+        st.warning(f"Planned edit overlaps **{len(overlapping)}** annotated element(s):")
+        overlapping['Start'] = overlapping['Start'].map('{:,}'.format)
+        overlapping['End']   = overlapping['End'].map('{:,}'.format)
+        st.dataframe(overlapping, use_container_width=True, hide_index=True)
+    else:
+        st.info("Planned edit does not overlap any annotated elements in this view.")
+
+    st.write("")
+    if st.button("Predict Effect →", type="primary"):
+        st.session_state.step = 3
+        st.session_state.pipeline_result = None  # force recompute
+        st.rerun()
+
+
+# ===========================================================================
+# STEP 3 — Results
+# ===========================================================================
+elif st.session_state.step == 3:
+    if st.button("← Back to Preview"):
+        st.session_state.step = 2
+        st.rerun()
+
+    st.header("Step 3 — Predicted Effect")
+    st.caption(
+        f"**{st.session_state.gene}** · "
+        f"{st.session_state.chrom}:{st.session_state.edit_start:,}–{st.session_state.edit_end:,} · "
+        f"{st.session_state.mod_type}"
+        + (f" · Cell type: {cell_type}" if cell_type else "")
+        + (" · [REAL PIPELINE]" if use_real_pipeline else " · [DEMO MODE]")
+    )
+
+    # Run pipeline (cached in session_state)
+    if st.session_state.pipeline_result is None:
+        st.session_state.pipeline_result = _run_pipeline()
+
+    result = st.session_state.pipeline_result
+
+    # ── Two-column layout ──────────────────────────────────────────────────
+    col_sys1, col_sys2 = st.columns(2, gap="large")
+
+    with col_sys1:
+        st.subheader("System 1 — Protein Path")
+        st.caption("DNA → mRNA isoforms → Amino acid translation → 3D structure")
+
+        render_protein_comparison(result['ref_pdb'], result['mut_pdb'], animate=True)
+
+        splice = result['extras'].get('splice', {})
+        if splice.get('splice_disrupted'):
+            n_skipped = len(splice.get('skipped_exons', []))
+            fs_note = ", frameshift detected" if splice.get('frameshift') else ""
+            st.warning(
+                f"Splice disruption — transcript `{splice.get('transcript_id', '')}`: "
+                f"{n_skipped} exon(s) potentially skipped{fs_note}."
             )
-            st.image(Image.open(hic_img_path), use_container_width=True)
-        with st.expander("🔬 Model & Methodology"):
+        elif splice:
+            st.success("No splice site disruption predicted.")
+
+        with st.expander("Model & Methodology"):
             st.markdown("""
-**Model:** AlphaGenome Hi-C Predictor
-**View:** Triangular heatmap (diagonal rotated to base). Delta = Mutant − Reference.
-- **Warm (red) pixels:** Gained interactions (ectopic contacts).
-- **Cool (blue) pixels:** Lost interactions (broken enhancer–promoter loops).
+**Structure:** NVIDIA ESMFold NIM (primary) → Meta public ESMFold → mock fallback
+**Splicing:** AlphaGenome SPLICE_SITES track → donor/acceptor score per exon
+**Translation:** GENCODE exon extraction → mRNA assembly → Biopython translate
+**Confidence:** B-factor column = pLDDT (0–100). Regions <50 = unreliably folded.
 """)
 
-    with tab4:
-        st.header("Protein Structure: Molecular Dynamics Simulation")
-        st.write("Reference (left) vs. Predicted Mutated (right). Powered by ESMFold.")
-        render_protein_comparison(ref_pdb, mut_pdb, animate=True)
-        with st.expander("🔬 Model & Methodology"):
-            st.markdown("""
-**Model:** Meta ESMFold (public API) with mock fallback for long sequences
-**Process:** DNA → mRNA isoforms (GENCODE exon splicing) → amino acid translation (Biopython) → 3D folding (ESMFold).
-**Confidence:** B-factor column of the PDB output = pLDDT (0–100). Regions <50 are unreliably folded.
-""")
+    with col_sys2:
+        st.subheader("System 2 — Regulatory Path")
+        st.caption("DNA → Chromatin accessibility → Enhancer loops → Expression")
 
-    with tab5:
-        st.header("Trajectory Animation")
-        t, accessibility = generate_accessibility_over_time(
-            st.session_state.gene, st.session_state.mod_type
-        )
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(t, accessibility, marker='o', linestyle='-', color='purple')
-        ax.set_title(f"{st.session_state.gene} Accessibility Over Simulation Time")
-        ax.set_xlabel("Simulation Step (Time)")
-        ax.set_ylabel("Accessibility Signal")
-        ax.grid(True, alpha=0.3)
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            fig.tight_layout()
-            fig.savefig(tmp.name, dpi=150)
-            plt.close(fig)
+            plot_multi_tracks(
+                result['multi_tracks'], tmp.name,
+                title=f"Regulatory Landscape: {st.session_state.gene}",
+            )
             st.image(Image.open(tmp.name), use_container_width=True)
-        with st.expander("🔬 Model & Methodology"):
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            plot_hic_triangle(
+                result['ref_hic'], result['mut_hic'], tmp.name,
+                title="3D Contact Map Delta",
+            )
+            st.image(Image.open(tmp.name), use_container_width=True)
+
+        evo2_data = result['extras'].get('evo2', {})
+        if evo2_data:
+            score = evo2_data.get("score", float("nan"))
+            backend = evo2_data.get("backend", "")
+            score_str = f"{score:.4f}" if score == score else "N/A"
+            st.metric(
+                "Evo 2 Variant Score",
+                score_str,
+                help="K-mer log-odds (negative = alt sequence diverges from reference composition).",
+            )
+            motif_diff = evo2_data.get("motif_diff", {})
+            disrupted_tfs = [tf for tf, d in motif_diff.items() if d < 0]
+            gained_tfs    = [tf for tf, d in motif_diff.items() if d > 0]
+            if disrupted_tfs:
+                st.caption(f"TF motifs lost: **{', '.join(disrupted_tfs)}**")
+            if gained_tfs:
+                st.caption(f"TF motifs gained: **{', '.join(gained_tfs)}**")
+
+        with st.expander("Model & Methodology"):
             st.markdown(f"""
-**Model:** Custom Langevin Dynamics Polymer Engine
-**Trajectory Physics:** Contact constraints are updated after the sequence edit; chromatin refolds toward a new energy minimum. The drop in signal (purple) represents the gene losing its regulatory neighbourhood over simulation time.
+**Tracks:** AlphaGenome (DeepMind) — ATAC, CAGE, CTCF, H3K27ac (Ref vs Mut)
+**Hi-C:** Triangular heatmap (45° rotation). Delta = Mut − Ref. Red = gained, blue = lost contacts.
+**Evo 2:** Backend: `{evo2_data.get('backend', 'kmer_fallback')}`.
+K-mer log-odds + CTCF/SP1/GATA1/NF-κB/E-box/TATA motif scan.
+**Sign convention:** accessibility_delta = log₂(Ref/Mut) — positive = loss in mutant.
 """)
 
-    with tab6:
-        st.header("Mechanistic Attribution")
+    # ── Differentiation Trajectory ──────────────────────────────────────────
+    st.divider()
+    st.subheader("Differentiation Trajectory")
+    st.caption(
+        "How does the edit affect 3D genome organization along the developmental axis? "
+        "Showing AlphaGenome contact maps at embryonic (H1-hESC) and committed (K562) stages."
+    )
+    _render_trajectory(result)
 
-        mod_details = {
-            "type": st.session_state.mod_type.lower(),
-            "target": f"enhancer element near {st.session_state.gene}",
-        }
-        insight = generate_mechanistic_insight(mod_details, delta_stats)
+    # ── Causal Summary ──────────────────────────────────────────────────────
+    st.divider()
+    st.subheader("Causal Summary")
+    mod_details = {
+        "type": st.session_state.mod_type.lower(),
+        "target": f"regulatory element near {st.session_state.gene}",
+    }
+    insight = generate_mechanistic_insight(mod_details, result['delta_stats'])
+    st.success(insight)
 
-        st.info("### Mechanistic Summary")
-        st.success(insight)
+    # Delta breakdown
+    ds = result['delta_stats']
+    metric_cols = st.columns(3)
+    with metric_cols[0]:
+        acc = ds.get('accessibility_drop', 0)
+        st.metric("Accessibility", f"{acc:+.2f} log₂",
+                  delta=f"{'loss' if acc > 0 else 'gain'}", delta_color="inverse")
+    with metric_cols[1]:
+        exp = ds.get('expression_drop', 0)
+        st.metric("Expression", f"{exp:+.2f} log₂",
+                  delta=f"{'loss' if exp > 0 else 'gain'}", delta_color="inverse")
+    with metric_cols[2]:
+        loop_state = "Weakened" if ds.get('loop_weakened') else (
+            "Strengthened" if ds.get('loop_strengthened') else "Unchanged")
+        st.metric("E–P Loop", loop_state)
 
-        # Show splice disruption info if available
-        splice = extras.get("splice", {})
-        if splice.get("splice_disrupted"):
-            st.warning(f"⚠️ Splice disruption detected — transcript `{splice.get('transcript_id','')}` "
-                       f"has {len(splice.get('skipped_exons',[]))} potentially skipped exon(s). "
-                       f"Frameshift: {splice.get('frameshift', False)}")
+    ct_note = result['extras'].get('cell_type')
+    if ct_note:
+        st.caption(f"Predictions filtered to cell type: **{ct_note}**")
 
-        ct = extras.get("cell_type")
-        if ct:
-            st.caption(f"Predictions filtered to cell type: **{ct}**")
-
-        with st.expander("🔬 Model & Methodology"):
-            st.write("**Model:** Rule-based mechanistic attribution from computed track deltas")
-            st.write("**Process:** Accessibility and expression deltas computed via `log2(Ref/Mut)` "
-                     "from AlphaGenome. Loop counts from contact map. Splice disruptions from "
-                     "AlphaGenome SPLICE_SITES track. Signals formatted into a causal chain.")
-
-    with tab7:
-        st.header("Evo 2 — Sequence Analysis")
-        evo2_result = extras.get("evo2", {})
-        evo2_scan   = extras.get("evo2_scan", {})
-        backend = evo2_result.get("backend", "unknown")
-
-        st.caption(f"Backend: **{backend}**")
-        if "kmer" in backend:
-            st.info("Evo 2 NIM endpoint not reachable. Showing k-mer log-odds + TF motif analysis "
-                    "(scientifically meaningful proxy for sequence disruption).")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            score = evo2_result.get("score", float("nan"))
-            delta_ll = evo2_result.get("delta_ll", float("nan"))
-            st.metric("Variant Score", f"{score:.4f}" if score == score else "N/A",
-                      help="Higher = alt sequence more likely under model. "
-                           "Negative = alt diverges from reference composition.")
-            if delta_ll == delta_ll:  # not nan
-                st.metric("Δ Log-Likelihood", f"{delta_ll:.4f}")
-
-        with col2:
-            motif_diff = evo2_result.get("motif_diff", {})
-            if motif_diff:
-                st.subheader("TF Motif Changes (Alt − Ref)")
-                motif_df = pd.DataFrame([
-                    {"TF": tf, "Count Change": diff, "Direction": "Gained" if diff > 0 else ("Lost" if diff < 0 else "Unchanged")}
-                    for tf, diff in motif_diff.items()
-                ])
-                st.dataframe(motif_df, use_container_width=True)
-
-        # Motif density scan plot
-        windows = evo2_scan.get("windows", [])
-        if windows:
-            st.subheader("TF Motif Density Scan (Reference Sequence)")
-            scan_df = pd.DataFrame(windows)
-            fig, axes = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
-
-            axes[0].bar(scan_df["start"], scan_df["gc_content"], width=scan_df["end"] - scan_df["start"],
-                        color="steelblue", alpha=0.7)
-            axes[0].set_ylabel("GC Content")
-            axes[0].set_title("GC Content & TF Motif Density Along Sequence")
-
-            axes[1].bar(scan_df["start"], scan_df["total_motifs"], width=scan_df["end"] - scan_df["start"],
-                        color="darkorange", alpha=0.7)
-            axes[1].set_ylabel("Total TF Motif Hits")
-            axes[1].set_xlabel("Position in Window (bp)")
-
-            plt.tight_layout()
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                fig.savefig(tmp.name, dpi=150)
-                plt.close(fig)
-                st.image(Image.open(tmp.name), use_container_width=True)
-
-        with st.expander("🔬 Model & Methodology"):
-            st.markdown(f"""
-**Model:** Evo 2 (Arc Institute / NVIDIA, 2026) — {backend}
-
-**Evo 2 capabilities:**
-- 40B parameter DNA foundation model, trained on 9.3 trillion nucleotides
-- 1M token context, single-nucleotide resolution
-- Zero-shot variant effect scoring via log-likelihood ratio
-
-**Current backend: `{backend}`**
-- `nvidia_evo2`: Full log-likelihood delta from NVIDIA NIM
-- `huggingface_evo2`: Log-likelihood from HuggingFace inference
-- `kmer_fallback`: K-mer frequency shift + TF binding motif scan
-  (proxy metric when no Evo 2 endpoint is reachable; CTCF, SP1, GATA1, NF-κB, E-box, TATA motifs scanned)
-""")
-
-elif st.session_state.analyzed:
-    st.warning("Please select a valid modification from the Specification tab.")
+    st.caption(
+        "Rule-based mechanistic attribution from AlphaGenome track deltas. "
+        "No LLM was used in this analysis."
+    )

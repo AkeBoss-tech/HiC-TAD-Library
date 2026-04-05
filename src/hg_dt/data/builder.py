@@ -74,14 +74,17 @@ class ReferenceContextBuilder:
         rel_start = edit_start - win_start
         rel_end = edit_end - win_start
 
-        if edit_type == 'deletion':
+        if edit_type in ('none', 'no_edit', None):
+            mut_seq = ref_seq
+        elif edit_type == 'deletion':
             mut_seq = ref_seq[:rel_start] + ref_seq[rel_end:]
         elif edit_type == 'insertion':
-            mut_seq = ref_seq[:rel_start] + new_sequence + ref_seq[rel_start:]
-        elif edit_type == 'SNP' or edit_type == 'replacement':
-            mut_seq = ref_seq[:rel_start] + new_sequence + ref_seq[rel_end:]
+            mut_seq = ref_seq[:rel_start] + (new_sequence or '') + ref_seq[rel_start:]
+        elif edit_type in ('snp', 'SNP', 'replacement'):
+            mut_seq = ref_seq[:rel_start] + (new_sequence or '') + ref_seq[rel_end:]
         else:
-            raise ValueError(f"Unknown edit_type: {edit_type}")
+            raise ValueError(f"Unknown edit_type: {edit_type!r}. "
+                             "Expected 'deletion', 'insertion', 'snp', 'none'.")
 
         return mut_seq
 
