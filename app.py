@@ -223,18 +223,26 @@ def _run_protein(ref_seq: str, mut_seq: str, win_start: int,
     if not models:
         return "", "", {"error": "No gene models in window"}
 
-    # Pick first model that has CDS exons entirely within the window
-    chosen = None
-    for m in models:
-        if (m["cdsStart"] >= m["cdsEnd"] or       # non-coding
-                m["txStart"] < win_start or
-                m["txEnd"]   > win_end):
-            continue
-        chosen = m
-        break
+    # Score each model: prefer genes overlapping the edit, then by proximity.
+    # Also require the gene has a CDS and its CDS is within the window.
+    def _score_model(m):
+        if m["cdsStart"] >= m["cdsEnd"]:          # non-coding
+            return float("inf")
+        # CDS must be reachable within the window
+        if m["cdsStart"] < win_start or m["cdsEnd"] > win_end:
+            return float("inf")
+        gene_mid = (m["txStart"] + m["txEnd"]) / 2
+        edit_mid = (edit_start  + edit_end)   / 2
+        overlap  = max(0, min(m["txEnd"], edit_end) - max(m["txStart"], edit_start))
+        if overlap > 0:
+            return 0  # gene overlaps the edit — highest priority
+        return abs(gene_mid - edit_mid)
+
+    scored  = sorted(models, key=_score_model)
+    chosen  = next((m for m in scored if _score_model(m) < float("inf")), None)
 
     if chosen is None:
-        return "", "", {"error": "No coding gene fully within window"}
+        return "", "", {"error": "No coding gene within window"}
 
     def _assemble_cds(seq: str, win_s: int, exon_starts, exon_ends,
                       cds_start: int, cds_end: int, strand: str) -> str:
@@ -869,20 +877,38 @@ elif st.session_state.step == 3:
 
     with col_sys1:
         st.subheader("System 1 — Protein Path")
-        st.caption("DNA → mRNA isoforms → Amino acid translation → 3D structure")
+        splice = result["extras"].get("splice", {})
+        gene_name = splice.get("gene", "")
+        ref_len   = splice.get("ref_aa_len", 0)
+        mut_len   = splice.get("mut_aa_len", 0)
+        if gene_name:
+            st.caption(
+                f"Gene: **{gene_name}** · "
+                f"Ref: {ref_len} AA · Mut: {mut_len} AA · "
+                f"Δ {mut_len - ref_len:+d} AA"
+            )
+        else:
+            st.caption("DNA → mRNA isoforms → Amino acid translation → 3D structure")
 
         render_protein_overlay(result["ref_pdb"], result["mut_pdb"])
 
-        splice = result["extras"].get("splice", {})
         if splice.get("splice_disrupted"):
             n_skipped = len(splice.get("skipped_exons", []))
             st.warning(
-                f"Splice disruption: transcript `{splice.get('transcript_id', '')}` — "
-                f"{n_skipped} exon(s) skipped"
+                f"**{gene_name}**: length change detected — "
+                f"ref {ref_len} AA → mut {mut_len} AA"
                 + (", frameshift" if splice.get("frameshift") else "") + "."
             )
         elif splice and not splice.get("error"):
-            st.success("No splice site disruption predicted.")
+            overlap_note = ""
+            edit_mid = (edit_start + edit_end) / 2
+            # Warn if the chosen gene doesn't actually overlap the edit
+            if gene_name and gene_name != st.session_state.gene:
+                overlap_note = (
+                    f" (nearest coding gene — **{st.session_state.gene}** "
+                    f"may be non-coding or fully deleted)"
+                )
+            st.success(f"No coding sequence disruption in **{gene_name}**." + overlap_note)
         elif splice.get("error"):
             st.info(f"Protein prediction note: {splice['error']}")
 
