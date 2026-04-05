@@ -3,8 +3,8 @@ from typing import Dict, Tuple, List
 
 def accessibility_delta(ref_atac: np.ndarray, mut_atac: np.ndarray, pseudocount: float = 1e-6) -> np.ndarray:
     """
-    Compute log2(Mut/Ref) for accessibility across the window.
-    (Note: Log2(Mut/Ref) so negative means loss of accessibility in mutant)
+    Compute log2(Ref/Mut) for accessibility across the window.
+    Positive values = accessibility loss in mutant; negative = gain.
 
     Args:
         ref_atac: The predicted reference ATAC-seq track.
@@ -12,11 +12,11 @@ def accessibility_delta(ref_atac: np.ndarray, mut_atac: np.ndarray, pseudocount:
         pseudocount: Small value to avoid division by zero or log of zero.
 
     Returns:
-        np.ndarray containing the log2 fold change.
+        np.ndarray containing the log2 fold change (positive = loss in mutant).
     """
     ref = ref_atac + pseudocount
     mut = mut_atac + pseudocount
-    return np.log2(mut / ref)
+    return np.log2(ref / mut)
 
 def contact_delta(ref_map: np.ndarray, mut_map: np.ndarray) -> np.ndarray:
     """
@@ -34,6 +34,7 @@ def contact_delta(ref_map: np.ndarray, mut_map: np.ndarray) -> np.ndarray:
 def expression_delta(ref_expr: np.ndarray, mut_expr: np.ndarray, pseudocount: float = 1e-6) -> np.ndarray:
     """
     Compute predicted RNA abundance change for target promoters.
+    Positive values = expression loss in mutant; negative = gain.
 
     Args:
         ref_expr: Predicted reference RNA-seq or CAGE track.
@@ -41,11 +42,11 @@ def expression_delta(ref_expr: np.ndarray, mut_expr: np.ndarray, pseudocount: fl
         pseudocount: Small value to avoid division by zero or log of zero.
 
     Returns:
-        np.ndarray containing the log2 fold change.
+        np.ndarray containing the log2 fold change (positive = loss in mutant).
     """
     ref = ref_expr + pseudocount
     mut = mut_expr + pseudocount
-    return np.log2(mut / ref)
+    return np.log2(ref / mut)
 
 def find_silenced_elements(ref_atac: np.ndarray, mut_atac: np.ndarray, threshold: float = 0.5) -> List[int]:
     """

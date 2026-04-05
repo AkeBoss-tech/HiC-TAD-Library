@@ -58,7 +58,7 @@ class AlphaGenomeConnector:
             }
             requested_outputs = [output_map[req] for req in requested_outputs if req in output_map]
 
-        org = dna_client.Organism.HUMAN if organism == "HUMAN" else dna_client.Organism.MOUSE
+        org = dna_client.Organism.HOMO_SAPIENS if organism == "HUMAN" else dna_client.Organism.MUS_MUSCULUS
 
         output = self.client.predict_sequence(
             sequence=sequence,
@@ -108,7 +108,7 @@ class AlphaGenomeConnector:
             alternate_bases=alt_base
         )
 
-        org = dna_client.Organism.HUMAN if organism == "HUMAN" else dna_client.Organism.MOUSE
+        org = dna_client.Organism.HOMO_SAPIENS if organism == "HUMAN" else dna_client.Organism.MUS_MUSCULUS
 
         outputs = self.client.predict_variant(
             interval=interval,
