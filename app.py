@@ -128,14 +128,16 @@ def _extract_1d(track_data, index: int = 0) -> np.ndarray:
 def _fetch_sequences(chrom: str, edit_start: int, edit_end: int,
                      mod_type: str) -> tuple:
     """
-    Fetch a 1 Mb window of hg38 from the UCSC REST API and apply the edit.
+    Fetch a 1,048,576 bp (2^20) window of hg38 from the UCSC REST API and apply the edit.
+    AlphaGenome only accepts power-of-2 lengths: 16384, 131072, 524288, 1048576.
     Returns (ref_seq, mut_seq, win_start, win_end).
     """
     from src.hg_dt.data.sequence_fetcher import fetch_hg38_sequence
 
+    WIN_SIZE  = 1_048_576   # 2^20 — required by AlphaGenome
     center    = (edit_start + edit_end) // 2
-    win_start = max(0, center - 500_000)
-    win_end   = win_start + 1_000_000
+    win_start = max(0, center - WIN_SIZE // 2)
+    win_end   = win_start + WIN_SIZE
     ref_seq   = fetch_hg38_sequence(chrom, win_start, win_end)
 
     rel_start = edit_start - win_start

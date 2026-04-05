@@ -34,9 +34,12 @@ def fetch_hg38_sequence(chrom: str, start: int, end: int) -> str:
     ------
     RuntimeError if the API call fails.
     """
-    # Cap at 2 Mb to avoid timeout
-    if end - start > 2_000_000:
-        raise ValueError(f"Requested region too large: {end - start:,} bp. Max 2 Mb.")
+    # AlphaGenome requires power-of-2 lengths; max supported is 1,048,576 (2^20)
+    if end - start > 1_100_000:
+        raise ValueError(
+            f"Requested region too large: {end - start:,} bp. "
+            "Use 1,048,576 bp (AlphaGenome max window)."
+        )
 
     url = (
         f"{_UCSC_BASE}/getData/sequence"
