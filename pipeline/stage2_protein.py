@@ -22,8 +22,13 @@ from dotenv import load_dotenv
 # ── Constants ──────────────────────────────────────────────────────────────────
 ESM2_URL = "https://health.api.nvidia.com/v1/biology/meta/esm2-650m"
 IN_FASTA = "data/processed/pipeline_target_sequence.fasta"
+IN_MULTI_FASTA = "data/processed/pipeline_target_sequences.fasta"
+IN_VARIANT_CONTEXT = "data/processed/pipeline_variant_context.json"
 OUT_NPY  = "data/processed/pipeline_esm2_embeddings.npy"
+OUT_MULTI_NPZ = "data/processed/pipeline_esm2_embeddings_multi.npz"
+OUT_MULTI_JSON = "data/processed/pipeline_embedding_comparison.json"
 OUT_PNG  = "media/pipeline_stage2_embeddings.png"
+OUT_MULTI_PNG = "media/pipeline_stage2_embeddings_differential.png"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -36,6 +41,27 @@ def read_fasta(path: str = IN_FASTA) -> str:
             if line and not line.startswith(">"):
                 lines.append(line)
     return "".join(lines)
+
+
+def read_multi_fasta(path: str = IN_MULTI_FASTA) -> list[dict]:
+    records = []
+    header = None
+    chunks = []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith(">"):
+                if header is not None:
+                    records.append({"header": header, "sequence": "".join(chunks)})
+                header = line[1:]
+                chunks = []
+            else:
+                chunks.append(line)
+    if header is not None:
+        records.append({"header": header, "sequence": "".join(chunks)})
+    return records
 
 
 def call_esm2_embeddings(sequence: str, api_key: str) -> np.ndarray:
@@ -145,13 +171,133 @@ def plot_embeddings(embeddings: np.ndarray, out_png: str = OUT_PNG) -> None:
     print(f"Figure saved → {out_png}")
 
 
+def mean_pool_embedding(embedding: np.ndarray) -> np.ndarray:
+    return embedding.astype(float) if embedding.ndim == 1 else embedding.mean(axis=0).astype(float)
+
+
+def cosine_distance(a: np.ndarray, b: np.ndarray) -> float:
+    denom = float(np.linalg.norm(a) * np.linalg.norm(b))
+    if denom == 0:
+        return 0.0
+    similarity = float(np.dot(a, b) / denom)
+    return 1.0 - similarity
+
+
+def plot_differential_embeddings(results: list[dict], out_png: str = OUT_MULTI_PNG) -> None:
+    os.makedirs("media", exist_ok=True)
+    variants = [row for row in results if row["id"] != "wt_canonical"]
+    if not variants:
+        variants = results
+
+    x = np.arange(len(variants))
+    distances = [row.get("composite_biological_distance", row["cosine_distance_to_wt"]) for row in variants]
+    labels = [row["id"] for row in variants]
+    e1_scores = [row.get("e1_score", 0.0) for row in variants]
+
+    colors = ["#1A237E" if e > 0.1 else ("#E65100" if e == 0 else "#616161") for e in e1_scores]
+    fig, ax = plt.subplots(figsize=(10, 4.5))
+    ax.bar(x, distances, color=colors, edgecolor="white", linewidth=0.8)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=8)
+    ax.set_ylabel("Composite Bio-Distance (CBD)", fontsize=11)
+    ax.set_xlabel("Genomic Variant / Isoform", fontsize=11)
+    ax.set_title(
+        "Differential Biology Scanner — WT vs Variants (including Locus E1 State)",
+        fontsize=12,
+        fontweight="bold",
+    )
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor="#1A237E", label="Compartment A"),
+        Patch(facecolor="#E65100", label="Boundary Loss (E1 set to 0)"),
+        Patch(facecolor="#616161", label="Compartment B")
+    ]
+    ax.legend(handles=legend_elements, fontsize=9, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Figure saved → {out_png}")
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
-def main():
+def main(mode: str = "single"):
     load_dotenv()
     api_key = os.getenv("NVIDIA_ESM_API_KEY") or os.getenv("NVIDIA_API_KEY")
     if not api_key:
         raise EnvironmentError("NVIDIA_ESM_API_KEY (or NVIDIA_API_KEY) not set in .env")
+
+    if mode == "differential":
+        if os.path.exists(OUT_MULTI_NPZ) and os.path.exists(OUT_MULTI_JSON):
+            print(f"Differential embeddings cache exists → {OUT_MULTI_NPZ}")
+            with open(OUT_MULTI_JSON) as f:
+                results = json.load(f)
+            plot_differential_embeddings(results)
+            print("Stage 2 complete.")
+            return
+
+        if not os.path.exists(IN_MULTI_FASTA):
+            raise FileNotFoundError(f"Multi-FASTA not found: {IN_MULTI_FASTA}. Run Stage 1 differential mode first.")
+
+        records = read_multi_fasta()
+        embeddings_by_id = {}
+        pooled = {}
+        for record in records:
+            seq_id = record["header"].split("|", 1)[0]
+            sequence = record["sequence"]
+            print(f"Calling ESM2-650M for {seq_id} ({len(sequence)} aa) ...")
+            embedding = call_esm2_embeddings(sequence, api_key)
+            embeddings_by_id[seq_id] = embedding
+            pooled[seq_id] = mean_pool_embedding(embedding)
+
+        # ── Cell-State Awareness Integration ──────────────────────────────────────
+        context = {}
+        if os.path.exists(IN_VARIANT_CONTEXT):
+            with open(IN_VARIANT_CONTEXT) as f:
+                context = json.load(f)
+        
+        target_gene = context.get("target_gene", {})
+        wt_e1 = target_gene.get("cell_state", {}).get("e1_score", 0.0)
+        
+        wt = pooled["wt_canonical"]
+        results = []
+        for record in records:
+            seq_id = record["header"].split("|", 1)[0]
+            
+            # ESM-2 Sequence Distance
+            seq_dist = cosine_distance(wt, pooled[seq_id])
+            
+            # Cell-State Distance (E1 Score mismatch)
+            # Logic: If it's the 'boundary_collapse_proxy', it loses its compartment e1 signal.
+            if seq_id == "boundary_collapse_proxy":
+                v_e1 = 0.0
+            else:
+                v_e1 = wt_e1
+            
+            e1_mismatch = abs(wt_e1 - v_e1)
+            # Composite Distance (Heuristic: SeqDist + 0.1 * E1 Mismatch)
+            # This allows structural genomic 'loss' to amplify the variant score.
+            composite_dist = seq_dist + (0.1 * e1_mismatch)
+            
+            results.append(
+                {
+                    "id": seq_id,
+                    "length": len(record["sequence"]),
+                    "embedding_dim": int(pooled[seq_id].shape[0]),
+                    "cosine_distance_to_wt": seq_dist,
+                    "e1_score": v_e1,
+                    "composite_biological_distance": composite_dist
+                }
+            )
+
+        np.savez(OUT_MULTI_NPZ, **embeddings_by_id)
+        with open(OUT_MULTI_JSON, "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"Differential embeddings saved → {OUT_MULTI_NPZ}")
+        print(f"Embedding comparison saved → {OUT_MULTI_JSON}")
+        plot_differential_embeddings(results)
+        print("Stage 2 complete.")
+        return
 
     if os.path.exists(OUT_NPY):
         print(f"Embeddings cache exists → {OUT_NPY} (skip API call; delete to rerun)")

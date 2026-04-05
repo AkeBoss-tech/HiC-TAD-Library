@@ -22,7 +22,8 @@ LARGE_SIZES ?= 10 40 80
         run-compartments run-loops run-sv-cnv run-variants \
         run-hichip run-capture-hic run-phasing run-dovetail \
         run-synthesis run-synthesis-exp1 run-synthesis-exp2 run-synthesis-exp3 synthesis-report synthesis-ui \
-        run-pipeline-stage1 run-pipeline-stage2 run-pipeline-stage3 run-pipeline-stage4 \
+        run-pipeline-stage0 run-pipeline-stage1 run-pipeline-stage2 run-pipeline-stage3 run-pipeline-stage4 \
+        run-pipeline-differential \
         pipeline-report run-pipeline run-pipeline-force pipeline-ui \
         run-all analysis \
         test test-unit test-integration test-coverage test-verbose \
@@ -85,10 +86,12 @@ help:
 	@echo "  make synthesis-ui         Launch Streamlit UI (synthesis/app.py)"
 	@echo ""
 	@echo "Drug Discovery Pipeline  (Stages 2–4 require NVIDIA_API_KEY in .env)"
+	@echo "  make run-pipeline-stage0  Build variant-context manifest from synthesis outputs"
 	@echo "  make run-pipeline-stage1  Genomics context + UniProt sequence fetch"
 	@echo "  make run-pipeline-stage2  ESM-2 protein embeddings (NVIDIA NIM)"
 	@echo "  make run-pipeline-stage3  ESMFold structure prediction (NVIDIA NIM)"
 	@echo "  make run-pipeline-stage4  MolMIM + DiffDock (~10 min, NVIDIA NIM)"
+	@echo "  make run-pipeline-differential  WT vs variant path through all four stages"
 	@echo "  make pipeline-report      Generate pipeline_report.html"
 	@echo "  make run-pipeline         All four stages + report"
 	@echo "  make run-pipeline-force   All stages, ignoring caches"
@@ -192,6 +195,9 @@ synthesis-ui:
 	streamlit run synthesis/app.py
 
 # ── Drug Discovery Pipeline ────────────────────────────────────────────────────
+run-pipeline-stage0:
+	$(PYTHON) pipeline/stage0_variant_context.py
+
 run-pipeline-stage1:
 	$(PYTHON) pipeline/pipeline_runner.py --stage 1
 
@@ -209,6 +215,9 @@ pipeline-report:
 
 run-pipeline:
 	$(PYTHON) pipeline/pipeline_runner.py
+
+run-pipeline-differential:
+	$(PYTHON) pipeline/pipeline_runner.py --mode differential
 
 run-pipeline-force:
 	$(PYTHON) pipeline/pipeline_runner.py --force

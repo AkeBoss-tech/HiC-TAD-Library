@@ -4,6 +4,8 @@ Stage 1 — Genomics context + protein sequence fetch.
 
 Fetches the UNC5B (Q8BYU4) death domain sequence from UniProt and plots
 the Unc5b locus CTCF signal from the existing WT cache (no new API call needed).
+In differential mode, this stage also writes a multi-sequence FASTA/JSON manifest
+for WT + variant follow-on stages.
 
 Outputs:
     data/processed/pipeline_target_sequence.fasta
@@ -16,15 +18,21 @@ import textwrap
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+
+from pipeline import stage0_variant_context
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-UNC5B_ACCESSION    = "Q8K1S3"      # Mouse Netrin receptor UNC5B (canonical isoform)
-DEATH_DOMAIN_START = 865          # 1-based residue index (UniProt annotation)
+# Default fallbacks (if manifest is missing)
+DEFAULT_ACCESSION  = "Q8K1S3"      # Mouse Netrin receptor UNC5B
+DEFAULT_SYMBOL     = "Unc5b"
+DEATH_DOMAIN_START = 865          # 1-based residue index
 DEATH_DOMAIN_END   = 943
 UNIPROT_BASE       = "https://rest.uniprot.org/uniprotkb"
 WT_CACHE           = "data/processed/synthesis_unc5b_wt_cache.npz"
+VARIANT_CONTEXT    = "data/processed/pipeline_variant_context.json"
 OUT_FASTA          = "data/processed/pipeline_target_sequence.fasta"
+OUT_MULTI_FASTA    = "data/processed/pipeline_target_sequences.fasta"
+OUT_SEQUENCE_JSON  = "data/processed/pipeline_target_sequences.json"
 OUT_PNG            = "media/pipeline_stage1_expression.png"
 
 # Genomic coordinates (mm10) matching WT cache
@@ -37,7 +45,7 @@ GENE_END_MB   = 60.85
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def fetch_unc5b_sequence(accession=UNC5B_ACCESSION,
+def fetch_unc5b_sequence(accession=DEFAULT_ACCESSION,
                          start_res=DEATH_DOMAIN_START,
                          end_res=DEATH_DOMAIN_END) -> str:
     """Fetch protein sequence from UniProt; return death domain slice."""
@@ -72,8 +80,17 @@ def fetch_unc5b_sequence(accession=UNC5B_ACCESSION,
     return domain_seq
 
 
+def fetch_unc5b_full_sequence(accession: str = DEFAULT_ACCESSION) -> tuple[str, dict]:
+    import urllib.request
+
+    url = f"{UNIPROT_BASE}/{accession}.json"
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        data = json.loads(resp.read().decode())
+    return data["sequence"]["value"], data
+
+
 def save_fasta(sequence: str,
-               accession: str = UNC5B_ACCESSION,
+               accession: str = DEFAULT_ACCESSION,
                start_res: int = DEATH_DOMAIN_START,
                end_res: int = DEATH_DOMAIN_END,
                out_path: str = OUT_FASTA) -> None:
@@ -84,6 +101,36 @@ def save_fasta(sequence: str,
     with open(out_path, "w") as f:
         f.write(header + "\n" + wrapped + "\n")
     print(f"FASTA saved → {out_path}")
+
+
+def save_multi_fasta(records: list[dict], out_path: str = OUT_MULTI_FASTA) -> None:
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w") as f:
+        for record in records:
+            header = f">{record['id']}|{record['label']}"
+            f.write(header + "\n")
+            f.write("\n".join(textwrap.wrap(record["sequence"], width=60)) + "\n")
+    print(f"Multi-FASTA saved → {out_path}")
+
+
+def save_sequence_manifest(records: list[dict], out_path: str = OUT_SEQUENCE_JSON) -> None:
+    payload = {
+        "mode": "differential",
+        "count": len(records),
+        "sequences": [
+            {
+                "id": record["id"],
+                "label": record["label"],
+                "source": record["source"],
+                "length": len(record["sequence"]),
+            }
+            for record in records
+        ],
+    }
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"Sequence manifest saved → {out_path}")
 
 
 def load_wt_cache(cache_path: str = WT_CACHE) -> dict | None:
@@ -149,24 +196,116 @@ def plot_locus_context(cache_data: dict | None, out_png: str = OUT_PNG) -> None:
     print(f"Figure saved → {out_png}")
 
 
+def load_or_build_variant_context() -> dict:
+    if os.path.exists(VARIANT_CONTEXT):
+        with open(VARIANT_CONTEXT) as f:
+            return json.load(f)
+    return stage0_variant_context.main()
+
+
+def derive_variant_sequences(full_sequence: str, wt_domain: str, context: dict) -> list[dict]:
+    canonical_len = len(wt_domain)
+    records = [
+        {
+            "id": "wt_canonical",
+            "label": "WT canonical death domain",
+            "source": "uniprot_canonical",
+            "sequence": wt_domain,
+        }
+    ]
+
+    seen = {wt_domain}
+    for isoform in context.get("isoforms", []):
+        full_isoform = isoform.get("protein_sequence", "")
+        if len(full_isoform) < max(30, canonical_len // 2):
+            continue
+
+        candidate = full_isoform[-canonical_len:] if len(full_isoform) >= canonical_len else full_isoform
+        if candidate in seen or candidate == wt_domain:
+            continue
+
+        records.append(
+            {
+                "id": isoform["transcript_id"],
+                "label": isoform["display_name"],
+                "source": "ensembl_isoform_tail",
+                "sequence": candidate,
+            }
+        )
+        seen.add(candidate)
+        if len(records) >= 4:
+            break
+
+    if len(records) == 1:
+        trunc = int(context.get("fallback_variant", {}).get("truncate_residues", 16))
+        proxy = wt_domain[:-trunc] if len(wt_domain) - trunc >= 30 else wt_domain[: max(30, len(wt_domain) - 8)]
+        if proxy not in seen:
+            records.append(
+                {
+                    "id": "boundary_collapse_proxy",
+                    "label": "Boundary-collapse proxy truncation",
+                    "source": "fallback_proxy",
+                    "sequence": proxy,
+                }
+            )
+    return records
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
-def main():
-    # Cache check
+def main(mode: str = "single"):
+    # 1. Load context from Stage 0
+    context = load_or_build_variant_context()
+    target_gene = context.get("target_gene", {})
+    symbol = target_gene.get("symbol", DEFAULT_SYMBOL)
+    expr_prior = target_gene.get("cell_state", {}).get("expression_prior", "medium")
+    
+    print(f"Running Stage 1 for target gene: {symbol}")
+    print(f"  [Cell State Context] Compartment: {target_gene.get('cell_state', {}).get('compartment', 'unknown')}")
+    print(f"  [Cell State Context] Expression Prior: {expr_prior.upper()}")
+
+    # 2. Sequence Fetch (UniProt)
     if os.path.exists(OUT_FASTA):
-        print(f"FASTA cache exists → {OUT_FASTA} (skip fetch; delete to rerun)")
+        print(f"FASTA cache exists → {OUT_FASTA} (skip fetch)")
         with open(OUT_FASTA) as f:
             lines = [l.strip() for l in f if not l.startswith(">")]
         seq = "".join(lines)
-        print(f"  Cached sequence length: {len(seq)} aa")
     else:
-        seq = fetch_unc5b_sequence()
-        save_fasta(seq)
+        # Search UniProt by Symbol + Species
+        from urllib.parse import quote
+        species = target_gene.get("species", "mus_musculus").replace("_", " ")
+        query = quote(f'gene:{symbol} AND organism_name:"{species}"')
+        search_url = f"https://rest.uniprot.org/uniprotkb/search?query={query}&format=json&limit=1"
+        
+        import urllib.request
+        print(f"Searching UniProt for {symbol}: {search_url}")
+        with urllib.request.urlopen(search_url) as resp:
+            data = json.loads(resp.read().decode())
+            results = data.get("results", [])
+        
+        if results:
+            accession = results[0]["primaryAccession"]
+            print(f"  Found accession: {accession}")
+            seq, full_data = fetch_unc5b_full_sequence(accession)
+            # Try to slice it if it's Unc5b, otherwise use full seq
+            if symbol.lower() == "unc5b":
+                seq = seq[DEATH_DOMAIN_START-1 : DEATH_DOMAIN_END]
+            save_fasta(seq, accession=accession, start_res=1, end_res=len(seq))
+        else:
+            print(f"Warning: No UniProt entry for {symbol}. Using fallback sequence.")
+            seq = fetch_unc5b_sequence(DEFAULT_ACCESSION)
+            save_fasta(seq)
 
+    # 3. Locus Plotting
     cache = load_wt_cache()
-    if cache is None:
-        print(f"WT cache not found at {WT_CACHE}. Plot will show placeholder text.")
     plot_locus_context(cache)
+
+    if mode == "differential":
+        records = derive_variant_sequences("", seq, context)
+        save_multi_fasta(records)
+        save_sequence_manifest(records)
+        print(f"Differential mode sequences: {[r['id'] for r in records]}")
+
     print("Stage 1 complete.")
 
 

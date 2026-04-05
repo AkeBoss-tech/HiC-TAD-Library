@@ -13,6 +13,7 @@ Each stage failure is isolated — later stages are still attempted.
 import argparse
 import importlib
 import os
+import shutil
 import sys
 import time
 from datetime import datetime
@@ -22,11 +23,34 @@ from dotenv import load_dotenv
 # ── Stage registry ─────────────────────────────────────────────────────────────
 STAGES = [
     {
+        "id": 0,
+        "name": "Automated Locus Discovery",
+        "module": "pipeline.stage0_discovery",
+        "outputs": [
+            "data/processed/pipeline_variant_context.json",
+        ],
+        "api_calls": "1 (Ensembl REST)",
+        "estimated_time": "~10 s",
+    },
+    {
+        "id": 5,
+        "name": "Multi-Species Comparison",
+        "module": "pipeline.stage0_multispecies",
+        "outputs": [
+            "data/processed/pipeline_species_comparison.json",
+        ],
+        "api_calls": "2 (Ensembl + AlphaGenome)",
+        "estimated_time": "~30 s",
+    },
+    {
         "id": 1,
         "name": "Genomics Context + Sequence Fetch",
         "module": "pipeline.stage1_genomics",
         "outputs": [
+            "data/processed/pipeline_variant_context.json",
             "data/processed/pipeline_target_sequence.fasta",
+            "data/processed/pipeline_target_sequences.fasta",
+            "data/processed/pipeline_target_sequences.json",
             "media/pipeline_stage1_expression.png",
         ],
         "api_calls": "0 (UniProt — no key needed)",
@@ -38,7 +62,10 @@ STAGES = [
         "module": "pipeline.stage2_protein",
         "outputs": [
             "data/processed/pipeline_esm2_embeddings.npy",
+            "data/processed/pipeline_esm2_embeddings_multi.npz",
+            "data/processed/pipeline_embedding_comparison.json",
             "media/pipeline_stage2_embeddings.png",
+            "media/pipeline_stage2_embeddings_differential.png",
         ],
         "api_calls": "1 (NVIDIA NIM ESM2-30M)",
         "estimated_time": "~20 s",
@@ -49,7 +76,10 @@ STAGES = [
         "module": "pipeline.stage3_folding",
         "outputs": [
             "data/processed/pipeline_structure.pdb",
+            "data/processed/pipeline_structures",
+            "data/processed/pipeline_structure_comparison.json",
             "media/pipeline_stage3_structure.png",
+            "media/pipeline_stage3_structure_comparison.png",
         ],
         "api_calls": "1 (NVIDIA NIM ESMFold)",
         "estimated_time": "~60 s",
@@ -60,7 +90,9 @@ STAGES = [
         "module": "pipeline.stage4_molecules",
         "outputs": [
             "data/processed/pipeline_molecules.json",
+            "data/processed/pipeline_molecules_differential.json",
             "media/pipeline_stage4_molecules.png",
+            "media/pipeline_stage4_molecules_differential.png",
         ],
         "api_calls": "22 (1 MolMIM + 1 ESM2 + 20 DiffDock)",
         "estimated_time": "~10 min",
@@ -82,7 +114,8 @@ def check_env(stages_to_run: list[dict]) -> None:
     checks = {
         2: ("NVIDIA_ESM_API_KEY",      os.getenv("NVIDIA_ESM_API_KEY")      or fallback),
         3: ("NVIDIA_ESM_FOLD_API_KEY", os.getenv("NVIDIA_ESM_FOLD_API_KEY") or fallback),
-        4: ("NVIDIA_MOLMIM_API_KEY",   os.getenv("NVIDIA_MOLMIM_API_KEY")   or fallback),
+        4: ("NVIDIA_DIFF_API_KEY",     os.getenv("NVIDIA_DIFF_API_KEY")     or fallback),
+        4.1: ("NVIDIA_MOLMIM_API_KEY", os.getenv("NVIDIA_MOLMIM_API_KEY")   or fallback),
     }
     missing = []
     for stage_id, (var, val) in checks.items():
@@ -104,17 +137,20 @@ def clear_caches(stages_to_run: list[dict]) -> None:
     for stage in stages_to_run:
         for path in stage["outputs"]:
             if os.path.exists(path):
-                os.remove(path)
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
                 print(f"  Removed cache: {path}")
 
 
-def run_stage(stage: dict) -> tuple[str, float]:
+def run_stage(stage: dict, mode: str) -> tuple[str, float]:
     """Import and run stage main(). Returns (status, elapsed_seconds)."""
     t0 = time.time()
     try:
         mod = importlib.import_module(stage["module"])
         importlib.reload(mod)
-        mod.main()
+        mod.main(mode=mode)
         status = "✅ OK"
     except Exception as exc:
         status = f"❌ FAILED: {exc}"
@@ -160,12 +196,16 @@ Examples:
         """,
     )
     parser.add_argument(
-        "--stage", type=int, choices=[1, 2, 3, 4], default=None,
-        help="Run a single stage (1–4). Omit to run all stages.",
+        "--stage", type=int, choices=[0, 1, 2, 3, 4, 5], default=None,
+        help="Run a single stage (0-5, where 5 is Multi-Species). Omit to run all.",
     )
     parser.add_argument(
         "--force", action="store_true",
         help="Delete existing output caches before running.",
+    )
+    parser.add_argument(
+        "--mode", choices=["single", "differential"], default="single",
+        help="Run the classic single-target flow or the WT-vs-variant differential flow.",
     )
     return parser.parse_args()
 
@@ -182,6 +222,7 @@ def main():
 
     print(f"\nDrug Discovery Pipeline — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Stages: {[s['id'] for s in stages_to_run]}\n")
+    print(f"Mode: {args.mode}\n")
 
     check_env(stages_to_run)
 
@@ -196,7 +237,7 @@ def main():
         print(f"  API calls       : {stage['api_calls']}")
         print(f"  Estimated time  : {stage['estimated_time']}")
         print(f"{'─' * 60}")
-        status, elapsed = run_stage(stage)
+        status, elapsed = run_stage(stage, args.mode)
         results.append({"id": stage["id"], "name": stage["name"],
                          "status": status, "elapsed": elapsed})
 

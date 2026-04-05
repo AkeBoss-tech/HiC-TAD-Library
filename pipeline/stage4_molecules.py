@@ -31,8 +31,11 @@ DIFFDOCK_URL = "https://health.api.nvidia.com/v1/biology/mit/diffdock"
 
 IN_FASTA  = "data/processed/pipeline_target_sequence.fasta"
 IN_PDB    = "data/processed/pipeline_structure.pdb"
+IN_STRUCTURE_JSON = "data/processed/pipeline_structure_comparison.json"
 OUT_JSON  = "data/processed/pipeline_molecules.json"
+OUT_DIFF_JSON = "data/processed/pipeline_molecules_differential.json"
 OUT_PNG   = "media/pipeline_stage4_molecules.png"
+OUT_DIFF_PNG = "media/pipeline_stage4_molecules_differential.png"
 OUT_PNG_2D = "media/pipeline_stage4_molecules_2d.png"
 
 NUM_MOLECULES = 20
@@ -182,27 +185,49 @@ def call_diffdock(atom_pdb: str, smiles: str, api_key: str) -> float:
     }
 
     import urllib.error
-    try:
-        req = urllib.request.Request(DIFFDOCK_URL, data=payload, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            body = json.loads(resp.read().decode())
-        # Response key confirmed: position_confidence (Array of Float32)
-        for key in ("position_confidence", "pose_confidence", "confidence_scores", "confidence"):
-            val = body.get(key)
-            if val:
-                scores = val if isinstance(val, list) else [val]
-                return float(max(scores))
-        return 0.0
-    except urllib.error.HTTPError as exc:
-        if exc.code == 429:
-            print(f"    DiffDock rate-limited — waiting 10s ...")
-            time.sleep(10)
-        else:
-            print(f"    DiffDock failed ({smiles[:30]}...): HTTP {exc.code}")
-        return 0.0
-    except Exception as exc:
-        print(f"    DiffDock failed ({smiles[:30]}...): {exc}")
-        return 0.0
+    # Some NIMs prefer ligand_type or molecule_type
+    keys_to_try = [
+        {"ligand": ligand_content, "ligand_file_type": ligand_type},
+        {"ligand": ligand_content, "ligand_type": ligand_type},
+        {"molecule": ligand_content, "molecule_type": ligand_type},
+    ]
+
+    for payload_dict in keys_to_try:
+        payload = json.dumps({
+            **payload_dict,
+            "protein": atom_pdb,
+            "num_poses": DOCKING_POSES,
+            "time_divisions": 20,
+            "steps": 18,
+            "save_trajectory": False,
+        }).encode("utf-8")
+        
+        try:
+            req = urllib.request.Request(DIFFDOCK_URL, data=payload, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                body = json.loads(resp.read().decode())
+            # Response key confirmed: position_confidence (Array of Float32)
+            for key in ("position_confidence", "pose_confidence", "confidence_scores", "confidence"):
+                val = body.get(key)
+                if val:
+                    scores = val if isinstance(val, list) else [val]
+                    return float(max(scores))
+            return 0.0
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                print(f"    DiffDock rate-limited — waiting 10s ...")
+                time.sleep(10)
+                continue
+            elif exc.code == 400:
+                # Try next payload configuration
+                continue
+            else:
+                print(f"    DiffDock failed: HTTP {exc.code}")
+            return 0.0
+        except Exception as exc:
+            print(f"    DiffDock failed: {exc}")
+            return 0.0
+    return 0.0
 
 
 def run_docking_batch(atom_pdb: str, molecules: list[dict],
@@ -285,9 +310,40 @@ def plot_molecules_2d(ranked: list[dict], out_png: str = OUT_PNG_2D) -> None:
     print(f"2D grid saved → {out_png}")
 
 
+def plot_differential_molecules(ranked: list[dict], variant_id: str, out_png: str = OUT_DIFF_PNG) -> None:
+    os.makedirs("media", exist_ok=True)
+    top10 = ranked[:10]
+    labels = [f"#{m['rank']}\n{m['smiles'][:12]}..." for m in top10]
+    selectivity = [m.get("causal_selectivity", m["selectivity"]) for m in top10]
+    wt_scores = [m["wt_confidence"] for m in top10]
+    variant_scores = [m["variant_confidence"] for m in top10]
+    x = np.arange(len(top10))
+    width = 0.28
+ 
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.bar(x - width, wt_scores, width, label="WT confidence", color="#90CAF9", edgecolor="white")
+    ax.bar(x, variant_scores, width, label=f"Variant confidence", color="#FFB74D", edgecolor="white")
+    ax.bar(x + width, selectivity, width, label="Causal Selectivity", color="#1B5E20", edgecolor="white")
+    ax.axhline(0, color="black", lw=0.8)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=7.5, rotation=20, ha="right")
+    ax.set_xlabel("Molecule (rank · SMILES prefix)", fontsize=11)
+    ax.set_ylabel("Causal Confidence Score", fontsize=11)
+    ax.set_title(
+        "Causal Drug Discovery — Selectivity weighted by Chromatin Risk",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Bar chart saved → {out_png}")
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
-def main():
+def main(mode: str = "single"):
     load_dotenv()
     molmim_key   = os.getenv("NVIDIA_MOLMIM_API_KEY") or os.getenv("NVIDIA_API_KEY")
     diffdock_key = os.getenv("NVIDIA_DIFF_API_KEY")   or os.getenv("NVIDIA_API_KEY")
@@ -295,6 +351,74 @@ def main():
         raise EnvironmentError("NVIDIA_MOLMIM_API_KEY (or NVIDIA_API_KEY) not set in .env")
     if not diffdock_key:
         raise EnvironmentError("NVIDIA_DIFF_API_KEY (or NVIDIA_API_KEY) not set in .env")
+
+    if mode == "differential":
+        if os.path.exists(OUT_DIFF_JSON):
+            print(f"Differential molecules cache exists → {OUT_DIFF_JSON}")
+            with open(OUT_DIFF_JSON) as f:
+                ranked = json.load(f)
+            variant_id = ranked[0].get("variant_id", "variant") if ranked else "variant"
+            plot_differential_molecules(ranked, variant_id)
+            print("Stage 4 complete.")
+            return
+
+        with open(IN_STRUCTURE_JSON) as f:
+            structure_rows = json.load(f)
+            structure_map = {row["id"]: row for row in structure_rows}
+
+        variant_rows = [row for row in structure_rows if row["id"] != "wt_canonical"]
+        if not variant_rows:
+            raise ValueError("No variant structures available for differential docking.")
+
+        wt_path = next(row["pdb_path"] for row in structure_rows if row["id"] == "wt_canonical")
+        variant = variant_rows[0]
+        variant_path = variant["pdb_path"]
+        
+        # Pull Causal Priority from Stage 3
+        v_priority = variant.get("causal_priority", 1.0)
+        v_e1 = variant.get("e1_score", 0.0)
+
+        with open(wt_path) as f:
+            wt_atom_pdb = filter_pdb_atoms(f.read())
+        with open(variant_path) as f:
+            variant_atom_pdb = filter_pdb_atoms(f.read())
+
+        molecules = call_molmim(molmim_key)
+        print(f"Running causal-aware differential DiffDock on {len(molecules)} molecules ...")
+
+        ranked = []
+        for i, mol in enumerate(molecules):
+            smiles = mol.get("smiles", "")
+            print(f"  Analysing molecule {i + 1}/{len(molecules)} ...")
+            wt_conf = call_diffdock(wt_atom_pdb, smiles, diffdock_key)
+            var_conf = call_diffdock(variant_atom_pdb, smiles, diffdock_key)
+            
+            # Causal Selectivity: Scaled by the risk priority of the genomic locus
+            selectivity = var_conf - wt_conf
+            causal_selectivity = selectivity * v_priority
+            
+            ranked.append(
+                {
+                    "smiles": smiles,
+                    "molmim_score": float(mol.get("score", 0.0)),
+                    "wt_confidence": wt_conf,
+                    "variant_confidence": var_conf,
+                    "selectivity": selectivity,
+                    "causal_selectivity": causal_selectivity,
+                    "variant_id": variant["id"],
+                    "locus_e1": v_e1,
+                    "locus_priority": v_priority
+                }
+            )
+            if i < len(molecules) - 1:
+                time.sleep(0.3)
+
+        ranked.sort(key=lambda row: row["causal_selectivity"], reverse=True)
+        ranked = [{"rank": i + 1, **row} for i, row in enumerate(ranked)]
+        save_molecules_json(ranked, OUT_DIFF_JSON)
+        plot_differential_molecules(ranked, variant["id"])
+        print("Stage 4 complete.")
+        return
 
     if os.path.exists(OUT_JSON):
         print(f"Molecules cache exists → {OUT_JSON} (skip API calls; delete to rerun)")
