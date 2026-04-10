@@ -24,6 +24,14 @@ from src.hg_dt.analyze.deltas import (
 )
 from src.hg_dt.models.alphagenome import CELL_TYPES
 from src.hg_dt.models.evo2 import Evo2Client
+from src.hg_dt.data.reference_paths import (
+    GENCODE_GTF,
+    CCRE_BED,
+    hg38_fasta_available,
+    gencode_gtf_available,
+    ccre_bed_available,
+    preferred_hg38_fasta,
+)
 
 st.set_page_config(page_title="HG-DT: Human Genome Digital Twin", layout="wide")
 
@@ -57,8 +65,17 @@ with st.sidebar:
     nv_key  = bool(os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_ESM_FOLD_API_KEY"))
 
     st.markdown("**Data sources**")
-    st.caption("Sequence: UCSC hg38 REST API (no key needed)")
-    st.caption("Gene annotations: UCSC RefSeq + ENCODE cCREs")
+    seq_src = (
+        "local hg38 FASTA (`data/references/hg38.fa`)"
+        if hg38_fasta_available()
+        else "UCSC hg38 REST API (no key needed)"
+    )
+    st.caption(f"Sequence: {seq_src}")
+    st.caption("Gene annotations: UCSC RefSeq + ENCODE cCREs (API)")
+    if gencode_gtf_available():
+        st.caption(f"Local GENCODE GTF: ✅ `{GENCODE_GTF}`")
+    if ccre_bed_available():
+        st.caption(f"Local SCREEN cCRE BED: ✅ `{CCRE_BED}`")
     st.caption(f"AlphaGenome: {'✅ key set' if ag_key else '❌ ALPHA_GENOME_API_KEY missing'}")
     st.caption(f"ESMFold:     {'✅ NVIDIA key set' if nv_key else '⚠ using Meta public API'}")
     st.caption(f"Evo 2:       **{Evo2Client().backend}**")
@@ -74,7 +91,8 @@ with st.sidebar:
     st.divider()
     if st.button("Start Over"):
         for key in ["step", "chrom", "gene", "edit_start", "edit_end",
-                    "mod_type", "pipeline_result", "locus_annotations"]:
+                    "mod_type", "insert_seq", "snp_alt",
+                    "pipeline_result", "locus_annotations"]:
             if key in st.session_state:
                 del st.session_state[key]
         st.rerun()
@@ -89,31 +107,13 @@ for key, default in [
     ("edit_start",         47210000),
     ("edit_end",           47215000),   # default = 5 kb deletion
     ("mod_type",           "Deletion"),
+    ("insert_seq",         ""),          # insertion: user bases (length = edit span)
+    ("snp_alt",            "A"),         # SNP alternate base (validated vs ref at run time)
     ("pipeline_result",    None),
     ("locus_annotations",  None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
-
-
-# ---------------------------------------------------------------------------
-# Core helpers — sequence manipulation
-# ---------------------------------------------------------------------------
-def _apply_edit(ref_seq: str, rel_start: int, rel_end: int,
-                mod_type: str, insert_seq: str = "") -> str:
-    """Apply a genomic edit to a reference sequence string."""
-    t = mod_type.lower()
-    if t == "deletion":
-        return ref_seq[:rel_start] + ref_seq[rel_end:]
-    if t == "insertion":
-        payload = insert_seq if insert_seq else "A" * (rel_end - rel_start)
-        return ref_seq[:rel_start] + payload + ref_seq[rel_start:]
-    if t == "snp":
-        pos = rel_start
-        orig = ref_seq[pos]
-        alt  = next(b for b in ("A", "T", "C", "G") if b != orig)
-        return ref_seq[:pos] + alt + ref_seq[pos + 1:]
-    return ref_seq  # "None"
 
 
 # ---------------------------------------------------------------------------
@@ -124,60 +124,34 @@ def _extract_1d(track_data, index: int = 0) -> np.ndarray:
     return vals if vals.ndim == 1 else vals[:, index]
 
 
-@st.cache_data(show_spinner="Fetching hg38 sequence from UCSC…")
-def _fetch_sequences(chrom: str, edit_start: int, edit_end: int,
-                     mod_type: str) -> tuple:
+@st.cache_data(show_spinner="Fetching hg38 sequence…")
+def _fetch_sequences(
+    chrom: str,
+    edit_start: int,
+    edit_end: int,
+    mod_type: str,
+    insert_seq: str = "",
+    snp_alt: Optional[str] = None,
+    fasta_path: Optional[str] = None,
+) -> tuple:
     """
     Fetch hg38 windows and apply the edit so that BOTH ref and mut are
     exactly 1,048,576 bp — required by AlphaGenome.
 
-    Strategy per edit type:
-      Deletion  : ref = standard WIN_SIZE window.
-                  mut = WIN_SIZE + del_size window → apply deletion → WIN_SIZE.
-      Insertion : ref = standard WIN_SIZE window.
-                  mut = WIN_SIZE - ins_size window → apply insertion → WIN_SIZE.
-      SNP/None  : same window for both; length is unchanged.
-
-    Returns (ref_seq, mut_seq, win_start, win_end).
+    See :func:`src.hg_dt.data.sequence_fetcher.fetch_ref_mut_sequences`.
     """
-    from src.hg_dt.data.sequence_fetcher import fetch_hg38_sequence
+    from src.hg_dt.data.sequence_fetcher import fetch_ref_mut_sequences
 
-    WIN_SIZE  = 1_048_576   # 2^20 — required by AlphaGenome
-    edit_size = edit_end - edit_start
-    center    = (edit_start + edit_end) // 2
-    win_start = max(0, center - WIN_SIZE // 2)
-    win_end   = win_start + WIN_SIZE
-
-    ref_seq = fetch_hg38_sequence(chrom, win_start, win_end)
-    t = mod_type.lower()
-
-    if t == "deletion":
-        # Fetch del_size extra bases on the right so the window stays WIN_SIZE after deletion
-        mut_raw   = fetch_hg38_sequence(chrom, win_start, win_end + edit_size)
-        rel_start = edit_start - win_start
-        rel_end   = edit_end   - win_start
-        mut_seq   = mut_raw[:rel_start] + mut_raw[rel_end:]   # length = WIN_SIZE ✓
-
-    elif t == "insertion":
-        # Fetch edit_size fewer bases so the window stays WIN_SIZE after insertion
-        fetch_end = max(win_start + 1000, win_end - edit_size)
-        mut_raw   = fetch_hg38_sequence(chrom, win_start, fetch_end)
-        rel_start = edit_start - win_start
-        payload   = "A" * edit_size                            # placeholder insert
-        mut_seq   = mut_raw[:rel_start] + payload + mut_raw[rel_start:]  # length = WIN_SIZE ✓
-
-    elif t == "snp":
-        rel_start = edit_start - win_start
-        orig      = ref_seq[rel_start]
-        alt       = next(b for b in ("A", "T", "C", "G") if b != orig)
-        mut_seq   = ref_seq[:rel_start] + alt + ref_seq[rel_start + 1:]  # length unchanged ✓
-
-    else:
-        mut_seq = ref_seq  # no edit
-
-    assert len(ref_seq) == WIN_SIZE, f"ref_seq length {len(ref_seq)} != {WIN_SIZE}"
-    assert len(mut_seq) == WIN_SIZE, f"mut_seq length {len(mut_seq)} != {WIN_SIZE}"
-    return ref_seq, mut_seq, win_start, win_end
+    fp = fasta_path if fasta_path is not None else preferred_hg38_fasta()
+    return fetch_ref_mut_sequences(
+        chrom,
+        edit_start,
+        edit_end,
+        mod_type,
+        insert_seq=insert_seq,
+        snp_alt=snp_alt,
+        fasta_path=fp,
+    )
 
 
 @st.cache_data(show_spinner="Running AlphaGenome predictions…")
@@ -208,48 +182,68 @@ def _run_alphagenome(ref_seq: str, mut_seq: str,
 
 
 @st.cache_data(show_spinner="Predicting protein structure (ESMFold)…")
-def _run_protein(ref_seq: str, mut_seq: str, win_start: int,
-                 edit_start: int, edit_end: int, mod_type: str,
-                 chrom: str) -> tuple:
+def _run_protein(
+    ref_seq: str,
+    mut_seq: str,
+    win_start: int,
+    edit_start: int,
+    edit_end: int,
+    mod_type: str,
+    chrom: str,
+    ref_out=None,
+    mut_out=None,
+) -> tuple:
     """
-    Fetch gene models (with exon coords) from UCSC, assemble CDS, translate,
-    fold with ESMFold.  Returns (ref_pdb, mut_pdb, splice_info).
+    UCSC RefSeq models → :func:`predict_isoforms` + longest-ORF translation
+    (``compare_translation``), optional SPLICE_SITES from AlphaGenome, then
+    ESMFold. Falls back to CDS translation if ORF/isoform parsing is empty.
+    Returns (ref_pdb, mut_pdb, splice_info).
     """
-    from src.hg_dt.data.sequence_fetcher import fetch_gene_models
+    from src.hg_dt.data.sequence_fetcher import fetch_gene_models, compute_mut_shift
+    from src.hg_dt.translate.transcript import ucsc_refseq_models_to_genes_df, predict_isoforms
+    from src.hg_dt.translate.translator import compare_translation
     from src.hg_dt.models.protein import ProteinFolder
 
-    win_end    = win_start + len(ref_seq)
-    models     = fetch_gene_models(chrom, win_start, win_end)
+    fold_cap = ProteinFolder.ESMFOLD_MAX_INPUT_AA
+
+    def _extract_splice_1d(out):
+        if out is None:
+            return None
+        ss = getattr(out, "splice_sites", None)
+        if ss is None:
+            return None
+        try:
+            vals = np.array(ss.values)
+            return vals if vals.ndim == 1 else vals[:, 0]
+        except Exception:
+            return None
+
+    win_end = win_start + len(ref_seq)
+    models = fetch_gene_models(chrom, win_start, win_end)
     if not models:
         return "", "", {"error": "No gene models in window"}
 
-    # Score each model: prefer genes overlapping the edit, then by proximity.
-    # Also require the gene has a CDS and its CDS is within the window.
     def _score_model(m):
-        if m["cdsStart"] >= m["cdsEnd"]:          # non-coding
+        if m["cdsStart"] >= m["cdsEnd"]:
             return float("inf")
-        # CDS must be reachable within the window
         if m["cdsStart"] < win_start or m["cdsEnd"] > win_end:
             return float("inf")
         gene_mid = (m["txStart"] + m["txEnd"]) / 2
-        edit_mid = (edit_start  + edit_end)   / 2
-        overlap  = max(0, min(m["txEnd"], edit_end) - max(m["txStart"], edit_start))
+        edit_mid = (edit_start + edit_end) / 2
+        overlap = max(0, min(m["txEnd"], edit_end) - max(m["txStart"], edit_start))
         if overlap > 0:
-            return 0  # gene overlaps the edit — highest priority
+            return 0
         return abs(gene_mid - edit_mid)
 
-    scored  = sorted(models, key=_score_model)
-    chosen  = next((m for m in scored if _score_model(m) < float("inf")), None)
-
+    scored = sorted(models, key=_score_model)
+    chosen = next((m for m in scored if _score_model(m) < float("inf")), None)
     if chosen is None:
         return "", "", {"error": "No coding gene within window"}
 
     def _assemble_cds(seq: str, win_s: int, exon_starts, exon_ends,
                       cds_start: int, cds_end: int, strand: str) -> str:
-        """Extract CDS from a sequence using exon coordinates."""
         cds_dna = ""
         for es, ee in zip(exon_starts, exon_ends):
-            # Clip to CDS
             s = max(es, cds_start)
             e = min(ee, cds_end)
             if s >= e:
@@ -260,12 +254,11 @@ def _run_protein(ref_seq: str, mut_seq: str, win_start: int,
                 continue
             cds_dna += seq[rel_s:rel_e]
         if strand == "-":
-            # reverse complement
             comp = str.maketrans("ACGTNacgtn", "TGCANtgcan")
             cds_dna = cds_dna.translate(comp)[::-1]
         return cds_dna.upper()
 
-    def _translate(dna: str) -> str:
+    def _translate_cds(dna: str) -> str:
         codon_table = {
             "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
             "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
@@ -287,49 +280,81 @@ def _run_protein(ref_seq: str, mut_seq: str, win_start: int,
         protein = ""
         for i in range(0, len(dna) - 2, 3):
             codon = dna[i:i+3]
-            aa    = codon_table.get(codon, "X")
+            aa = codon_table.get(codon, "X")
             if aa == "*":
                 break
             protein += aa
         return protein
 
-    ref_cds = _assemble_cds(
-        ref_seq, win_start,
-        chosen["exon_starts"], chosen["exon_ends"],
-        chosen["cdsStart"], chosen["cdsEnd"], chosen["strand"],
-    )
-    mut_cds = _assemble_cds(
-        mut_seq, win_start,
-        chosen["exon_starts"], chosen["exon_ends"],
-        chosen["cdsStart"], chosen["cdsEnd"], chosen["strand"],
-    )
+    genes_df = ucsc_refseq_models_to_genes_df(models)
+    ins_len = edit_end - edit_start
+    mut_shift = compute_mut_shift(mod_type, edit_start, edit_end, ins_len)
+    ref_sp = _extract_splice_1d(ref_out)
+    mut_sp = _extract_splice_1d(mut_out)
 
-    ref_aa = _translate(ref_cds)
-    mut_aa = _translate(mut_cds)
+    isoforms = {}
+    if not genes_df.empty:
+        isoforms = predict_isoforms(
+            genes_df, ref_seq, mut_seq, win_start,
+            edit_start, edit_end, mut_shift,
+            ref_splice_track=ref_sp,
+            mut_splice_track=mut_sp,
+        )
+
+    tid = chosen["name"]
+    iso = isoforms.get(tid) if isoforms else None
+    ref_aa, mut_aa = "", ""
+    comp = {}
+    skipped: list = []
+    splice_disrupted = False
+    frameshift = False
+
+    if iso:
+        comp = compare_translation(iso["ref_mrna"], iso["mut_mrna"])
+        ref_aa = comp.get("ref_aa", "") or ""
+        mut_aa = comp.get("mut_aa", "") or ""
+        skipped = list(iso.get("skipped_exons", []))
+        splice_disrupted = bool(iso.get("splice_disrupted"))
+        frameshift = bool(comp.get("is_frameshift") or iso.get("frameshift"))
+
+    if not ref_aa:
+        ref_cds = _assemble_cds(
+            ref_seq, win_start,
+            chosen["exon_starts"], chosen["exon_ends"],
+            chosen["cdsStart"], chosen["cdsEnd"], chosen["strand"],
+        )
+        mut_cds = _assemble_cds(
+            mut_seq, win_start,
+            chosen["exon_starts"], chosen["exon_ends"],
+            chosen["cdsStart"], chosen["cdsEnd"], chosen["strand"],
+        )
+        ref_aa = _translate_cds(ref_cds)
+        mut_aa = _translate_cds(mut_cds)
+        len_diff = len(mut_aa) - len(ref_aa)
+        frameshift = (len_diff % 3 != 0) if mut_aa else False
+        splice_disrupted = len_diff != 0 and abs(len_diff) >= 5
+        skipped = []
 
     if not ref_aa:
         return "", "", {"error": f"Empty translation for {chosen['name2']}"}
 
-    # Truncate to ESMFold limit (400 AA for Meta endpoint)
-    ref_aa_fold = ref_aa[:400]
-    mut_aa_fold = mut_aa[:400] if mut_aa else ref_aa_fold
+    ref_aa_fold = ref_aa[:fold_cap]
+    mut_aa_fold = mut_aa[:fold_cap] if mut_aa else ref_aa_fold
 
-    folder  = ProteinFolder()
+    folder = ProteinFolder()
     ref_pdb = folder.predict_structure(ref_aa_fold)["pdb"]
     mut_pdb = folder.predict_structure(mut_aa_fold)["pdb"]
 
-    len_diff       = len(mut_aa) - len(ref_aa)
-    frameshift     = (len_diff % 3 != 0) if mut_aa else False
-    splice_disrupted = len_diff != 0 and abs(len_diff) >= 5
-
     splice_info = {
-        "transcript_id":   chosen["name"],
-        "gene":            chosen["name2"],
-        "ref_aa_len":      len(ref_aa),
-        "mut_aa_len":      len(mut_aa),
-        "frameshift":      frameshift,
+        "transcript_id": tid,
+        "gene": chosen["name2"],
+        "ref_aa_len": len(ref_aa),
+        "mut_aa_len": len(mut_aa),
+        "frameshift": frameshift,
         "splice_disrupted": splice_disrupted,
-        "skipped_exons":   [],
+        "skipped_exons": skipped,
+        "truncated_to_fold": len(ref_aa) > fold_cap or len(mut_aa) > fold_cap,
+        "fold_cap_aa": fold_cap,
     }
     return ref_pdb, mut_pdb, splice_info
 
@@ -347,7 +372,7 @@ def _run_evo2(ref_seq: str, mut_seq: str) -> tuple:
 @st.cache_data(show_spinner=False)
 def _run_trajectory(ref_seq: str, mut_seq: str) -> dict:
     """
-    Run AlphaGenome at H1-hESC and K562 for both sequences.
+    Run AlphaGenome contact maps at H1-hESC and GM12878 for ref + mut.
     Returns 4 contact maps.
     """
     import time
@@ -406,8 +431,12 @@ def _run_pipeline() -> dict:
         f"(`{chrom}:{edit_start:,}–{edit_end:,}`, {edit_size:,} bp {mod_type.lower()})…"
     )
     t1 = time.time()
+    ins_raw = st.session_state.get("insert_seq", "") or ""
+    snp_a = st.session_state.get("snp_alt")
     ref_seq, mut_seq, win_start, win_end = _fetch_sequences(
-        chrom, edit_start, edit_end, mod_type
+        chrom, edit_start, edit_end, mod_type,
+        insert_seq=ins_raw,
+        snp_alt=snp_a if mod_type == "SNP" else None,
     )
     st.write(
         f"  ✅ Window: `{chrom}:{win_start:,}–{win_end:,}` ({win_end - win_start:,} bp)  "
@@ -486,7 +515,8 @@ def _run_pipeline() -> dict:
     t4 = time.time()
     try:
         ref_pdb, mut_pdb, splice_info = _run_protein(
-            ref_seq, mut_seq, win_start, edit_start, edit_end, mod_type, chrom
+            ref_seq, mut_seq, win_start, edit_start, edit_end, mod_type, chrom,
+            ref_out=ref_out, mut_out=mut_out,
         )
         pdb_status = (
             f"ref PDB = {len(ref_pdb):,} chars  · mut PDB = {len(mut_pdb):,} chars"
@@ -638,7 +668,7 @@ def _render_trajectory(result: dict):
         ax.axis("off")
     fig.colorbar(im, ax=axes.tolist(), shrink=0.6, label="Contact frequency")
     fig.text(0.5, -0.02,
-             "← Embryonic stem cell (H1-hESC)   ·   Committed myeloid (K562) →",
+             "← Embryonic stem cell (H1-hESC)   ·   Lymphoblastoid (GM12878) →",
              ha="center", fontsize=10, color="#444")
     plt.tight_layout()
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
@@ -734,6 +764,8 @@ if st.session_state.step == 1:
                                    step=1000)
 
     edit_size = int(edit_end) - int(edit_start)
+    insert_buf = st.session_state.insert_seq
+    snp_buf = st.session_state.snp_alt
     if edit_size > 0:
         st.caption(
             f"Edit: **{edit_size:,} bp {mod_type.lower()}** "
@@ -749,17 +781,30 @@ if st.session_state.step == 1:
                 if qcol.button(lbl, use_container_width=True):
                     st.session_state.edit_end = int(edit_start) + size
                     st.rerun()
+        if mod_type == "Insertion":
+            insert_buf = st.text_area(
+                f"Inserted sequence ({edit_size} bp)",
+                value=insert_buf,
+                height=70,
+                help=f"Exactly {edit_size} bases (A/C/G/T), or leave empty to use A×{edit_size}.",
+            )
+        if mod_type == "SNP":
+            _bases = ["A", "C", "G", "T"]
+            _si = _bases.index(snp_buf) if snp_buf in _bases else 0
+            snp_buf = st.selectbox("Alternate base (SNP)", _bases, index=_si)
     elif edit_size <= 0:
         st.error("Edit end must be greater than edit start.")
 
     st.write("")
     if st.button("Preview Locus →", type="primary", disabled=(edit_size <= 0)):
-        st.session_state.chrom      = chrom
+        st.session_state.chrom = chrom
         st.session_state.edit_start = int(edit_start)
-        st.session_state.edit_end   = int(edit_end)
-        st.session_state.mod_type   = mod_type
+        st.session_state.edit_end = int(edit_end)
+        st.session_state.mod_type = mod_type
+        st.session_state.insert_seq = insert_buf if mod_type == "Insertion" else ""
+        st.session_state.snp_alt = snp_buf if mod_type == "SNP" else st.session_state.snp_alt
         st.session_state.locus_annotations = None   # force refresh
-        st.session_state.step       = 2
+        st.session_state.step = 2
         st.rerun()
 
 
@@ -890,6 +935,13 @@ elif st.session_state.step == 3:
         else:
             st.caption("DNA → mRNA isoforms → Amino acid translation → 3D structure")
 
+        fc = splice.get("fold_cap_aa") or 400
+        if splice.get("truncated_to_fold"):
+            st.warning(
+                f"ESMFold input is capped at **{fc}** residues (Meta public API limit). "
+                f"Longer chains are truncated; full-length folding (e.g. AlphaFold 3) is planned."
+            )
+
         render_protein_overlay(result["ref_pdb"], result["mut_pdb"])
 
         if splice.get("splice_disrupted"):
@@ -914,7 +966,8 @@ elif st.session_state.step == 3:
 
         with st.expander("Model & Methodology"):
             st.markdown("""
-**Structure:** NVIDIA ESMFold NIM → Meta public ESMFold (free)
+**Structure:** NVIDIA ESMFold NIM → Meta public ESMFold (free), max ~400 AA
+**RNA:** Longest-ORF translation from exon-assembled mRNA (`predict_isoforms` + `compare_translation`), with CDS fallback
 **Overlay:** Blue = Reference · Orange = Mutant (both in one py3Dmol scene)
 **Splicing:** AlphaGenome SPLICE_SITES track → donor/acceptor score per exon
 **Gene models:** UCSC hg38 RefSeq (live REST API)

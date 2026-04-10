@@ -3,6 +3,9 @@ from pyfaidx import Fasta
 import pyranges as pr
 import pandas as pd
 
+from src.hg_dt.data.sequence_fetcher import ALPHA_WINDOW_SIZE
+
+
 class ReferenceContextBuilder:
     def __init__(self, fasta_path, gtf_path, bed_path):
         """
@@ -53,7 +56,7 @@ class ReferenceContextBuilder:
             df.columns = ['Chromosome', 'Start', 'End'] + [f'Col_{i}' for i in range(3, len(df.columns))]
             self.bed = pr.PyRanges(df)
 
-    def _get_window(self, chrom, start, end, window_size=1000000):
+    def _get_window(self, chrom, start, end, window_size=ALPHA_WINDOW_SIZE):
         """
         Calculate a window centered on the edit.
         """
@@ -88,7 +91,7 @@ class ReferenceContextBuilder:
 
         return mut_seq
 
-    def get_context(self, chrom, start, end, edit_type, new_sequence=None, window_size=1000000):
+    def get_context(self, chrom, start, end, edit_type, new_sequence=None, window_size=ALPHA_WINDOW_SIZE):
         """
         Get 1 Mb context around an edit.
 

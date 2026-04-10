@@ -47,18 +47,10 @@ def test_frameshift_deletion():
     assert comp['mut_aa'] == "MPL"
 
 def test_structural_collapse():
-    folder = ProteinFolder()
-
-    # Simulate a long WT sequence
-    ref_aa = "M" * 60
-    # Simulate a truncated Mut sequence
-    mut_aa = "M" * 15
-
-    ref_struct = folder.predict_structure(ref_aa)
-    mut_struct = folder.predict_structure(mut_aa)
-
-    impact = compute_structure_impact(ref_struct['plddt'], mut_struct['plddt'])
-
+    # Deterministic: avoid live ESMFold / mock randomness from ProteinFolder.
+    ref_plddt = [92.0] * 60
+    mut_plddt = [42.0] * 15
+    impact = compute_structure_impact(ref_plddt, mut_plddt)
     assert impact['collapse'] is True
     assert impact['avg_drop'] > 0
     assert impact['avg_ref_plddt'] > 70.0

@@ -1,0 +1,15 @@
+# Pip stack for HG-DT and local reference tooling.
+# Prefer conda (environment.yml) for numpy/matplotlib/cooler; this file adds pip-only pieces.
+#
+# Heavy / Phase-4 optional (install separately if needed):
+#   pip install pygenometracks   # pulls matplotlib; use conda-forge when possible
+#   pip install hicexplorer      # large tree
+
+biopython>=1.83
+pyfaidx>=0.8
+pyranges>=0.1
+gtfparse>=2.5
+cooler>=0.10
+cooltools>=0.6
+py3dmol>=2.0
+nglview>=3.1

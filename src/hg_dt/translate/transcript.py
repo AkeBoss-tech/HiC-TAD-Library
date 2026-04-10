@@ -1,7 +1,29 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from Bio.Seq import Seq
+
+
+def ucsc_refseq_models_to_genes_df(models: List[Dict[str, Any]]) -> pd.DataFrame:
+    """
+    Convert UCSC ``fetch_gene_models`` records into the exon-level DataFrame
+    expected by :func:`predict_isoforms` (columns: Feature, transcript_id, Start, End, Strand).
+    """
+    rows = []
+    for m in models:
+        tid = m.get("name", "")
+        strand = m.get("strand", "+")
+        for es, ee in zip(m.get("exon_starts", []), m.get("exon_ends", [])):
+            rows.append({
+                "Feature": "exon",
+                "transcript_id": tid,
+                "Start": int(es),
+                "End": int(ee),
+                "Strand": strand,
+            })
+    if not rows:
+        return pd.DataFrame(columns=["Feature", "transcript_id", "Start", "End", "Strand"])
+    return pd.DataFrame(rows)
 
 
 def extract_exons(genes_df: pd.DataFrame, transcript_id: str) -> pd.DataFrame:

@@ -35,7 +35,8 @@ class ProteinFolder:
 
     _NVIDIA_ENDPOINT = "https://health.api.nvidia.com/v1/biology/nvidia/esmfold"
     _META_ENDPOINT   = "https://api.esmatlas.com/foldSequence/v1/pdb/"
-    _META_MAX_LEN    = 400
+    _META_MAX_LEN    = 400  # Meta public ESMFold input limit
+    ESMFOLD_MAX_INPUT_AA = _META_MAX_LEN  # alias for dashboards / warnings
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = (
