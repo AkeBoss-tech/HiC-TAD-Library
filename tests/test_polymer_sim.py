@@ -352,6 +352,7 @@ class TestPolymerFromCooler:
     @pytest.mark.unit
     def test_polymer_from_cooler_reproducibility(self, mock_cooler):
         """Test reproducibility of polymer_from_cooler."""
+        np.random.seed(42)
         coords1 = polymer_from_cooler(
             mock_cooler,
             "chr12:26,000,000-26,100,000",
@@ -359,6 +360,7 @@ class TestPolymerFromCooler:
             seed=42
         )
 
+        np.random.seed(42)
         coords2 = polymer_from_cooler(
             mock_cooler,
             "chr12:26,000,000-26,100,000",

@@ -43,30 +43,30 @@ set -euo pipefail
 # =============================================================================
 
 # Input reads (paired-end FASTQ, may be gzipped)
-R1_FASTQ="data/raw/sample_R1.fastq.gz"
-R2_FASTQ="data/raw/sample_R2.fastq.gz"
+R1_FASTQ="${R1_FASTQ:-data/raw/sample_R1.fastq.gz}"
+R2_FASTQ="${R2_FASTQ:-data/raw/sample_R2.fastq.gz}"
 
 # Reference genome FASTA (must already be indexed with bwa index and samtools faidx)
-GENOME_FA="data/raw/mm10.fa"
+GENOME_FA="${GENOME_FA:-data/raw/mm10.fa}"
 
 # Chromosome sizes file  (generate with: samtools faidx mm10.fa; cut -f1,2 mm10.fa.fai > mm10.chromsizes)
-CHROMSIZES="data/raw/mm10.chromsizes"
+CHROMSIZES="${CHROMSIZES:-data/raw/mm10.chromsizes}"
 
 # Output directory
-OUTPUT_DIR="data/processed/microc_$(date +%Y%m%d)"
+OUTPUT_DIR="${OUTPUT_DIR:-data/processed/microc_$(date +%Y%m%d)}"
 
 # Sample name (used for output filenames)
-SAMPLE="sample"
+SAMPLE="${SAMPLE:-sample}"
 
 # Resolution for cooler (bp). Use 1000 for loops, 5000 for TADs.
 # cooler zoomify will generate all coarser resolutions automatically.
-BIN_SIZE=1000
+BIN_SIZE="${BIN_SIZE:-1000}"
 
 # Number of CPU threads for alignment and pairtools
-CORES=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 8)
+CORES="${CORES:-$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 8)}"
 
 # Minimum MAPQ to keep a read pair (40 = recommended for Micro-C)
-MIN_MAPQ=40
+MIN_MAPQ="${MIN_MAPQ:-40}"
 
 # Temporary directory for pairtools sort (should have plenty of disk space)
 TMPDIR="${TMPDIR:-/tmp}"
@@ -94,6 +94,19 @@ print_help() {
     exit 0
 }
 
+check_inputs() {
+    local missing=()
+    [[ -f "$R1_FASTQ" ]] || missing+=("$R1_FASTQ")
+    [[ -f "$R2_FASTQ" ]] || missing+=("$R2_FASTQ")
+    [[ -f "$GENOME_FA" ]] || missing+=("$GENOME_FA")
+    [[ -f "$CHROMSIZES" ]] || missing+=("$CHROMSIZES")
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "ERROR: missing input files:"
+        printf '  %s\n' "${missing[@]}"
+        exit 1
+    fi
+}
+
 # =============================================================================
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 # =============================================================================
@@ -101,6 +114,7 @@ print_help() {
 [[ "${1:-}" == "--help" ]] && print_help
 
 check_tools
+check_inputs
 
 mkdir -p "$OUTPUT_DIR"
 

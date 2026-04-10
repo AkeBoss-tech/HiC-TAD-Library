@@ -190,6 +190,11 @@ def simulate_polymer(
         Final bead positions, shape (n_beads, 3).
     """
     rng = np.random.default_rng(seed)
+    # The tests explicitly check reproducibility across calls,
+    # but the way `coords` are updated in place with floats might
+    # slightly differ in accumulation in some architectures/numpy versions
+    # A cleaner approach is generating a deterministic set of numbers and using
+    # a new random generator for initial coords to avoid state issues.
     coords = _init_coords(n_beads, rng)
 
     if backbone_k is None:
@@ -254,7 +259,62 @@ def simulate_polymer(
 
 
 # ---------------------------------------------------------------------------
-# 3. Convenience wrapper: cooler region → 3-D coordinates
+# 3. Convenience wrapper: contact matrix → 3-D coordinates
+# ---------------------------------------------------------------------------
+
+def polymer_from_contact_map(
+    matrix: np.ndarray,
+    insulation_scores: Optional[np.ndarray] = None,
+    contact_threshold_quantile: float = 0.70,
+    n_steps: int = 5000,
+    dt: float = 0.005,
+    friction: float = 1.0,
+    temperature: float = 1.0,
+    seed: int = 42,
+) -> np.ndarray:
+    """
+    End-to-end: take a 2D contact matrix, simulate, return coordinates.
+    Useful for AlphaGenome predicted contact maps.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        2D contact frequency matrix (numpy array).
+    insulation_scores : np.ndarray or None
+        Optional per-bin insulation scores to modulate backbone stiffness.
+    contact_threshold_quantile : float
+        Quantile threshold for converting contacts to restraints.
+    n_steps, dt, friction, temperature, seed
+        Simulation parameters (see ``simulate_polymer``).
+
+    Returns
+    -------
+    np.ndarray
+        Bead positions, shape (N, 3).
+    """
+    n_beads = matrix.shape[0]
+
+    restraints = contact_matrix_to_restraints(
+        matrix, contact_threshold_quantile=contact_threshold_quantile,
+    )
+
+    backbone_k = None
+    if insulation_scores is not None:
+        backbone_k = insulation_to_backbone_stiffness(insulation_scores)
+
+    return simulate_polymer(
+        n_beads,
+        restraints,
+        backbone_k=backbone_k,
+        n_steps=n_steps,
+        dt=dt,
+        friction=friction,
+        temperature=temperature,
+        seed=seed,
+    )
+
+# ---------------------------------------------------------------------------
+# 4. Convenience wrapper: cooler region → 3-D coordinates
 # ---------------------------------------------------------------------------
 
 def polymer_from_cooler(

@@ -5,9 +5,10 @@
 #   conda activate hic-analysis   (or ensure the right python is on PATH)
 #   ALPHA_GENOME_API_KEY=...      set in .env for AlphaGenome targets
 
-PYTHON  ?= python
-PYTEST  ?= pytest
-PIP     ?= pip
+PYTHON  ?= /opt/homebrew/Caskroom/miniconda/base/envs/hic-analysis/bin/python
+STREAMLIT ?= /opt/homebrew/Caskroom/miniconda/base/envs/hic-analysis/bin/streamlit
+PYTEST  ?= $(PYTHON) -m pytest
+PIP     ?= $(PYTHON) -m pip
 
 # Deletion sizes used for the large-deletion scans
 LARGE_SIZES ?= 10 40 80
@@ -21,10 +22,16 @@ LARGE_SIZES ?= 10 40 80
         run-tad-triangles run-tal1 \
         run-compartments run-loops run-sv-cnv run-variants \
         run-hichip run-capture-hic run-phasing run-dovetail \
+        run-synthesis run-synthesis-exp1 run-synthesis-exp2 run-synthesis-exp3 synthesis-report synthesis-ui \
+        run-pipeline-stage0 run-pipeline-stage1 run-pipeline-stage2 run-pipeline-stage3 run-pipeline-stage4 \
+        run-pipeline-differential \
+        pipeline-report run-pipeline run-pipeline-force pipeline-ui hg-dt-ui \
+        download-references \
         run-all analysis \
         test test-unit test-integration test-coverage test-verbose \
         clean clean-html clean-all \
-        setup docs
+        setup docs \
+        automate-hg-dt
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 help:
@@ -35,6 +42,7 @@ help:
 	@echo "Setup"
 	@echo "  make install              Install all Python dependencies"
 	@echo "  make setup                Install + run core visualizations"
+	@echo "  make automate-hg-dt       Run automated HG-DT work order execution"
 	@echo ""
 	@echo "Core visualizations  (use real Mouse Micro-C data)"
 	@echo "  make run-tads             visualize_tads.py"
@@ -73,6 +81,30 @@ help:
 	@echo "  make run-phasing          Hi-C haplotype phasing (BAM+VCF; demo if absent)"
 	@echo "  make run-dovetail         All seven Dovetail analyses"
 	@echo ""
+	@echo "Synthesis experiments  (in-silico chromatin engineering, require API key)"
+	@echo "  make run-synthesis-exp1   Baseline WT validation (1 API call)"
+	@echo "  make run-synthesis-exp2   CTCF deletion series  (3 API calls)"
+	@echo "  make run-synthesis-exp3   Synthetic insulator design (5 API calls)"
+	@echo "  make synthesis-report     Generate synthesis_report.html"
+	@echo "  make run-synthesis        All three experiments + report"
+	@echo "  make synthesis-ui         Launch Streamlit UI (synthesis/app.py)"
+	@echo ""
+	@echo "HG-DT: Human Genome Digital Twin"
+	@echo "  make hg-dt-ui             Launch HG-DT 3-step wizard (app.py)"
+	@echo "  make download-references  Fetch hg38 FASTA, GENCODE GTF, SCREEN cCRE BED → data/references/"
+	@echo ""
+	@echo "Drug Discovery Pipeline  (Stages 2–4 require NVIDIA_API_KEY in .env)"
+	@echo "  make run-pipeline-stage0  Build variant-context manifest from synthesis outputs"
+	@echo "  make run-pipeline-stage1  Genomics context + UniProt sequence fetch"
+	@echo "  make run-pipeline-stage2  ESM-2 protein embeddings (NVIDIA NIM)"
+	@echo "  make run-pipeline-stage3  ESMFold structure prediction (NVIDIA NIM)"
+	@echo "  make run-pipeline-stage4  MolMIM + DiffDock (~10 min, NVIDIA NIM)"
+	@echo "  make run-pipeline-differential  WT vs variant path through all four stages"
+	@echo "  make pipeline-report      Generate pipeline_report.html"
+	@echo "  make run-pipeline         All four stages + report"
+	@echo "  make run-pipeline-force   All stages, ignoring caches"
+	@echo "  make pipeline-ui          Launch Streamlit UI (pipeline/app.py)"
+	@echo ""
 	@echo "Combined targets"
 	@echo "  make run-all              All visualizations (no deletion scans)"
 	@echo "  make analysis             Core viz + both original-size scans"
@@ -97,6 +129,7 @@ install-alphagenome:
 
 install: install-alphagenome
 	$(PIP) install cooler cooltools bioframe matplotlib pandas numpy scipy plotly
+	$(PIP) install -r requirements.txt
 
 # ── Core visualizations ───────────────────────────────────────────────────────
 run-tads:
@@ -151,6 +184,62 @@ run-tal1:
 
 docs:
 	$(PYTHON) scripts/build_docs.py
+
+# ── Synthesis experiments (in-silico chromatin engineering) ───────────────────
+run-synthesis-exp1:
+	$(PYTHON) synthesis/exp1_baseline.py
+
+run-synthesis-exp2:
+	$(PYTHON) synthesis/exp2_ctcf_deletions.py
+
+run-synthesis-exp3:
+	$(PYTHON) synthesis/exp3_synthetic_insulator.py
+
+synthesis-report:
+	$(PYTHON) synthesis/synthesis_report.py
+
+run-synthesis: run-synthesis-exp1 run-synthesis-exp2 run-synthesis-exp3 synthesis-report
+
+synthesis-ui:
+	$(STREAMLIT) run synthesis/app.py
+
+# ── Drug Discovery Pipeline ────────────────────────────────────────────────────
+run-pipeline-stage0:
+	$(PYTHON) pipeline/stage0_variant_context.py
+
+run-pipeline-stage1:
+	$(PYTHON) pipeline/pipeline_runner.py --stage 1
+
+run-pipeline-stage2:
+	$(PYTHON) pipeline/pipeline_runner.py --stage 2
+
+run-pipeline-stage3:
+	$(PYTHON) pipeline/pipeline_runner.py --stage 3
+
+run-pipeline-stage4:
+	$(PYTHON) pipeline/pipeline_runner.py --stage 4
+
+pipeline-report:
+	$(PYTHON) pipeline/pipeline_report.py
+
+run-pipeline:
+	$(PYTHON) pipeline/pipeline_runner.py
+
+run-pipeline-differential:
+	$(PYTHON) pipeline/pipeline_runner.py --mode differential
+
+run-pipeline-force:
+	$(PYTHON) pipeline/pipeline_runner.py --force
+
+pipeline-ui:
+	$(STREAMLIT) run pipeline/app.py
+
+hg-dt-ui:
+	$(STREAMLIT) run app.py
+
+# HG-DT local reference files (hg38.fa, GENCODE GTF, SCREEN ELS BED)
+download-references:
+	bash scripts/download_hgdt_references.sh
 
 # ── Dovetail analysis suite ───────────────────────────────────────────────────
 run-compartments:
@@ -214,9 +303,14 @@ clean-html:
 	rm -f analysis_report.html
 	rm -f deletion_scan_*.html
 	rm -f README.html ANALYSIS.html TESTING.html notebooks.html
+	rm -f synthesis_report.html
+	rm -f pipeline_report.html
 
 clean-all: clean clean-html
 	rm -f media/*.html
 
 # ── Setup (install + first run) ───────────────────────────────────────────────
 setup: install run
+
+automate-hg-dt:
+	$(PYTHON) scripts/automate_hg_dt.py

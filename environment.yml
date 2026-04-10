@@ -30,3 +30,8 @@ dependencies:
     - hic-straw
     - pyfaidx
     - torch
+    - biopython
+    - pyranges
+    - gtfparse
+    - py3dmol
+    - nglview

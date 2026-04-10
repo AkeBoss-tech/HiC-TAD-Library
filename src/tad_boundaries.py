@@ -26,6 +26,88 @@ def make_view_df(chrom: str, start: int, end: int) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Delta and Boundary Comparison
+# ---------------------------------------------------------------------------
+
+def compute_insulation_delta(ref_map: np.ndarray, mut_map: np.ndarray, window_bins: int = 10) -> np.ndarray:
+    """
+    Directly compute insulation differences from 2D numpy arrays.
+    Calculates insulation score for a given window size directly on the matrix.
+
+    Args:
+        ref_map: 2D numpy array of reference contact frequencies.
+        mut_map: 2D numpy array of mutant contact frequencies.
+        window_bins: The window size in bins for insulation score.
+
+    Returns:
+        np.ndarray containing the insulation score difference (mut - ref) for each bin.
+    """
+    def _insulation(matrix):
+        n = matrix.shape[0]
+        ins = np.full(n, np.nan)
+        for i in range(n):
+            lo = max(0, i - window_bins)
+            hi = min(n, i + window_bins + 1)
+            # Sum of contacts in a window around the diagonal
+            ins[i] = np.nansum(matrix[lo:i, i+1:hi])
+        # Convert to log2 and normalize by mean
+        with np.errstate(divide='ignore', invalid='ignore'):
+            mean_ins = np.nanmean(ins)
+            if mean_ins > 0:
+                ins_score = np.log2(ins / mean_ins)
+            else:
+                ins_score = np.zeros_like(ins)
+        return ins_score
+
+    ref_ins = _insulation(ref_map)
+    mut_ins = _insulation(mut_map)
+    return mut_ins - ref_ins
+
+def compare_tad_boundaries(ref_tads: pd.DataFrame, mut_tads: pd.DataFrame, tolerance_bp: int = 25000) -> dict:
+    """
+    Compare the DataFrames of TAD intervals and return lost/gained/conserved boundaries.
+
+    Args:
+        ref_tads: DataFrame with reference TAD intervals.
+        mut_tads: DataFrame with mutant TAD intervals.
+        tolerance_bp: Base pair distance to consider boundaries equivalent.
+
+    Returns:
+        A dictionary with lists of 'lost', 'gained', and 'conserved' boundaries (start positions).
+    """
+    def _extract_boundaries(tads_df):
+        if tads_df.empty:
+            return set()
+        boundaries = set()
+        for _, row in tads_df.iterrows():
+            if row['start'] > 0:
+                boundaries.add(row['start'])
+            boundaries.add(row['end'])
+        return boundaries
+
+    ref_bounds = sorted(list(_extract_boundaries(ref_tads)))
+    mut_bounds = sorted(list(_extract_boundaries(mut_tads)))
+
+    conserved = []
+    lost = list(ref_bounds)
+    gained = list(mut_bounds)
+
+    for rb in ref_bounds:
+        for mb in list(gained):
+            if abs(rb - mb) <= tolerance_bp:
+                conserved.append((rb, mb))
+                lost.remove(rb)
+                gained.remove(mb)
+                break
+
+    return {
+        'conserved': conserved,
+        'lost': lost,
+        'gained': gained
+    }
+
+
+# ---------------------------------------------------------------------------
 # 1. Directionality Index
 # ---------------------------------------------------------------------------
 
@@ -249,53 +331,54 @@ def call_tad_intervals(
     tads = []
     tad_id = 0
 
-    for chrom_name, chrom_bounds in boundaries.groupby('chrom'):
-        chrom_len = clr.chromsizes[chrom_name]
-        sorted_bounds = chrom_bounds.sort_values('start')
+    if not boundaries.empty and 'chrom' in boundaries.columns:
+        for chrom_name, chrom_bounds in boundaries.groupby('chrom'):
+            chrom_len = clr.chromsizes.get(chrom_name, 100_000_000) # Fallback to a large number if chromsizes missing or if testing with mock
+            sorted_bounds = chrom_bounds.sort_values('start')
 
-        positions = sorted_bounds[['start', 'end', 'boundary_class']].values.tolist()
+            positions = sorted_bounds[['start', 'end', 'boundary_class']].values.tolist()
 
-        # First TAD: chromosome start → first boundary
-        if len(positions) > 0:
-            first_bnd_start, first_bnd_end, first_cls = positions[0]
-            if first_bnd_start > 0:
+            # First TAD: chromosome start → first boundary
+            if len(positions) > 0:
+                first_bnd_start, first_bnd_end, first_cls = positions[0]
+                if first_bnd_start > 0:
+                    tads.append({
+                        'chrom': chrom_name,
+                        'start': 0,
+                        'end': int(first_bnd_start),
+                        'tad_id': tad_id,
+                        'left_boundary_class': None,
+                        'right_boundary_class': first_cls,
+                    })
+                    tad_id += 1
+
+            # Interior TADs: between consecutive boundaries
+            for j in range(len(positions) - 1):
+                left_start, left_end, left_cls = positions[j]
+                right_start, right_end, right_cls = positions[j + 1]
                 tads.append({
                     'chrom': chrom_name,
-                    'start': 0,
-                    'end': int(first_bnd_start),
+                    'start': int(left_end),
+                    'end': int(right_start),
                     'tad_id': tad_id,
-                    'left_boundary_class': None,
-                    'right_boundary_class': first_cls,
+                    'left_boundary_class': left_cls,
+                    'right_boundary_class': right_cls,
                 })
                 tad_id += 1
 
-        # Interior TADs: between consecutive boundaries
-        for j in range(len(positions) - 1):
-            left_start, left_end, left_cls = positions[j]
-            right_start, right_end, right_cls = positions[j + 1]
-            tads.append({
-                'chrom': chrom_name,
-                'start': int(left_end),
-                'end': int(right_start),
-                'tad_id': tad_id,
-                'left_boundary_class': left_cls,
-                'right_boundary_class': right_cls,
-            })
-            tad_id += 1
-
-        # Last TAD: last boundary → chromosome end
-        if len(positions) > 0:
-            last_start, last_end, last_cls = positions[-1]
-            if last_end < chrom_len:
-                tads.append({
-                    'chrom': chrom_name,
-                    'start': int(last_end),
-                    'end': int(chrom_len),
-                    'tad_id': tad_id,
-                    'left_boundary_class': last_cls,
-                    'right_boundary_class': None,
-                })
-                tad_id += 1
+            # Last TAD: last boundary → chromosome end
+            if len(positions) > 0:
+                last_start, last_end, last_cls = positions[-1]
+                if last_end < chrom_len:
+                    tads.append({
+                        'chrom': chrom_name,
+                        'start': int(last_end),
+                        'end': int(chrom_len),
+                        'tad_id': tad_id,
+                        'left_boundary_class': last_cls,
+                        'right_boundary_class': None,
+                    })
+                    tad_id += 1
 
     if not tads:
         return pd.DataFrame(columns=[

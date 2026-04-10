@@ -1,157 +1,176 @@
-# LinkPrep Analysis
+# LinkPrep Integration Plan
 
-End-to-end analysis pipeline for **Dovetail LinkPrep™** proximity-ligation data.
+This folder tracks the work needed to support Dovetail LinkPrep data cleanly in this repository.
 
-## What LinkPrep measures
+## Goal
 
-LinkPrep uses **Tn5 tagmentation** (uniform, sequence-agnostic fragmentation) followed by proximity ligation. This produces linked reads that encode:
+Take Dovetail LinkPrep paired-end FASTQs through:
 
-- 3D genome structure (TADs, compartments, loops)
-- Structural variants (translocations, inversions, deletions)
-- Copy-number variants (from uniform coverage depth)
-- Haplotype phase blocks (from linked heterozygous SNPs)
+1. preprocessing to `.pairs`, BAM, and `.mcool`
+2. QC checks against Dovetail whole-genome recommendations
+3. downstream analysis for:
+   - compartments
+   - TADs
+   - loops
+   - SV / CNV
+   - phasing
+4. a clearer separation between:
+   - Dovetail-recommended external tools
+   - this repo's internal exploratory analysis code
 
----
+## Current State
 
-## Folder layout
+What already exists in this repo:
 
-```
-linkprep/
-├── config.py                        ← DATA PATHS & PARAMETERS — edit this for real data
-├── run_analysis.py                  ← Master entry point
-│
-├── sample_data/
-│   └── generate_sample_data.py      ← Creates synthetic .cool, .pairs, .vcf, coverage.bed
-│
-├── pipeline/
-│   ├── preprocess.sh                ← FASTQ → .cool pipeline (real data)
-│   └── qc_metrics.py                ← Pairs QC: valid-pair rate, cis/trans, P(s) curve
-│
-├── analysis/
-│   ├── contact_analysis.py          ← TADs, compartments, loops from .cool
-│   ├── sv_detection.py              ← Translocation, inversion, deletion calling
-│   ├── cnv_analysis.py              ← Per-bin coverage → CNV segments
-│   └── phasing.py                   ← VCF SNPs → haplotype blocks
-│
-├── visualization/
-│   ├── plot_contacts.py             ← Hi-C heatmap, TAD overlay, A/B compartments
-│   ├── plot_sv.py                   ← Translocation heatmap, inversion map
-│   ├── plot_cnv.py                  ← Genome-wide & per-chrom CNV
-│   └── plot_phasing.py              ← SNP density, block map, length distribution
-│
-└── figures/                         ← All output PNGs (auto-created)
-```
+- Raw-data preprocessing script:
+  - [`scripts/preprocess_microc.sh`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/scripts/preprocess_microc.sh)
+- Internal downstream analysis modules:
+  - [`src/tad_boundaries.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/src/tad_boundaries.py)
+  - [`src/compartments.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/src/compartments.py)
+  - [`src/loops.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/src/loops.py)
+  - [`src/sv_detection.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/src/sv_detection.py)
+  - [`src/phasing.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/src/phasing.py)
+- Visualization / demo entrypoints:
+  - [`visualize_compartments.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/visualize_compartments.py)
+  - [`visualize_loops.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/visualize_loops.py)
+  - [`analyze_sv_cnv.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/analyze_sv_cnv.py)
+  - [`analyze_phasing.py`](/Users/akashdubey/Documents/CodingProjects/HiC-TAD-Library/analyze_phasing.py)
 
----
+What is missing right now on this machine:
 
-## Quick start (sample data)
+- `bwa`
+- `samtools`
+- `pairtools`
+- `pairix`
+- `bgzip`
+- LinkPrep FASTQ inputs
+- `mm10.chromsizes`
+
+What is still missing in the repo itself:
+
+- a LinkPrep-specific runbook
+- a cleaner config layer for preprocessing inputs
+- automated QC summarization
+- explicit integration of Dovetail-recommended downstream tools
+- tests around the preprocessing path
+
+## Dovetail Alignment
+
+The preprocessing script already follows the documented Dovetail-style pattern:
+
+1. `bwa mem -5SP -T0`
+2. `pairtools parse`
+3. `pairtools sort`
+4. `pairtools dedup`
+5. `pairtools split`
+6. `pairix`
+7. `cooler cload pairix`
+8. `cooler zoomify --balance`
+
+That is consistent with the Dovetail docs:
+
+- [Data processing overview](https://dovetail-analysis.readthedocs.io/en/latest/)
+- [FASTQ to final valid pairs bam](https://dovetail-analysis.readthedocs.io/en/latest/data_processing/fastq_to_bam.html)
+- [Generating contact matrices](https://dovetail-analysis.readthedocs.io/en/latest/data_processing/contact_map.html)
+- [Whole-genome QC](https://dovetail-analysis.readthedocs.io/en/latest/whole_genome/qc.html)
+- [Whole-genome feature discovery](https://dovetail-analysis.readthedocs.io/en/latest/whole_genome/feature_discovery.html)
+- [Whole-genome variant detection](https://dovetail-analysis.readthedocs.io/en/latest/whole_genome/genetic_variant_detection.html)
+
+## Recommended Work Plan
+
+### Phase 1: Make preprocessing runnable
+
+- Install required command-line tools in the analysis environment.
+- Add a chromosome sizes file for the chosen reference.
+- Replace placeholder FASTQ paths with real LinkPrep inputs.
+- Run preprocessing end to end and save outputs under `data/processed/`.
+
+Suggested install command:
 
 ```bash
-cd HiC-TAD-Library
 conda activate hic-analysis
-
-# Run everything — generates synthetic data automatically
-python linkprep/run_analysis.py
+conda install -c bioconda bwa samtools pairtools pairix cooler htslib
 ```
 
-Figures are written to `linkprep/figures/`.
-
----
-
-## Switching to real data
-
-1. Run the preprocessing pipeline on your FASTQs:
+Suggested chromosome sizes command:
 
 ```bash
-bash linkprep/pipeline/preprocess.sh \
-    /path/to/reference.fa \
-    /path/to/sample_R1.fastq.gz \
-    /path/to/sample_R2.fastq.gz \
-    my_sample \
-    16      # threads
+cut -f1,2 data/raw/mm10.fa.fai > data/raw/mm10.chromsizes
 ```
 
-2. Update `linkprep/config.py`:
+### Phase 2: Add QC and provenance
 
-```python
-COOL_FILE    = "/path/to/my_sample.cool"
-PAIRS_FILE   = "/path/to/my_sample.valid.pairs.gz"
-VCF_FILE     = "/path/to/my_sample.vcf"
-COVERAGE_BED = "/path/to/my_sample_coverage.bed"
-GENOME       = "hg38"   # or mm10
+- Parse `pairtools dedup` stats into a machine-readable QC summary.
+- Record:
+  - total pairs
+  - duplicate rate
+  - no-dup pairs
+  - cis pairs >= 1 kb
+  - estimated suitability for TAD / loop calling
+- Save a QC summary markdown or JSON report next to the generated `.mcool`.
 
-REGIONS = {
-    "MyGene_Chr1": "chr1:100,000,000-105,000,000",
-}
-```
+Target thresholds from Dovetail docs:
 
-3. Re-run the analysis:
+- no-dup cis pairs >= 1 kb > 40% of no-dup pairs
+- >125M no-dup pairs for strong TAD / loop analysis
 
-```bash
-python linkprep/run_analysis.py --no-generate
-```
+### Phase 3: Clarify downstream modes
 
----
+Separate downstream analysis into two categories:
 
-## Running individual steps
+- `internal exploratory`
+  - current Python implementations in `src/`
+- `dovetail-recommended external`
+  - TADs: Arrowhead / Juicer ecosystem
+  - loops: Mustache
+  - compartments: FAN-C
+  - SVs: hic_breakfinder
+  - CNV: CNVkit
+  - SNVs / indels: DeepVariant
 
-```bash
-# Only QC + contact analysis
-python linkprep/run_analysis.py --steps qc contacts
+This repo should be explicit about when a result is:
 
-# Only SV + CNV
-python linkprep/run_analysis.py --steps sv cnv --no-generate
+- a custom approximation
+- a Dovetail-style preprocessing result
+- a Dovetail-recommended downstream call
 
-# Individual scripts
-python linkprep/pipeline/qc_metrics.py
-python linkprep/visualization/plot_contacts.py
-python linkprep/visualization/plot_sv.py
-python linkprep/visualization/plot_cnv.py
-python linkprep/visualization/plot_phasing.py
-```
+### Phase 4: Add a LinkPrep-specific entrypoint
 
----
+Create a dedicated runner for LinkPrep, for example:
 
-## Output figures
+- `linkprep/run_linkprep.sh`
+- `linkprep/qc_summary.py`
+- `linkprep/README.md`
 
-| File | Contents |
-|------|----------|
-| `qc_distance_distribution.png` | Cis-pair P(s) curve and raw distance histogram |
-| `qc_pair_types.png` | Trans / short-range cis / long-range cis breakdown |
-| `contact_heatmap_<region>.png` | Hi-C heatmap + insulation track |
-| `tads_<region>.png` | Contact heatmap with TAD boundary boxes |
-| `compartments_<region>.png` | Heatmap + E1 eigenvector (A=red, B=blue) |
-| `sv_translocation_heatmap.png` | Inter-chromosomal pair density |
-| `sv_summary.png` | SV count by type |
-| `sv_inversions_<chrom>.png` | Putative inversion spans |
-| `cnv_genome_wide.png` | Genome-wide log2(obs/exp) with CBS segments |
-| `cnv_segments_<chrom>.png` | Per-chromosome segmentation detail |
-| `phasing_snp_density.png` | Heterozygous SNP density |
-| `phasing_haplotype_blocks.png` | Phase-block map per chromosome |
-| `phasing_block_lengths.png` | Block length distribution + N50 |
+That runner should:
 
----
+1. validate required tools
+2. validate required inputs
+3. run preprocessing
+4. generate QC summary
+5. print exact output file locations
 
-## Key QC thresholds (LinkPrep)
+## Immediate TODO
 
-| Metric | Pass threshold |
-|--------|---------------|
-| Valid (UU) pair rate | ≥ 50% |
-| Cis pair fraction | ≥ 60% |
-| Long-range cis (≥1 kb) | ≥ 40% |
-| Complexity (unique fraction) | ≥ 70% |
+- [ ] Install missing preprocessing tools.
+- [ ] Add `data/raw/mm10.chromsizes`.
+- [ ] Decide on real LinkPrep FASTQ locations.
+- [ ] Run `scripts/preprocess_microc.sh` on a real sample.
+- [ ] Capture QC output into a persistent report.
+- [ ] Add a LinkPrep-specific wrapper script under this folder.
+- [ ] Add documentation for internal-vs-recommended downstream analyses.
 
----
+## Proposed Next Files
 
-## Dependencies
+These are the next files worth adding:
 
-All are already in the `hic-analysis` conda environment:
+- `linkprep/run_linkprep.sh`
+- `linkprep/qc_summary.py`
+- `linkprep/config.example.sh`
 
-```
-cooler  numpy  pandas  scipy  matplotlib
-```
+## Notes From Initial Audit
 
-For the preprocessing shell script:
-```
-bwa  samtools  pairtools
-```
+- The repo can analyze existing `.mcool` files today.
+- The raw LinkPrep preprocessing path is scaffolded but not currently runnable in this environment because required tools are missing.
+- The current downstream Python modules are useful for exploration, but they are not drop-in replacements for all Dovetail-recommended external tools.
+
