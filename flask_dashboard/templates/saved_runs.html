@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-header">
+    <p class="eyebrow">Saved Analyses</p>
+    <h1>Regulatory activity manifests</h1>
+  </div>
+  <div class="run-table">
+    {% if saved_runs %}
+      {% for run in saved_runs %}
+        <a class="run-row" href="{{ url_for('dashboard.result', slug=run.slug) }}">
+          <div>
+            <strong>{{ run.interval }}</strong>
+            <p>{{ run.organism }} · {{ run.assembly }} · {{ run.cell_type }}</p>
+          </div>
+          <div>
+            <span>{{ run.candidate_count }} sections</span>
+            <span>{{ run.gene_count }} genes</span>
+          </div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No saved runs were found in <code>data/processed</code>.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

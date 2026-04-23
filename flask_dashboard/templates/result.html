@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero-card result-hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Analysis Result</p>
+    <h1>{{ payload.input.interval or payload.input.anchor_interval }}</h1>
+    <p class="lede">{{ payload.input.organism }} · {{ payload.input.assembly }} · {{ payload.input.cell_type }} · {{ payload.summary.n_candidate_elements }} candidate sections</p>
+  </div>
+  <div class="hero-actions">
+    <a class="button-secondary" href="{{ url_for('dashboard.download_manifest', slug=slug) }}">Download manifest</a>
+    <a class="button-secondary" href="{{ url_for('dashboard.result_api', slug=slug) }}">JSON API</a>
+  </div>
+</section>
+
+<section class="panel-grid result-grid">
+  <section class="panel">
+    <div class="panel-header">
+      <p class="eyebrow">Visuals</p>
+      <h2>Generated figures</h2>
+    </div>
+    <div class="figure-stack">
+      {% for name, path in outputs.items() %}
+        <figure class="figure-card">
+          <img src="{{ url_for('dashboard.media_file', filename=path) }}" alt="{{ name }}">
+          <figcaption>{{ name.replace('_', ' ').title() }}</figcaption>
+        </figure>
+      {% endfor %}
+      {% if not outputs %}
+        <p class="muted">No figure files were found for this run yet.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="panel-header">
+      <p class="eyebrow">Top Sections</p>
+      <h2>Ranked candidate elements</h2>
+    </div>
+    <div class="score-list">
+      {% for candidate in top_candidates %}
+        <div class="score-card">
+          <div>
+            <strong>{{ candidate.element_type }}</strong>
+            <p>{{ candidate.chrom }}:{{ candidate.start }}-{{ candidate.end }}</p>
+          </div>
+          <div class="score-meta">
+            <span>{{ "%.3f"|format(candidate.activity_score) }}</span>
+            {% if candidate.linked_gene_symbols %}
+              <small>{{ candidate.linked_gene_symbols|join(", ") }}</small>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </aside>
+</section>
+
+<section class="panel-grid result-grid-lower">
+  <section class="panel">
+    <div class="panel-header">
+      <p class="eyebrow">Genes</p>
+      <h2>Predicted affected genes</h2>
+    </div>
+    <div class="table-shell">
+      <table>
+        <thead>
+          <tr>
+            <th>Gene</th>
+            <th>Promoter bin</th>
+            <th>Expression</th>
+            <th>Splice</th>
+            <th>Linked elements</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for gene in top_genes %}
+            <tr>
+              <td>{{ gene.gene_symbol }}</td>
+              <td>{{ gene.promoter_bin }}</td>
+              <td>{{ "%.3f"|format(gene.predicted_expression_change) }}</td>
+              <td>{{ "%.3f"|format(gene.predicted_splice_change) }}</td>
+              <td>{{ gene.linked_element_bins|join(", ") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="panel-header">
+      <p class="eyebrow">Provenance</p>
+      <h2>Model and data status</h2>
+    </div>
+    <div class="provenance-grid">
+      <div class="metric-card">
+        <span class="metric-label">Predicted modalities</span>
+        <strong>{{ payload.model_provenance.predicted.available_modalities|length }}</strong>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Missing modalities</span>
+        <strong>{{ payload.model_provenance.predicted.missing_modalities|length }}</strong>
+      </div>
+    </div>
+    <div class="detail-block">
+      <h3>Available</h3>
+      <p>{{ payload.model_provenance.predicted.available_modalities|join(", ") }}</p>
+      <h3>Missing</h3>
+      <p>{{ payload.model_provenance.predicted.missing_modalities|join(", ") }}</p>
+      <h3>Ontology fallback</h3>
+      <p>{{ "Yes" if payload.model_provenance.predicted.ontology_fallback_used else "No" }}</p>
+      <h3>Observed contact</h3>
+      <p>{{ payload.model_provenance.external.observed_contact.status }}</p>
+    </div>
+  </aside>
+</section>
+{% endblock %}

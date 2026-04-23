@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }} · HiC-TAD-Library</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="app-header">
+        <div class="brand-block">
+          <a class="brand-mark" href="{{ url_for('dashboard.index') }}">HiC-TAD-Library</a>
+          <p class="brand-copy">Custom Flask dashboard for DNA, RNA, and TAD boundary analysis.</p>
+        </div>
+        <nav class="top-nav">
+          <a href="{{ url_for('dashboard.index') }}">Analyze</a>
+          <a href="{{ url_for('dashboard.saved') }}">Saved Runs</a>
+        </nav>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <section class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">
+                <pre>{{ message }}</pre>
+              </div>
+            {% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+
+      <main class="content-shell">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>

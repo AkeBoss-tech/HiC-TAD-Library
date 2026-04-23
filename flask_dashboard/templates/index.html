@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero-card">
+  <div class="hero-copy">
+    <p class="eyebrow">Genome Control Room</p>
+    <h1>Analyze regulatory activity, TAD boundaries, and perturbation effects in one custom dashboard.</h1>
+    <p class="lede">This Flask scaffold is the new shell for a polished genomics UI: one analysis form, one result model, and one place to inspect structure, activity, and RNA consequences together.</p>
+  </div>
+  <div class="hero-grid">
+    <div class="metric-card">
+      <span class="metric-label">AlphaGenome</span>
+      <strong>{{ "Ready" if readiness.alpha_key else "Missing key" }}</strong>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Mouse Micro-C</span>
+      <strong>{{ "Present" if readiness.mouse_microc else "Missing" }}</strong>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Mouse FASTA</span>
+      <strong>{{ "Present" if readiness.mouse_fasta else "Missing" }}</strong>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Human FASTA</span>
+      <strong>{{ "Present" if readiness.human_fasta else "Missing" }}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="panel-grid panel-grid-home">
+  <section class="panel panel-form">
+    <div class="panel-header">
+      <p class="eyebrow">Run Analysis</p>
+      <h2>Reference or perturbation workflow</h2>
+    </div>
+    <form method="post" action="{{ url_for('dashboard.analyze') }}" class="analysis-form">
+      <div class="field-row">
+        <label>
+          <span>Preset</span>
+          <select name="preset_name" onchange="window.location='?preset='+this.value">
+            {% for preset_name in presets.keys() %}
+              <option value="{{ preset_name }}" {% if preset_name == selected_preset %}selected{% endif %}>{{ preset_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Organism</span>
+          <select name="organism">
+            {% for organism in ["mouse", "human"] %}
+              <option value="{{ organism }}" {% if defaults.organism == organism %}selected{% endif %}>{{ organism }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Assembly</span>
+          <input type="text" name="assembly" value="{{ defaults.assembly }}">
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field-wide">
+          <span>Cell type</span>
+          <input list="cell-type-options" name="cell_type" value="{{ defaults.cell_type }}">
+          <datalist id="cell-type-options">
+            {% for cell_type in cell_types %}
+              <option value="{{ cell_type }}"></option>
+            {% endfor %}
+          </datalist>
+        </label>
+        <label class="field-wide">
+          <span>Interval</span>
+          <input type="text" name="interval" value="{{ defaults.interval }}" placeholder="chr12:26000000-28000000">
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field-wide">
+          <span>Anchor interval</span>
+          <input type="text" name="anchor_interval" value="{{ defaults.anchor_interval }}" placeholder="Only required for synthetic sequence input">
+        </label>
+        <label class="field-wide">
+          <span>Sequence FASTA path</span>
+          <input type="text" name="sequence_fasta" value="{{ defaults.sequence_fasta }}" placeholder="Optional path to synthetic or edited sequence">
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label>
+          <span>Window (bp)</span>
+          <input type="number" name="window_bp" value="{{ defaults.window_bp }}">
+        </label>
+        <label>
+          <span>Ranking resolution (bp)</span>
+          <input type="number" name="ranking_resolution_bp" value="{{ defaults.ranking_resolution_bp }}">
+        </label>
+        <label>
+          <span>Observed contact resolution</span>
+          <input type="number" name="cooler_resolution" value="{{ defaults.cooler_resolution }}">
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field-wide">
+          <span>Observed contact file</span>
+          <input type="text" name="cooler_filename" value="{{ defaults.cooler_filename }}" placeholder="mouse_microc.mcool">
+        </label>
+        <label class="field-wide">
+          <span>Reference FASTA override</span>
+          <input type="text" name="fasta_path" value="{{ defaults.fasta_path }}" placeholder="Optional FASTA override">
+        </label>
+      </div>
+
+      <div class="panel-subsection">
+        <div class="panel-header compact">
+          <p class="eyebrow">Perturbation</p>
+          <h3>Optional edit specification</h3>
+        </div>
+        <div class="field-row">
+          <label>
+            <span>Edit mode</span>
+            <select name="edit_mode">
+              {% for mode in ["none", "deletion", "substitution", "insertion"] %}
+                <option value="{{ mode }}" {% if defaults.edit_mode == mode %}selected{% endif %}>{{ mode }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            <span>Edit start</span>
+            <input type="number" name="edit_start" value="{{ defaults.edit_start }}">
+          </label>
+          <label>
+            <span>Edit end</span>
+            <input type="number" name="edit_end" value="{{ defaults.edit_end }}">
+          </label>
+        </div>
+        <label class="field-wide">
+          <span>Edit sequence</span>
+          <textarea name="edit_sequence" rows="3" placeholder="Required for insertion/substitution">{{ defaults.edit_sequence }}</textarea>
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button-primary">Run Regulatory Activity Analysis</button>
+      </div>
+    </form>
+  </section>
+
+  <aside class="panel">
+    <div class="panel-header">
+      <p class="eyebrow">Page Map</p>
+      <h2>Flask architecture direction</h2>
+    </div>
+    <div class="page-map">
+      <div>
+        <strong>Analyze</strong>
+        <p>Single entry page for locus selection, edit setup, and environment readiness.</p>
+      </div>
+      <div>
+        <strong>Result</strong>
+        <p>Unified structure/activity/RNA result view with figures, ranked sections, and linked genes.</p>
+      </div>
+      <div>
+        <strong>Saved Runs</strong>
+        <p>Manifest browser for previously generated analyses and exports.</p>
+      </div>
+    </div>
+
+    <div class="panel-subsection">
+      <div class="panel-header compact">
+        <p class="eyebrow">Recent Runs</p>
+        <h3>Resume where you left off</h3>
+      </div>
+      <div class="run-list">
+        {% if saved_runs %}
+          {% for run in saved_runs %}
+            <a class="run-card" href="{{ url_for('dashboard.result', slug=run.slug) }}">
+              <strong>{{ run.interval }}</strong>
+              <span>{{ run.organism }} · {{ run.cell_type }}</span>
+              <small>{{ run.candidate_count }} candidate sections · {{ run.gene_count }} genes</small>
+            </a>
+          {% endfor %}
+        {% else %}
+          <p class="muted">No saved regulatory activity manifests yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+</section>
+{% endblock %}

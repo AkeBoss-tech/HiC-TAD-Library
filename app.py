@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import os
 import tempfile
+import json
 import matplotlib.pyplot as plt
 import pandas as pd
 from typing import Optional
@@ -15,7 +16,7 @@ load_dotenv()
 from src.hg_dt.viz.tracks_plotter import plot_tracks, plot_multi_tracks
 from src.hg_dt.viz.hic_plotter import plot_hic_triangle
 from src.hg_dt.viz.protein_viz import render_protein_overlay
-from src.hg_dt.viz.chromatin_3d import render_chromatin_animation
+from src.hg_dt.viz.chromatin_3d import render_chromatin_animation, run_chromatin_sim
 from src.hg_dt.viz.browser import render_genome_scroller
 from src.hg_dt.analyze.attribution import generate_mechanistic_insight
 from src.hg_dt.analyze.deltas import (
@@ -641,6 +642,541 @@ def _render_accessibility_elements(multi_tracks: dict, genes_df: pd.DataFrame,
     st.plotly_chart(fig, use_container_width=True)
 
 
+def _project_coords_2d(coords: np.ndarray) -> np.ndarray:
+    if coords.size == 0:
+        return np.zeros((0, 2))
+    centered = coords - coords.mean(axis=0, keepdims=True)
+    _, _, vt = np.linalg.svd(centered, full_matrices=False)
+    return centered @ vt[:2].T
+
+
+def _resample_track(values: np.ndarray, n_out: int) -> np.ndarray:
+    if n_out <= 0:
+        return np.array([])
+    arr = np.asarray(values, dtype=float)
+    if arr.size == 0:
+        return np.zeros(n_out)
+    if arr.size == n_out:
+        return arr
+    x_old = np.linspace(0.0, 1.0, arr.size)
+    x_new = np.linspace(0.0, 1.0, n_out)
+    return np.interp(x_new, x_old, arr)
+
+
+def _distance_edges(coords: np.ndarray, quantile: float = 0.18,
+                    min_separation: int = 2) -> list[tuple[int, int, float]]:
+    if len(coords) < 3:
+        return []
+    pairs = []
+    dists = []
+    for i in range(len(coords)):
+        for j in range(i + min_separation, len(coords)):
+            dist = float(np.linalg.norm(coords[i] - coords[j]))
+            pairs.append((i, j, dist))
+            dists.append(dist)
+    if not dists:
+        return []
+    thresh = float(np.quantile(np.array(dists), quantile))
+    kept = [(i, j, d) for i, j, d in pairs if d <= thresh]
+    return sorted(kept, key=lambda x: x[2])
+
+
+def _map_position_to_index(position: float, win_start: int, win_end: int,
+                           n_bins: int) -> int:
+    if n_bins <= 1 or win_end <= win_start:
+        return 0
+    frac = (position - win_start) / max(1, (win_end - win_start))
+    idx = int(round(frac * (n_bins - 1)))
+    return max(0, min(n_bins - 1, idx))
+
+
+def _make_edge_traces(node_xy: np.ndarray, edges: list[tuple[int, int, float]],
+                      color: str = "rgba(180,180,180,0.35)", width_scale: float = 2.5):
+    traces = []
+    if not edges:
+        return traces
+    inv_dists = np.array([1.0 / max(d, 1e-6) for _, _, d in edges], dtype=float)
+    lo, hi = float(inv_dists.min()), float(inv_dists.max())
+    for (i, j, d), inv in zip(edges, inv_dists):
+        norm = 0.5 if hi == lo else (inv - lo) / (hi - lo)
+        traces.append(
+            go.Scatter(
+                x=[node_xy[i, 0], node_xy[j, 0]],
+                y=[node_xy[i, 1], node_xy[j, 1]],
+                mode="lines",
+                line=dict(color=color, width=1.0 + norm * width_scale),
+                hoverinfo="text",
+                text=[f"Edge {i} ↔ {j}<br>distance={d:.3f}"] * 2,
+                showlegend=False,
+            )
+        )
+    return traces
+
+
+def _render_accessibility_graph(result: dict, edit_start: int, edit_end: int):
+    try:
+        _, ref_coords, mut_coords = run_chromatin_sim(result["ref_hic"], result["mut_hic"])
+    except Exception as exc:
+        st.info(f"Accessibility graph unavailable: {exc}")
+        return
+
+    n = len(ref_coords)
+    if n == 0:
+        st.info("Accessibility graph unavailable for this locus.")
+        return
+
+    ref_xy = _project_coords_2d(ref_coords)
+    mut_xy = _project_coords_2d(mut_coords)
+    ref_atac = _resample_track(result["ref_atac"], n)
+    mut_atac = _resample_track(result["mut_atac"], n)
+    delta_atac = np.log2((ref_atac + 1e-6) / (mut_atac + 1e-6))
+    bead_positions = np.linspace(result["win_start"], result["win_start"] + len(result["ref_seq"]), n)
+    bead_in_edit = (bead_positions >= edit_start) & (bead_positions <= edit_end)
+    cmin = float(delta_atac.min())
+    cmax = float(delta_atac.max())
+    if np.isclose(cmin, cmax):
+        cmin -= 1e-6
+        cmax += 1e-6
+
+    ref_edges = _distance_edges(ref_coords)
+    mut_edges = _distance_edges(mut_coords)
+
+    def _fig_for(coords_2d: np.ndarray, edges: list[tuple[int, int, float]], title: str):
+        fig = go.Figure()
+        for trace in _make_edge_traces(coords_2d, edges):
+            fig.add_trace(trace)
+        fig.add_trace(
+            go.Scatter(
+                x=coords_2d[:, 0],
+                y=coords_2d[:, 1],
+                mode="markers+text",
+                text=[str(i) if bead_in_edit[i] else "" for i in range(n)],
+                textposition="top center",
+                marker=dict(
+                    size=[14 if bead_in_edit[i] else 10 for i in range(n)],
+                    color=delta_atac,
+                    colorscale="RdBu_r",
+                    cmin=cmin,
+                    cmax=cmax,
+                    line=dict(
+                        width=[2 if bead_in_edit[i] else 0.6 for i in range(n)],
+                        color=["#ff5a5a" if bead_in_edit[i] else "rgba(20,20,20,0.35)" for i in range(n)],
+                    ),
+                    colorbar=dict(title="ATAC Δ<br>log2(Ref/Mut)"),
+                ),
+                hovertemplate=(
+                    "Bead %{customdata[0]}<br>"
+                    "Genomic pos: %{customdata[1]:,.0f}<br>"
+                    "Ref ATAC: %{customdata[2]:.3f}<br>"
+                    "Mut ATAC: %{customdata[3]:.3f}<br>"
+                    "ATAC Δ: %{customdata[4]:+.3f}<extra></extra>"
+                ),
+                customdata=np.column_stack([np.arange(n), bead_positions, ref_atac, mut_atac, delta_atac]),
+                showlegend=False,
+            )
+        )
+        fig.update_layout(
+            title=title,
+            height=520,
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            margin=dict(t=40, b=20, l=20, r=20),
+            xaxis=dict(showgrid=False, zeroline=False, visible=False),
+            yaxis=dict(showgrid=False, zeroline=False, visible=False, scaleanchor="x", scaleratio=1),
+        )
+        return fig
+
+    tabs = st.tabs(["Reference accessibility graph", "Mutant accessibility graph"])
+    with tabs[0]:
+        st.plotly_chart(
+            _fig_for(ref_xy, ref_edges, "Accessibility Graph — Reference spatial contacts"),
+            use_container_width=True,
+        )
+    with tabs[1]:
+        st.plotly_chart(
+            _fig_for(mut_xy, mut_edges, "Accessibility Graph — Mutant spatial contacts"),
+            use_container_width=True,
+        )
+
+    st.caption(
+        "Nodes are polymer beads colored by ATAC change. Edges connect only strong spatial contacts in the simulated 3D conformation."
+    )
+
+
+def _build_regulatory_nodes(genes_df: pd.DataFrame, result: dict,
+                            edit_start: int, edit_end: int) -> pd.DataFrame:
+    if genes_df is None or genes_df.empty:
+        return pd.DataFrame()
+
+    win_start = result["win_start"]
+    win_end = win_start + len(result["ref_seq"])
+    n_contact = result["ref_hic"].shape[0]
+    ref_atac = _resample_track(result["ref_atac"], n_contact)
+    mut_atac = _resample_track(result["mut_atac"], n_contact)
+    ref_cage = _resample_track(result["multi_tracks"]["CAGE"][0], n_contact)
+    mut_cage = _resample_track(result["multi_tracks"]["CAGE"][1], n_contact)
+    ref_ctcf = _resample_track(result["multi_tracks"]["CTCF"][0], n_contact)
+    mut_ctcf = _resample_track(result["multi_tracks"]["CTCF"][1], n_contact)
+
+    rows = []
+    for _, row in genes_df.iterrows():
+        raw_type = str(row["Type"])
+        if raw_type == "Gene":
+            node_type = "Promoter"
+            pos = float(row["Start"])
+        elif raw_type in {"Promoter"}:
+            node_type = "Promoter"
+            pos = float((row["Start"] + row["End"]) / 2)
+        elif raw_type in {"Enhancer", "cCRE"}:
+            node_type = "Enhancer"
+            pos = float((row["Start"] + row["End"]) / 2)
+        elif raw_type in {"CTCF", "Insulator"}:
+            node_type = "CTCF anchor"
+            pos = float((row["Start"] + row["End"]) / 2)
+        else:
+            continue
+
+        idx = _map_position_to_index(pos, win_start, win_end, n_contact)
+        if node_type == "Promoter":
+            ref_activity = 0.7 * ref_cage[idx] + 0.3 * ref_atac[idx]
+            mut_activity = 0.7 * mut_cage[idx] + 0.3 * mut_atac[idx]
+        elif node_type == "Enhancer":
+            ref_activity = ref_atac[idx]
+            mut_activity = mut_atac[idx]
+        else:
+            ref_activity = 0.7 * ref_ctcf[idx] + 0.3 * ref_atac[idx]
+            mut_activity = 0.7 * mut_ctcf[idx] + 0.3 * mut_atac[idx]
+
+        rows.append(
+            {
+                "Name": row["Name"],
+                "NodeType": node_type,
+                "Position": pos,
+                "Index": idx,
+                "RefActivity": float(ref_activity),
+                "MutActivity": float(mut_activity),
+                "DeltaActivity": float(np.log2((ref_activity + 1e-6) / (mut_activity + 1e-6))),
+                "OverlapsEdit": bool(pos >= edit_start and pos <= edit_end),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame()
+
+    nodes = pd.DataFrame(rows)
+    nodes = (
+        nodes.sort_values(
+            by=["NodeType", "RefActivity"],
+            ascending=[True, False],
+        )
+        .groupby("NodeType", group_keys=False)
+        .head(7)
+        .reset_index(drop=True)
+    )
+    return nodes
+
+
+def _render_regulatory_graph(genes_df: pd.DataFrame, result: dict,
+                             edit_start: int, edit_end: int):
+    nodes = _build_regulatory_nodes(genes_df, result, edit_start, edit_end)
+    if nodes.empty:
+        st.info("Regulatory graph unavailable: no suitable annotated promoters, enhancers, or CTCF anchors in view.")
+        return
+
+    _, ref_coords, mut_coords = run_chromatin_sim(result["ref_hic"], result["mut_hic"])
+    n = len(ref_coords)
+    ref_xy = _project_coords_2d(ref_coords)
+    mut_xy = _project_coords_2d(mut_coords)
+    win_start = result["win_start"]
+    win_end = win_start + len(result["ref_seq"])
+
+    node_xy_ref = np.array([ref_xy[_map_position_to_index(p, win_start, win_end, n)] for p in nodes["Position"]])
+    node_xy_mut = np.array([mut_xy[_map_position_to_index(p, win_start, win_end, n)] for p in nodes["Position"]])
+    node_xy = 0.5 * (node_xy_ref + node_xy_mut)
+
+    ref_contact = result["ref_hic"]
+    mut_contact = result["mut_hic"]
+    edges = []
+    for i in range(len(nodes)):
+        for j in range(i + 1, len(nodes)):
+            idx_i = int(nodes.iloc[i]["Index"])
+            idx_j = int(nodes.iloc[j]["Index"])
+            if idx_i == idx_j:
+                continue
+            ref_c = float(ref_contact[idx_i, idx_j]) if idx_i < ref_contact.shape[0] and idx_j < ref_contact.shape[1] else 0.0
+            mut_c = float(mut_contact[idx_i, idx_j]) if idx_i < mut_contact.shape[0] and idx_j < mut_contact.shape[1] else 0.0
+            ref_score = float(np.sqrt(max(nodes.iloc[i]["RefActivity"], 0.0) * max(nodes.iloc[j]["RefActivity"], 0.0)) * ref_c)
+            mut_score = float(np.sqrt(max(nodes.iloc[i]["MutActivity"], 0.0) * max(nodes.iloc[j]["MutActivity"], 0.0)) * mut_c)
+            max_score = max(ref_score, mut_score)
+            if max_score <= 0:
+                continue
+            edges.append(
+                {
+                    "i": i,
+                    "j": j,
+                    "RefScore": ref_score,
+                    "MutScore": mut_score,
+                    "DeltaScore": mut_score - ref_score,
+                    "MaxScore": max_score,
+                }
+            )
+
+    if not edges:
+        st.info("Regulatory graph unavailable: no activity-weighted contact edges passed threshold.")
+        return
+
+    edge_df = pd.DataFrame(edges)
+    thresh = float(edge_df["MaxScore"].quantile(0.75))
+    edge_df = edge_df[edge_df["MaxScore"] >= thresh].sort_values("MaxScore", ascending=False).head(18)
+    if edge_df.empty:
+        st.info("Regulatory graph unavailable: no strong rewiring edges passed threshold.")
+        return
+
+    fig = go.Figure()
+    abs_delta = max(float(edge_df["DeltaScore"].abs().max()), 1e-6)
+    for _, edge in edge_df.iterrows():
+        i = int(edge["i"])
+        j = int(edge["j"])
+        delta = float(edge["DeltaScore"])
+        width = 1.5 + 6.0 * (edge["MaxScore"] / max(float(edge_df["MaxScore"].max()), 1e-6))
+        color = "#d1495b" if delta > 0 else "#3d7ee8"
+        dash = "solid" if delta > 0 else "dot"
+        fig.add_trace(
+            go.Scatter(
+                x=[node_xy[i, 0], node_xy[j, 0]],
+                y=[node_xy[i, 1], node_xy[j, 1]],
+                mode="lines",
+                line=dict(color=color, width=width, dash=dash),
+                hoverinfo="text",
+                text=[
+                    f"{nodes.iloc[i]['Name']} ↔ {nodes.iloc[j]['Name']}<br>"
+                    f"Ref score: {edge['RefScore']:.3f}<br>"
+                    f"Mut score: {edge['MutScore']:.3f}<br>"
+                    f"Δ score: {delta:+.3f}"
+                ] * 2,
+                showlegend=False,
+            )
+        )
+
+    type_color = {"Promoter": "#d7a630", "Enhancer": "#0f766e", "CTCF anchor": "#6b7280"}
+    fig.add_trace(
+        go.Scatter(
+            x=node_xy[:, 0],
+            y=node_xy[:, 1],
+            mode="markers+text",
+            text=nodes["Name"],
+            textposition="top center",
+            marker=dict(
+                size=12 + 18 * (nodes[["RefActivity", "MutActivity"]].max(axis=1) / max(nodes[["RefActivity", "MutActivity"]].max().max(), 1e-6)),
+                color=[type_color.get(t, "#0f766e") for t in nodes["NodeType"]],
+                line=dict(
+                    width=[2 if flag else 0.8 for flag in nodes["OverlapsEdit"]],
+                    color=["#ff5a5a" if flag else "rgba(20,20,20,0.4)" for flag in nodes["OverlapsEdit"]],
+                ),
+            ),
+            hovertemplate=(
+                "%{customdata[0]}<br>"
+                "Type: %{customdata[1]}<br>"
+                "Ref activity: %{customdata[2]:.3f}<br>"
+                "Mut activity: %{customdata[3]:.3f}<br>"
+                "Δ activity: %{customdata[4]:+.3f}<extra></extra>"
+            ),
+            customdata=np.column_stack(
+                [
+                    nodes["Name"],
+                    nodes["NodeType"],
+                    nodes["RefActivity"],
+                    nodes["MutActivity"],
+                    nodes["DeltaActivity"],
+                ]
+            ),
+            showlegend=False,
+        )
+    )
+    fig.update_layout(
+        title="Regulatory Rewiring Graph — activity × contact edges",
+        height=560,
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        margin=dict(t=50, b=20, l=20, r=20),
+        xaxis=dict(showgrid=False, zeroline=False, visible=False),
+        yaxis=dict(showgrid=False, zeroline=False, visible=False, scaleanchor="x", scaleratio=1),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption(
+        "Promoters, enhancers, and CTCF-like anchors are linked by activity × contact scores. Red edges are gained in the mutant; blue edges are weakened or lost."
+    )
+
+
+def _compute_insulation_profile(contact_map: np.ndarray, window_bins: int = 4) -> np.ndarray:
+    n = contact_map.shape[0]
+    profile = np.full(n, np.nan)
+    for i in range(window_bins, n - window_bins):
+        block = contact_map[i - window_bins:i, i:i + window_bins]
+        profile[i] = float(np.nanmean(block))
+    if np.all(np.isnan(profile)):
+        return np.zeros(n)
+    profile = pd.Series(profile).interpolate(limit_direction="both").fillna(method="bfill").fillna(method="ffill").to_numpy()
+    return profile
+
+
+def _estimate_boundary_consequence(result: dict, edit_start: int, edit_end: int) -> dict:
+    ref_hic = np.asarray(result["ref_hic"], dtype=float)
+    mut_hic = np.asarray(result["mut_hic"], dtype=float)
+    n = ref_hic.shape[0]
+    if n == 0:
+        return {}
+    edit_mid = 0.5 * (edit_start + edit_end)
+    idx = _map_position_to_index(edit_mid, result["win_start"], result["win_start"] + len(result["ref_seq"]), n)
+    window_bins = max(3, min(8, n // 20 if n >= 20 else 3))
+    lo = max(window_bins, idx - 3)
+    hi = min(n - window_bins, idx + 4)
+
+    ref_ins = _compute_insulation_profile(ref_hic, window_bins=window_bins)
+    mut_ins = _compute_insulation_profile(mut_hic, window_bins=window_bins)
+    local_indices = np.arange(lo, hi)
+    if len(local_indices) == 0:
+        local_indices = np.array([idx])
+    boundary_idx = int(local_indices[np.nanargmin(ref_ins[local_indices])])
+
+    def _crossing_score(mat: np.ndarray, center: int) -> float:
+        left0 = max(0, center - window_bins)
+        left1 = center
+        right0 = center
+        right1 = min(mat.shape[0], center + window_bins)
+        if left1 <= left0 or right1 <= right0:
+            return 0.0
+        return float(np.nanmean(mat[left0:left1, right0:right1]))
+
+    ref_cross = _crossing_score(ref_hic, boundary_idx)
+    mut_cross = _crossing_score(mut_hic, boundary_idx)
+    ins_ref = float(ref_ins[boundary_idx])
+    ins_mut = float(mut_ins[boundary_idx])
+    ins_delta = ins_mut - ins_ref
+    cross_delta = mut_cross - ref_cross
+    if ins_delta > 0 and cross_delta > 0:
+        state = "Boundary weakened"
+    elif ins_delta < 0 and cross_delta < 0:
+        state = "Boundary strengthened"
+    else:
+        state = "Boundary mixed / ambiguous"
+
+    genomic_pos = int(np.linspace(result["win_start"], result["win_start"] + len(result["ref_seq"]), n)[boundary_idx])
+    return {
+        "boundary_idx": boundary_idx,
+        "boundary_position": genomic_pos,
+        "insulation_ref": ins_ref,
+        "insulation_mut": ins_mut,
+        "insulation_delta": ins_delta,
+        "crossing_ref": ref_cross,
+        "crossing_mut": mut_cross,
+        "crossing_delta": cross_delta,
+        "state": state,
+    }
+
+
+def _build_affected_elements_df(genes_df: pd.DataFrame, result: dict,
+                                edit_start: int, edit_end: int) -> pd.DataFrame:
+    if genes_df is None or genes_df.empty:
+        return pd.DataFrame(columns=["Element", "Type", "Position", "ATAC Δ", "CAGE Δ", "Contact Δ", "Priority"])
+    n_track = len(result["ref_atac"])
+    n_contact = result["ref_hic"].shape[0]
+    atac_ref = np.asarray(result["ref_atac"], dtype=float)
+    atac_mut = np.asarray(result["mut_atac"], dtype=float)
+    cage_ref = np.asarray(result["multi_tracks"]["CAGE"][0], dtype=float)
+    cage_mut = np.asarray(result["multi_tracks"]["CAGE"][1], dtype=float)
+    ref_contact = np.asarray(result["ref_hic"], dtype=float)
+    mut_contact = np.asarray(result["mut_hic"], dtype=float)
+    rows = []
+    for _, row in genes_df.iterrows():
+        mid = float((row["Start"] + row["End"]) / 2)
+        i_track = _map_position_to_index(mid, result["win_start"], result["win_start"] + len(result["ref_seq"]), n_track)
+        i_contact = _map_position_to_index(mid, result["win_start"], result["win_start"] + len(result["ref_seq"]), n_contact)
+        atac_delta = float(np.log2((atac_ref[i_track] + 1e-6) / (atac_mut[i_track] + 1e-6)))
+        cage_delta = float(np.log2((cage_ref[i_track] + 1e-6) / (cage_mut[i_track] + 1e-6)))
+        contact_delta = float(np.nanmean(mut_contact[i_contact]) - np.nanmean(ref_contact[i_contact]))
+        priority = abs(atac_delta) + 0.7 * abs(cage_delta) + 0.25 * abs(contact_delta)
+        rows.append(
+            {
+                "Element": row["Name"],
+                "Type": row["Type"],
+                "Position": int(mid),
+                "ATAC Δ": round(atac_delta, 3),
+                "CAGE Δ": round(cage_delta, 3),
+                "Contact Δ": round(contact_delta, 3),
+                "Overlaps Edit": bool(row["Start"] <= edit_end and row["End"] >= edit_start),
+                "Priority": round(priority, 3),
+            }
+        )
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    return df.sort_values("Priority", ascending=False).reset_index(drop=True)
+
+
+def _build_affected_genes_df(genes_df: pd.DataFrame, result: dict) -> pd.DataFrame:
+    if genes_df is None or genes_df.empty:
+        return pd.DataFrame(columns=["Gene", "Promoter ATAC Δ", "Promoter CAGE Δ", "Contact Δ", "Priority"])
+    gene_df = genes_df[genes_df["Type"] == "Gene"].copy()
+    if gene_df.empty:
+        return pd.DataFrame(columns=["Gene", "Promoter ATAC Δ", "Promoter CAGE Δ", "Contact Δ", "Priority"])
+    n_track = len(result["ref_atac"])
+    n_contact = result["ref_hic"].shape[0]
+    atac_ref = np.asarray(result["ref_atac"], dtype=float)
+    atac_mut = np.asarray(result["mut_atac"], dtype=float)
+    cage_ref = np.asarray(result["multi_tracks"]["CAGE"][0], dtype=float)
+    cage_mut = np.asarray(result["multi_tracks"]["CAGE"][1], dtype=float)
+    ref_contact = np.asarray(result["ref_hic"], dtype=float)
+    mut_contact = np.asarray(result["mut_hic"], dtype=float)
+    rows = []
+    for _, row in gene_df.iterrows():
+        promoter_pos = float(row["Start"])
+        i_track = _map_position_to_index(promoter_pos, result["win_start"], result["win_start"] + len(result["ref_seq"]), n_track)
+        i_contact = _map_position_to_index(promoter_pos, result["win_start"], result["win_start"] + len(result["ref_seq"]), n_contact)
+        atac_delta = float(np.log2((atac_ref[i_track] + 1e-6) / (atac_mut[i_track] + 1e-6)))
+        cage_delta = float(np.log2((cage_ref[i_track] + 1e-6) / (cage_mut[i_track] + 1e-6)))
+        contact_delta = float(np.nanmean(mut_contact[i_contact]) - np.nanmean(ref_contact[i_contact]))
+        priority = 1.2 * abs(cage_delta) + 0.6 * abs(atac_delta) + 0.25 * abs(contact_delta)
+        rows.append(
+            {
+                "Gene": row["Name"],
+                "Promoter ATAC Δ": round(atac_delta, 3),
+                "Promoter CAGE Δ": round(cage_delta, 3),
+                "Contact Δ": round(contact_delta, 3),
+                "Priority": round(priority, 3),
+            }
+        )
+    return pd.DataFrame(rows).sort_values("Priority", ascending=False).reset_index(drop=True)
+
+
+def _build_step3_export_payload(result: dict, genes_df: pd.DataFrame,
+                                edit_start: int, edit_end: int,
+                                insight: str, boundary_info: dict,
+                                elements_df: pd.DataFrame, genes_ranked_df: pd.DataFrame) -> dict:
+    splice = result["extras"].get("splice", {})
+    evo2_data = result["extras"].get("evo2", {})
+    return {
+        "input": {
+            "gene": st.session_state.gene,
+            "chrom": st.session_state.chrom,
+            "edit_start": edit_start,
+            "edit_end": edit_end,
+            "modification": st.session_state.mod_type,
+        },
+        "summary": {
+            "mechanistic_insight": insight,
+            "delta_stats": result["delta_stats"],
+            "boundary": boundary_info,
+            "protein_target": splice.get("gene"),
+            "splice": splice,
+            "evo2": evo2_data,
+        },
+        "top_elements": elements_df.head(15).to_dict(orient="records"),
+        "top_genes": genes_ranked_df.head(15).to_dict(orient="records"),
+        "annotations": genes_df.to_dict(orient="records") if genes_df is not None else [],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Helper: render differentiation trajectory
 # ---------------------------------------------------------------------------
@@ -709,6 +1245,28 @@ st.divider()
 if st.session_state.step == 1:
     st.header("Step 1 — Find Your Locus")
     st.caption("Search for a gene or enter coordinates, then define your edit.")
+
+    with st.expander("What happens in Step 1", expanded=False):
+        st.markdown("""
+This step defines the **genomic edit scenario** that the rest of the app will analyze.
+
+What you choose here determines:
+- which chromosome and coordinate range the app studies
+- what kind of DNA change is applied
+- which reference and mutant sequences are built later for prediction
+
+The app can start from either:
+- a preset **gene symbol** from the built-in registry, or
+- a manually entered genomic interval like `chr1:47210000-47260000`
+
+Then you specify the edit itself:
+- **Deletion**: remove the bases between start and end
+- **Insertion**: add a new sequence at the chosen site
+- **SNP**: change one base to another base
+- **None**: analyze the region without changing sequence
+
+Nothing biological is predicted yet in this step. This page is just building the exact DNA-edit request that will drive the later AlphaGenome, RNA, protein, and 3D analyses.
+""")
 
     col_search, col_jump = st.columns([3, 1])
     with col_search:
@@ -795,6 +1353,20 @@ if st.session_state.step == 1:
     elif edit_size <= 0:
         st.error("Edit end must be greater than edit start.")
 
+    with st.expander("How the edit definition is used later", expanded=False):
+        st.markdown("""
+Once you click **Preview Locus**, the app stores this edit definition in Streamlit session state.
+
+Later, in the prediction step, the code will:
+1. fetch the real reference DNA sequence from the selected genomic window
+2. apply the edit you defined here to create a mutant DNA sequence
+3. run both reference and mutant sequences through the analysis pipeline
+
+So this page is effectively the **input form for building the two DNA worlds** the app compares:
+- **reference** genome sequence
+- **mutant** edited sequence
+""")
+
     st.write("")
     if st.button("Preview Locus →", type="primary", disabled=(edit_size <= 0)):
         st.session_state.chrom = chrom
@@ -827,6 +1399,18 @@ elif st.session_state.step == 2:
         f"· Gene: **{st.session_state.gene}**"
     )
 
+    with st.expander("What happens in Step 2", expanded=False):
+        st.markdown("""
+This step is the **locus preview and annotation sanity check**.
+
+Before running heavy prediction models, the app asks:
+- what annotated genes and regulatory elements are already known here?
+- does the planned edit overlap anything important?
+- is the edit sitting in a promoter, enhancer-rich region, gene body, or a relatively empty interval?
+
+This helps you inspect the local genomic context before running the full HG-DT pipeline.
+""")
+
     # Fetch real annotations (cached)
     if st.session_state.locus_annotations is None:
         with st.spinner("Fetching gene annotations from UCSC…"):
@@ -850,6 +1434,18 @@ elif st.session_state.step == 2:
         deletion_region=(edit_start, edit_end),
     )
 
+    with st.expander("How the preview browser works", expanded=False):
+        st.markdown("""
+The genome preview is built from **real locus annotations**, not model predictions.
+
+At this stage, the app fetches annotations from UCSC and shows:
+- genes
+- other annotated elements returned by the locus-annotation helper
+- the planned edit region highlighted in context
+
+The purpose is to show where your edit sits relative to known biology before prediction begins.
+""")
+
     # Overlap table
     if not genes_df.empty:
         overlapping = genes_df[
@@ -865,6 +1461,18 @@ elif st.session_state.step == 2:
             st.info("Planned edit does not overlap any annotated elements in this view.")
     else:
         st.info("No annotations found (UCSC may be unavailable). You can still predict.")
+
+    with st.expander("Why overlap checking matters", expanded=False):
+        st.markdown("""
+This overlap table is a quick interpretability check.
+
+If the edit overlaps an annotated element, that gives an immediate first guess about mechanism:
+- overlap with a **gene** may suggest coding or transcript effects
+- overlap with a **promoter / enhancer / cCRE / CTCF-like element** may suggest regulatory or structural effects
+- no obvious overlap does **not** mean the edit is irrelevant; it may still change sequence features or long-range contacts
+
+The app uses this page to help you decide whether the edit looks biologically sensible before spending time on the full model run.
+""")
 
     st.write("")
     if st.button("Predict Effect →", type="primary"):
@@ -916,6 +1524,46 @@ elif st.session_state.step == 3:
     genes_df = _annot if _annot is not None else pd.DataFrame(
         columns=["Name", "Type", "Start", "End"]
     )
+    boundary_info = _estimate_boundary_consequence(result, edit_start, edit_end)
+    elements_ranked_df = _build_affected_elements_df(genes_df, result, edit_start, edit_end)
+    genes_ranked_df = _build_affected_genes_df(genes_df, result)
+
+    # ── Summary header ─────────────────────────────────────────────────────
+    st.subheader("Most Likely Mechanism")
+    ds = result["delta_stats"]
+    mod_details = {
+        "type":   st.session_state.mod_type.lower(),
+        "target": f"regulatory element near {st.session_state.gene}",
+    }
+    insight = generate_mechanistic_insight(mod_details, ds)
+    st.success(insight)
+
+    top_gene = genes_ranked_df.iloc[0]["Gene"] if not genes_ranked_df.empty else "N/A"
+    top_element = elements_ranked_df.iloc[0]["Element"] if not elements_ranked_df.empty else "N/A"
+    coding_note = result["extras"].get("splice", {}).get("gene") or "No coding target"
+
+    s1, s2, s3, s4 = st.columns(4)
+    with s1:
+        st.metric("Top affected gene", str(top_gene))
+    with s2:
+        st.metric("Top affected element", str(top_element))
+    with s3:
+        st.metric("Boundary state", boundary_info.get("state", "N/A"))
+    with s4:
+        st.metric("Protein target", str(coding_note))
+
+    with st.expander("How this summary is assembled", expanded=False):
+        st.markdown("""
+This header combines the strongest signals already computed in the app:
+
+- accessibility and expression deltas
+- loop weakening / strengthening
+- boundary consequence near the edit
+- top-ranked affected genes and annotated elements
+- the coding target chosen for the protein branch
+
+It is meant to give you a fast answer to: **what is the most likely biological story here?**
+""")
 
     # ── Two-column layout ──────────────────────────────────────────────────
     col_sys1, col_sys2 = st.columns(2, gap="large")
@@ -941,6 +1589,22 @@ elif st.session_state.step == 3:
                 f"ESMFold input is capped at **{fc}** residues (Meta public API limit). "
                 f"Longer chains are truncated; full-length folding (e.g. AlphaFold 3) is planned."
             )
+
+        with st.expander("How the protein prediction works", expanded=False):
+            st.markdown(f"""
+This panel follows a **DNA -> RNA -> protein -> 3D structure** path for the coding gene nearest the edit.
+
+1. **Find nearby gene models:** the app fetches real UCSC RefSeq gene models in the prediction window.
+2. **Choose a coding target:** it picks a coding transcript that overlaps the edit if possible, otherwise the nearest coding gene.
+3. **Assemble transcript sequence:** exon segments are stitched together from the reference and mutant DNA windows.
+4. **Check splice disruption:** AlphaGenome splice-site scores are used to flag exons whose donor/acceptor sites may be weakened enough to skip.
+5. **Convert transcript DNA to mRNA:** the exon-only transcript is strand-corrected and `T` bases are converted to `U`.
+6. **Find the longest ORF:** the app scans the mRNA for the longest start-to-stop coding region.
+7. **Translate to amino acids:** that ORF is translated with Biopython into a protein sequence.
+8. **Fold the protein:** the amino acid sequence is sent to ESMFold, then the reference and mutant structures are overlaid here.
+
+In this run, the protein-focused target is **{gene_name or 'the nearest coding gene'}**.
+""")
 
         render_protein_overlay(result["ref_pdb"], result["mut_pdb"])
 
@@ -977,6 +1641,23 @@ elif st.session_state.step == 3:
     with col_sys2:
         st.subheader("System 2 — Regulatory Path")
         st.caption("DNA → Chromatin accessibility → Enhancer loops → Expression")
+
+        with st.expander("How the regulatory prediction works", expanded=False):
+            st.markdown("""
+This panel shows the **regulatory consequence** branch of the pipeline.
+
+1. The app builds matched **reference** and **mutant** DNA windows around the edit.
+2. AlphaGenome predicts regulatory tracks on both windows:
+   - **ATAC** for accessibility
+   - **CAGE** as a promoter / transcription proxy
+   - **CHIP_TF / CTCF** for structural binding signal
+   - **CONTACT_MAPS** for 3D chromatin contacts
+   - **SPLICE_SITES** for splice disruption
+3. The app computes deltas between reference and mutant outputs.
+4. Those deltas are summarized into accessibility loss, expression change, and loop rewiring metrics.
+
+The track panels below are therefore not measured wet-lab signals from this exact edit; they are **model predictions** comparing the edited sequence to the original sequence.
+""")
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
             plot_multi_tracks(
@@ -1017,6 +1698,17 @@ elif st.session_state.step == 3:
         "Per-element accessibility change from real ENCODE cCREs + RefSeq genes (UCSC). "
         "Bubble size = element width. Positive Y = accessibility **lost** in mutant."
     )
+    with st.expander("What this accessibility plot means", expanded=False):
+        st.markdown("""
+This chart maps predicted accessibility change back onto **real annotated genomic elements** in the locus.
+
+- Each bubble is an annotated element such as a gene, enhancer, promoter, CTCF site, or cCRE.
+- The app samples the predicted ATAC signal around that element in the reference and mutant runs.
+- The Y-axis is `log2(Ref / Mut)`, so positive values mean the element is predicted to become **less accessible** after the edit.
+- Larger bubbles represent wider elements.
+
+This is useful for seeing **which annotated elements are most affected**, rather than only looking at the raw track lines.
+""")
     _render_accessibility_elements(
         result["multi_tracks"], genes_df, edit_start, edit_end
     )
@@ -1033,6 +1725,18 @@ elif st.session_state.step == 3:
             )
             st.image(Image.open(tmp.name), use_container_width=True)
         st.caption("Red = gained contacts · Blue = lost contacts · triangular view")
+        with st.expander("How to read the Hi-C contact map", expanded=False):
+            st.markdown("""
+This is a **difference contact map** built from AlphaGenome-predicted contact maps.
+
+- The reference and mutant 3D contact maps are predicted separately.
+- The app subtracts them to show **where contacts increase or decrease** after the edit.
+- **Red** regions indicate gained contacts in the mutant.
+- **Blue** regions indicate lost contacts in the mutant.
+- Because the map is shown in triangular form, boundary shifts and domain rewiring are easier to spot visually.
+
+This panel answers the question: **did the edit change 3D genome organization?**
+""")
 
     st.subheader("3D Chromatin Conformation — Reference → Mutant")
     st.caption(
@@ -1040,6 +1744,22 @@ elif st.session_state.step == 3:
         "Press ▶ to watch chromatin reorganize. "
         "Rainbow = genomic position (5′→3′). Red beads = edit region."
     )
+    with st.expander("How the 3D chromatin animation is generated", expanded=False):
+        st.markdown("""
+This animation is a **coarse-grained polymer simulation**, not an atom-by-atom chromosome model.
+
+1. The app takes the predicted reference and mutant contact maps.
+2. Each map is downsampled to a smaller number of bins so it can be simulated efficiently.
+3. Strong contacts are converted into **harmonic spring restraints** between beads.
+4. A bead-spring polymer is simulated with:
+   - backbone springs between neighboring beads
+   - contact-derived springs between distant beads
+   - soft repulsion so beads do not collapse onto each other
+   - thermal noise through overdamped Langevin dynamics
+5. The reference and mutant 3D conformations are aligned, and the app interpolates between them into an animation.
+
+So the movie is best interpreted as **how the locus may reorganize in 3D**, not as an exact physical reconstruction of chromatin.
+""")
     window_pad = 200_000
     render_chromatin_animation(
         result["ref_hic"], result["mut_hic"],
@@ -1049,6 +1769,94 @@ elif st.session_state.step == 3:
         genomic_end=edit_end + window_pad,
     )
 
+    # ── Graph views from polymer + activity ───────────────────────────────
+    st.divider()
+    st.subheader("Graph Views of the Locus")
+    st.caption(
+        "These network views reuse the polymer simulation and AlphaGenome tracks to show which regions are brought together in 3D and which annotated elements are likely rewired."
+    )
+    gtab1, gtab2 = st.tabs(["Accessibility graph", "Regulatory graph"])
+    with gtab1:
+        with st.expander("What this graph shows", expanded=False):
+            st.markdown("""
+This is an **accessibility graph** built on top of the polymer simulation.
+
+- **Nodes:** polymer beads representing genomic bins
+- **Node color:** predicted ATAC change, shown as `log2(Ref / Mut)`
+- **Edges:** only strong spatial contacts in the simulated 3D structure
+
+The idea is to show **which accessible or accessibility-changing regions are physically brought together** in the reference and mutant conformations.
+""")
+        _render_accessibility_graph(result, edit_start, edit_end)
+
+    with gtab2:
+        with st.expander("What this graph shows", expanded=False):
+            st.markdown("""
+This is a **regulatory rewiring graph** built from annotated genomic elements.
+
+- **Nodes:** promoters, enhancers, and CTCF-like anchors from the locus annotations
+- **Node size:** element activity strength
+- **Edges:** activity × contact score
+- **Edge color:** red = gained in mutant, blue = weakened or lost
+
+This view is meant to highlight **which functional elements are most likely to be rewired** after the edit, rather than only showing raw geometry.
+""")
+        _render_regulatory_graph(genes_df, result, edit_start, edit_end)
+
+    # ── Ranked tables ──────────────────────────────────────────────────────
+    st.divider()
+    st.subheader("Top Affected Genes and Elements")
+    with st.expander("Why these tables are useful", expanded=False):
+        st.markdown("""
+These tables turn the model outputs into ranked candidates you can inspect or export.
+
+- **Top affected genes** rank genes by promoter accessibility, promoter expression proxy, and local contact change.
+- **Top affected elements** rank annotated genes and regulatory elements by accessibility, expression-like change, and contact rewiring.
+
+These are useful when you want to move from visual interpretation to **experimental prioritization**.
+""")
+    t1, t2 = st.tabs(["Top affected genes", "Top affected elements"])
+    with t1:
+        if not genes_ranked_df.empty:
+            st.dataframe(genes_ranked_df.head(15), use_container_width=True, hide_index=True)
+        else:
+            st.info("No gene-ranked table available for this locus.")
+    with t2:
+        if not elements_ranked_df.empty:
+            st.dataframe(elements_ranked_df.head(20), use_container_width=True, hide_index=True)
+        else:
+            st.info("No element-ranked table available for this locus.")
+
+    # ── Boundary consequence ───────────────────────────────────────────────
+    st.divider()
+    st.subheader("TAD Boundary Consequence")
+    with st.expander("How this boundary diagnostic works", expanded=False):
+        st.markdown("""
+This card looks near the edit for the strongest local insulation minimum in the predicted contact map.
+
+It then compares:
+- **local insulation** in the reference and mutant maps
+- **cross-boundary contact** across the same neighborhood
+
+If insulation rises and cross-boundary contact also rises, that is consistent with a **weakened boundary**.
+""")
+    if boundary_info:
+        b1, b2, b3, b4 = st.columns(4)
+        with b1:
+            st.metric("Boundary state", boundary_info["state"])
+        with b2:
+            st.metric("Boundary position", f"{boundary_info['boundary_position']:,}")
+        with b3:
+            st.metric("Insulation Δ", f"{boundary_info['insulation_delta']:+.3f}",
+                      delta="weaker" if boundary_info["insulation_delta"] > 0 else "stronger",
+                      delta_color="inverse")
+        with b4:
+            st.metric("Cross-boundary contact Δ", f"{boundary_info['crossing_delta']:+.3f}",
+                      delta="more crossing" if boundary_info["crossing_delta"] > 0 else "less crossing",
+                      delta_color="inverse")
+    else:
+        st.info("Boundary consequence could not be estimated for this run.")
+
     # ── Differentiation Trajectory ─────────────────────────────────────────
     st.divider()
     st.subheader("Differentiation Trajectory")
@@ -1056,19 +1864,31 @@ elif st.session_state.step == 3:
         "AlphaGenome contact maps at H1-hESC (embryonic stem) → GM12878 (committed lymphoblastoid). "
         "Shows how the edit reshapes 3D organization across the developmental axis."
     )
+    with st.expander("What the differentiation trajectory is doing", expanded=False):
+        st.markdown("""
+This section reruns the contact-map prediction in different supported AlphaGenome cell contexts.
+
+The goal is to ask: **does the same sequence edit have different 3D consequences in different cell states?**
+
+In other words, this is a quick way to compare whether the edit looks more disruptive in a stem-like context versus a more differentiated context.
+""")
     _render_trajectory(result)
 
-    # ── Causal Summary ──────────────────────────────────────────────────────
+    # ── Causal Summary + exports ───────────────────────────────────────────
     st.divider()
     st.subheader("Causal Summary")
-    mod_details = {
-        "type":   st.session_state.mod_type.lower(),
-        "target": f"regulatory element near {st.session_state.gene}",
-    }
-    insight = generate_mechanistic_insight(mod_details, result["delta_stats"])
+    with st.expander("How the summary is generated", expanded=False):
+        st.markdown("""
+The causal summary is a text interpretation built from a few core delta statistics:
+
+- predicted accessibility change
+- predicted expression change
+- predicted loop weakening or strengthening
+
+It is meant to summarize the most likely mechanistic story of the edit in plain language, based on the model outputs above.
+""")
     st.success(insight)
 
-    ds        = result["delta_stats"]
     mc1, mc2, mc3 = st.columns(3)
     with mc1:
         acc = ds.get("accessibility_drop", 0)
@@ -1082,6 +1902,37 @@ elif st.session_state.step == 3:
         loop_state = ("Weakened"    if ds.get("loop_weakened")    else
                       "Strengthened" if ds.get("loop_strengthened") else "Unchanged")
         st.metric("E–P Loop", loop_state)
+
+    export_payload = _build_step3_export_payload(
+        result, genes_df, edit_start, edit_end,
+        insight, boundary_info, elements_ranked_df, genes_ranked_df
+    )
+    export_json = json.dumps(export_payload, indent=2)
+    ex1, ex2, ex3 = st.columns(3)
+    with ex1:
+        st.download_button(
+            "Download summary JSON",
+            export_json,
+            file_name=f"{st.session_state.gene}_{st.session_state.mod_type.lower()}_summary.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    with ex2:
+        st.download_button(
+            "Download genes CSV",
+            genes_ranked_df.to_csv(index=False),
+            file_name=f"{st.session_state.gene}_{st.session_state.mod_type.lower()}_genes.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with ex3:
+        st.download_button(
+            "Download elements CSV",
+            elements_ranked_df.to_csv(index=False),
+            file_name=f"{st.session_state.gene}_{st.session_state.mod_type.lower()}_elements.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
 
     ct_note = result["extras"].get("cell_type")
     if ct_note:

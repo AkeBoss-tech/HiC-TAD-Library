@@ -25,7 +25,7 @@ LARGE_SIZES ?= 10 40 80
         run-synthesis run-synthesis-exp1 run-synthesis-exp2 run-synthesis-exp3 synthesis-report synthesis-ui \
         run-pipeline-stage0 run-pipeline-stage1 run-pipeline-stage2 run-pipeline-stage3 run-pipeline-stage4 \
         run-pipeline-differential \
-        pipeline-report run-pipeline run-pipeline-force pipeline-ui hg-dt-ui \
+        pipeline-report run-pipeline run-pipeline-force pipeline-ui hg-dt-ui flask-dashboard \
         download-references \
         run-all analysis \
         test test-unit test-integration test-coverage test-verbose \
@@ -91,6 +91,7 @@ help:
 	@echo ""
 	@echo "HG-DT: Human Genome Digital Twin"
 	@echo "  make hg-dt-ui             Launch HG-DT 3-step wizard (app.py)"
+	@echo "  make flask-dashboard      Launch custom Flask genome dashboard"
 	@echo "  make download-references  Fetch hg38 FASTA, GENCODE GTF, SCREEN cCRE BED → data/references/"
 	@echo ""
 	@echo "Drug Discovery Pipeline  (Stages 2–4 require NVIDIA_API_KEY in .env)"
@@ -236,6 +237,9 @@ pipeline-ui:
 
 hg-dt-ui:
 	$(STREAMLIT) run app.py
+
+flask-dashboard:
+	$(PYTHON) run_flask_dashboard.py
 
 # HG-DT local reference files (hg38.fa, GENCODE GTF, SCREEN ELS BED)
 download-references:

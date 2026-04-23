@@ -1,5 +1,6 @@
 import os
 from typing import List, Optional
+from dotenv import load_dotenv
 
 try:
     from alphagenome.models import dna_client
@@ -50,6 +51,10 @@ _OUTPUT_MAP = {
 }
 
 
+def _is_unsupported_ontology_error(exc: Exception) -> bool:
+    return "Unsupported ontology" in str(exc)
+
+
 def _resolve_outputs(requested_outputs):
     if requested_outputs is None:
         return [
@@ -92,11 +97,23 @@ class AlphaGenomeConnector:
         if dna_client is None:
             raise ImportError("AlphaGenome SDK is not installed. Run 'make install-alphagenome'.")
 
+        load_dotenv()
         self.api_key = api_key or os.environ.get("ALPHA_GENOME_API_KEY")
         if not self.api_key:
             raise ValueError("ALPHA_GENOME_API_KEY is not set.")
 
         self.client = dna_client.create(self.api_key)
+        self.last_ontology_fallback_used = False
+
+    def _predict_with_ontology_fallback(self, fn, *, ontology_terms, **kwargs):
+        self.last_ontology_fallback_used = False
+        try:
+            return fn(ontology_terms=ontology_terms, **kwargs)
+        except Exception as exc:
+            if ontology_terms and _is_unsupported_ontology_error(exc):
+                self.last_ontology_fallback_used = True
+                return fn(ontology_terms=None, **kwargs)
+            raise
 
     def predict_sequence(
         self,
@@ -117,8 +134,37 @@ class AlphaGenomeConnector:
             cell_type: name from CELL_TYPES dict (e.g. 'K562') or raw CURIE
                        (e.g. 'CLO:0007050'). None = aggregate across all cell types.
         """
-        return self.client.predict_sequence(
+        return self._predict_with_ontology_fallback(
+            self.client.predict_sequence,
             sequence=sequence,
+            organism=_resolve_organism(organism),
+            requested_outputs=_resolve_outputs(requested_outputs),
+            ontology_terms=_resolve_ontology(cell_type),
+        )
+
+    def predict_interval(
+        self,
+        chrom: str,
+        start: int,
+        end: int,
+        organism: str = "HUMAN",
+        requested_outputs: Optional[List[str]] = None,
+        cell_type: Optional[str] = None,
+    ):
+        """
+        Predict functional genomic tracks directly from a genomic interval.
+
+        Args:
+            chrom: chromosome, e.g. ``chr1``
+            start/end: interval bounds (0-based, half-open)
+            organism: "HUMAN" or "MOUSE"
+            requested_outputs: subset of supported output names
+            cell_type: optional ontology name/CURIE
+        """
+        interval = genome.Interval(chromosome=chrom, start=start, end=end)
+        return self._predict_with_ontology_fallback(
+            self.client.predict_interval,
+            interval=interval,
             organism=_resolve_organism(organism),
             requested_outputs=_resolve_outputs(requested_outputs),
             ontology_terms=_resolve_ontology(cell_type),
@@ -155,7 +201,8 @@ class AlphaGenomeConnector:
             reference_bases=ref_base,
             alternate_bases=alt_base,
         )
-        return self.client.predict_variant(
+        return self._predict_with_ontology_fallback(
+            self.client.predict_variant,
             interval=interval,
             variant=variant,
             organism=_resolve_organism(organism),
